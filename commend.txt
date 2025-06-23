@@ -1,0 +1,21 @@
+npm init -y
+npm i typescript --save-dev
+npx tsc --init
+npm in @types/node --save-dev
+mkdir src
+npm i express
+npm i @types/express --save-dev
+npm i ts-node nodemon --save-dev
+
+npm install express @prisma/client
+npm install typescript ts-node @types/node @types/express nodemon --save-dev
+
+npm install cors
+npm install --save-dev @types/cors
+
+npm install morgan
+npm install --save-dev @types/morgan
+
+npx prisma init
+npx prisma generate
+npx prisma migrate dev --name init
