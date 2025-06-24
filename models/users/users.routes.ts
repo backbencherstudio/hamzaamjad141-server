@@ -16,7 +16,7 @@ router.post("/login",  loginUser);
 router.post("/forgetPassword",  forgotPassword);
 router.post("/verify-reset-password",  verifyOtpAndResetPassword);
 router.patch("/changePassword", verifyUser('ANY'), changePassword);
-router.post('/google-login', googleLogin); // Assuming this is for Google login, you might want to change the controller function if needed
+router.post('/google-login', googleLogin);
 router.post('/facebook-login', facebookLogin);
 router.post('/send-otp', sendOtp);
 router.put("/:id", verifyUser('ADMIN'), upload.single("image"), updateAdmin);

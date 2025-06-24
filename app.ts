@@ -41,12 +41,6 @@ app.use(morgan("dev"));
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// //call index url ....
-// app.use('/', (req, res)=>{
-//     res.status(200).json({
-//         message: "Wellcome"
-//     })
-// })
 
 app.use("/users", users);
 app.use('/api/weather', weatherRouter);   

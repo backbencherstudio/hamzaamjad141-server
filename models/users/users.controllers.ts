@@ -10,9 +10,7 @@ import {
   sendForgotPasswordOTP,
   sendOTP,
 } from "../../utils/emailService.utils";
-import { v4 as uuidv4 } from "uuid"; // Make sure this import is present
-
-import cookieParser from "cookie-parser";
+import { v4 as uuidv4 } from "uuid";
 
 const prisma = new PrismaClient();
 
