@@ -20,7 +20,7 @@ export const createUser = async (req: Request, res: Response) => {
   console.log("Create user request body:", req.body);
 
   try {
-    const { name, email, license, password, confirmPassword } = req.body;
+    const { name, email, password, confirmPassword, license } = req.body;
     const image = req.file;
 
     // ... (keep all your existing validation code)
@@ -28,153 +28,253 @@ export const createUser = async (req: Request, res: Response) => {
     // Generate OTP and session ID
     const otp = generateOTP();
     const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
-    const sessionId = uuidv4(); // Generate unique session ID
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Store temporary user data with session ID
-    const tempUser = {
-      name,
-      email,
-      license,
-      password: hashedPassword,
-      image: image ? image.filename : null,
-      otp,
-      otpExpiry,
-    };
+    const UcodeCreate = await prisma.ucode.create({
+      data: {
+        name,
+        email,
+        license,
+        password: hashedPassword,
+        image: image ? image.filename : null, // Save the image filename 
+        otp,
+        expiration: otpExpiry
+      }
+    });
 
-    tempUserStore.set(sessionId, tempUser);
 
     // Send OTP to user's email
     await sendForgotPasswordOTP(email, otp);
 
     // Set session ID in cookie or return it in response
-    res.cookie('sessionId', sessionId, {
-      httpOnly: true,
-      sameSite: 'lax', // Adjust based on your needs
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 15 * 60 * 1000 // 15 minutes (matches OTP expiry)
-    });
+    
 
     res.status(200).json({
       success: true,
       message: "Verification OTP sent to your email",
       nextStep: "verify-otp",
-      sessionId
-      // Optionally include sessionId if not using cookies
-      // sessionId: sessionId 
+      userId: UcodeCreate.id
     });
   } catch (error) {
     // ... (keep your existing error handling)
   }
 };
+
 export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
+  console.log("Verify OTP and create user request body:", req.body);
   try {
-    const { otp } = req.body;
+    const { otp, ucodeId } = req.body;
 
-    // Get the session ID from cookies or headers
-    const sessionId = req.cookies?.sessionId || req.headers['x-session-id'];
-    console.log("Session ID from request:", sessionId);
-    
-    if (!sessionId) {
+    if (!ucodeId) {
        res.status(400).json({
         success: false,
-        message: "Session ID is required",
+        message: "Ucode ID is required",
       });
     }
 
-    // Retrieve temporary user data using session ID
-    const tempUser = tempUserStore.get(sessionId);
-    console.log("Session ID:", sessionId);
-    console.log("Temporary user data:", tempUser);
+    // Find the unverified user
+    const unverifiedUser = await prisma.ucode.findUnique({
+      where: { id: parseInt(ucodeId) }
+    });
 
-    if (!tempUser) {
+    if (!unverifiedUser) {
        res.status(400).json({
         success: false,
-        message: "Session expired or invalid",
+        message: "Invalid registration request",
       });
     }
 
-    // Check if OTP is expired
-    if (new Date(tempUser.otpExpiry) < new Date()) {
-      // Generate new OTP
+    // Check OTP expiry
+    if (new Date() > unverifiedUser.expiration!) {
       const newOtp = generateOTP();
-      const newOtpExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes expiry
+      const newOtpExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
-      // Update temp user with new OTP
-      tempUserStore.set(sessionId, {
-        ...tempUser,
-        otp: newOtp,
-        otpExpiry: newOtpExpiry,
+      await prisma.ucode.update({
+        where: { id: unverifiedUser.id },
+        data: {
+          otp: newOtp,
+          expiration: newOtpExpiry
+        }
       });
 
-      // Send new OTP to user's email
-      sendForgotPasswordOTP(tempUser.email, newOtp);
+      await sendForgotPasswordOTP(unverifiedUser.email, newOtp);
 
        res.status(400).json({
         success: false,
-        message: "OTP expired. A new OTP has been sent to your email",
+        message: "OTP expired. New OTP sent",
         shouldResendOtp: true,
+        ucodeId: unverifiedUser.id
       });
     }
 
-    // Check if OTP matches
-    if (tempUser.otp !== otp) {
+    // Verify OTP
+    if (unverifiedUser.otp !== otp) {
        res.status(400).json({
         success: false,
         message: "Invalid OTP",
       });
     }
 
-    // Create the user in database
-    const user = await prisma.user.create({
-      data: {
-        name: tempUser.name,
-        email: tempUser.email, // Email comes from session storage
-        license: tempUser.license,
-        password: tempUser.password,
-        image: tempUser.image,
-        isVerified: true,
-      },
-    });
+    // Create verified user and clean OTP fields
+    const [verifiedUser] = await prisma.$transaction([
+      prisma.user.create({
+        data: {
+          name: unverifiedUser.name,
+          email: unverifiedUser.email,
+          password: unverifiedUser.password,
+          license: unverifiedUser.license || null,
+          image: unverifiedUser.image || null,
+          isVerified: true,
+        },
+      }),
+      prisma.ucode.update({
+        where: { id: unverifiedUser.id },
+        data: {
+          otp: null,       // Clear OTP
+          expiration: null, // Clear expiry
+        }
+      })
+    ]);
 
-    // Generate JWT token
+    // Generate token
     const token = jwt.sign(
-      { id: user.id, email: user.email },
+      { id: verifiedUser.id, email: verifiedUser.email },
       process.env.JWT_SECRET as string,
       { expiresIn: "100d" }
     );
 
-    // Get image URL if exists
-    const imageUrl = user.image ? getImageUrl(`/uploads/${user.image}`) : null;
-
-    // Clean up temporary data
-    tempUserStore.delete(sessionId);
-
-    // Clear session cookie if using cookies
-    res.clearCookie('sessionId');
-
-    res.status(201).json({
+    // Prepare response
+    const response = {
       success: true,
-      message: "User created and verified successfully",
+      message: "User verified successfully",
       token,
       user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        license: user.license,
-        image: imageUrl,
+        id: verifiedUser.id,
+        name: verifiedUser.name,
+        email: verifiedUser.email,
+        license: verifiedUser.license,
+        image: verifiedUser.image ? getImageUrl(`/uploads/${verifiedUser.image}`) : null,
       },
-    });
+    };
+
+    res.status(201).json(response);
   } catch (error) {
-    res.status(400).json({
+    console.error("Verification error:", error);
+    res.status(500).json({
       success: false,
-      message: "Something went wrong during verification",
-      error: error.message || error.stack,
+      message: "Verification failed",
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 };
+// export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
+//   try {
+//     const { otp } = req.body;
+
+//     // Get the session ID from cookies or headers
+//     const sessionId = req.cookies?.sessionId || req.headers['x-session-id'];
+//     console.log("Session ID from request:", sessionId);
+    
+//     if (!sessionId) {
+//        res.status(400).json({
+//         success: false,
+//         message: "Session ID is required",
+//       });
+//     }
+
+//     // Retrieve temporary user data using session ID
+//     const tempUser = tempUserStore.get(sessionId);
+//     console.log("Session ID:", sessionId);
+//     console.log("Temporary user data:", tempUser);
+
+//     if (!tempUser) {
+//        res.status(400).json({
+//         success: false,
+//         message: "Session expired or invalid",
+//       });
+//     }
+
+//     // Check if OTP is expired
+//     if (new Date(tempUser.otpExpiry) < new Date()) {
+//       // Generate new OTP
+//       const newOtp = generateOTP();
+//       const newOtpExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes expiry
+
+//       // Update temp user with new OTP
+//       tempUserStore.set(sessionId, {
+//         ...tempUser,
+//         otp: newOtp,
+//         otpExpiry: newOtpExpiry,
+//       });
+
+//       // Send new OTP to user's email
+//       sendForgotPasswordOTP(tempUser.email, newOtp);
+
+//        res.status(400).json({
+//         success: false,
+//         message: "OTP expired. A new OTP has been sent to your email",
+//         shouldResendOtp: true,
+//       });
+//     }
+
+//     // Check if OTP matches
+//     if (tempUser.otp !== otp) {
+//        res.status(400).json({
+//         success: false,
+//         message: "Invalid OTP",
+//       });
+//     }
+
+//     // Create the user in database
+//     const user = await prisma.user.create({
+//       data: {
+//         name: tempUser.name,
+//         email: tempUser.email, // Email comes from session storage
+//         license: tempUser.license,
+//         password: tempUser.password,
+//         image: tempUser.image,
+//         isVerified: true,
+//       },
+//     });
+
+//     // Generate JWT token
+//     const token = jwt.sign(
+//       { id: user.id, email: user.email },
+//       process.env.JWT_SECRET as string,
+//       { expiresIn: "100d" }
+//     );
+
+//     // Get image URL if exists
+//     const imageUrl = user.image ? getImageUrl(`/uploads/${user.image}`) : null;
+
+//     // Clean up temporary data
+//     tempUserStore.delete(sessionId);
+
+//     // Clear session cookie if using cookies
+//     res.clearCookie('sessionId');
+
+//     res.status(201).json({
+//       success: true,
+//       message: "User created and verified successfully",
+//       token,
+//       user: {
+//         id: user.id,
+//         name: user.name,
+//         email: user.email,
+//         license: user.license,
+//         image: imageUrl,
+//       },
+//     });
+//   } catch (error) {
+//     res.status(400).json({
+//       success: false,
+//       message: "Something went wrong during verification",
+//       error: error.message || error.stack,
+//     });
+//   }
+// };
 export const loginUser = async (req: Request, res: Response) => {
   console.log("Login request body:", req.body);
   try {
