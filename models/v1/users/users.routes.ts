@@ -4,7 +4,7 @@ import { createUser, loginUser, updateAdmin, changePassword,sendOtp,verifyOtp,fo
  
 import upload from "../../../config/multer.congig";
 import { send } from "process";
-import { sendOTP } from "../../../utils/emailService.utils";
+ 
 import { verifyUser } from "../../../middleware/verifyUsers";
 
 const router = express.Router();

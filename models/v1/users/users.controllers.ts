@@ -8,7 +8,6 @@ import { baseUrl, getImageUrl } from "../../../utils/base_utl";
 import {
   generateOTP,
   sendForgotPasswordOTP,
-  sendOTP,
 } from "../../../utils/emailService.utils";
 import { v4 as uuidv4 } from "uuid";
 
@@ -240,7 +239,7 @@ export const changePassword = async (req: any, res: Response) => {
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: parseInt(id, 10) },
+      where: { id: id },
     });
     console.log("User found for password change:", user);
 
@@ -384,7 +383,6 @@ export const verifyOtp = async (req: Request, res: Response) => {
         email: userCode.email,
         name: userCode.name || null,
         password: userCode.password,
-        isVerified: true,
       },
     });
 
@@ -498,6 +496,9 @@ export const forgotPassword = async (req: Request, res: Response) => {
     });
   }
 };
+
+
+
 export const verifyOtpAndResetPassword = async (
   req: Request,
   res: Response
@@ -644,7 +645,6 @@ export const facebookLogin = async (req: Request, res: Response) => {
           email,
           authProvider,
           image: savedImagePath,
-          isVerified: true,
         },
       });
     }
@@ -684,7 +684,7 @@ export const updateAdmin = async (req: any, res: Response) => {
     const newImage = req.file;
 
     const existingUser = await prisma.user.findUnique({
-      where: { id: parseInt(id, 10) },
+      where: { id: id },
     });
 
     if (!existingUser) {
@@ -742,7 +742,7 @@ export const updateAdmin = async (req: any, res: Response) => {
       }
 
       const user = await prisma.user.update({
-        where: { id: parseInt(id, 10) },
+        where: { id: id },
         data: {
           name: name || existingUser.name,
           image: newImage ? newImage.filename : existingUser.image,
@@ -810,7 +810,6 @@ export const verifyEmailUpdate = async (req: Request, res: Response) => {
         email: verificationData.newEmail,
         name: verificationData.currentData.name,
         image: verificationData.currentData.image,
-        isVerified: true,
       },
     });
 
