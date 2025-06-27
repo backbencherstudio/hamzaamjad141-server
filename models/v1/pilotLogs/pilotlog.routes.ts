@@ -5,6 +5,6 @@ import {createInstructorAndAddLog} from "./pilotlog.controllers";
 
 const router = express.Router();
 
-router.post("/create-instructor",createInstructorAndAddLog);
+router.post("/create-instructor", verifyUser('USER'), createInstructorAndAddLog);
 
 export default router;

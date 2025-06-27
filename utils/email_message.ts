@@ -131,3 +131,71 @@ export const emailForgotPasswordOTP = (email: string, OTP: string): string => {
     </html>
   `;
 };
+
+
+
+export const instructorConformationsTamplate = (
+  email: string, 
+  studentName: string,
+  logDetails: any
+): string => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>New Flight Log Submission</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #2c3e50; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background-color: #f9f9f9; }
+        .footer { margin-top: 20px; padding: 10px; text-align: center; font-size: 12px; color: #777; }
+        .log-details { margin: 20px 0; }
+        .log-item { margin-bottom: 10px; }
+        .log-label { font-weight: bold; display: inline-block; width: 150px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>New Flight Log Submission</h1>
+        </div>
+        
+        <div class="content">
+          <p>Dear Instructor,</p>
+          
+          <p>Your student <strong>${studentName}</strong> has submitted a new flight log entry.</p>
+          
+          <div class="log-details">
+            <h3>Flight Details:</h3>
+            <div class="log-item"><span class="log-label">From:</span> ${logDetails.from}</div>
+            <div class="log-item"><span class="log-label">To:</span> ${logDetails.to}</div>
+            <div class="log-item"><span class="log-label">Aircraft Type:</span> ${logDetails.aircrafttype}</div>
+            <div class="log-item"><span class="log-label">Tail Number:</span> ${logDetails.tailNumber}</div>
+            <div class="log-item"><span class="log-label">Flight Time:</span> ${logDetails.flightTime} minutes</div>
+            <div class="log-item"><span class="log-label">Day Time:</span> ${logDetails.daytime}</div>
+            <div class="log-item"><span class="log-label">Night Time:</span> ${logDetails.nightime}</div>
+            <div class="log-item"><span class="log-label">IFR Time:</span> ${logDetails.ifrtime}</div>
+            <div class="log-item"><span class="log-label">Cross Country:</span> ${logDetails.crossCountry}</div>
+            <div class="log-item"><span class="log-label">Takeoffs:</span> ${logDetails.takeoffs}</div>
+            <div class="log-item"><span class="log-label">Landings:</span> ${logDetails.landings}</div>
+            <div class="log-item"><span class="log-label">Date:</span> ${new Date(logDetails.createdAt).toLocaleString()}</div>
+          </div>
+          
+          <p>Please review this log entry at your earliest convenience.</p>
+          
+          <p>Best regards,</p>
+          <p>The Flight Training Team</p>
+        </div>
+        
+        <div class="footer">
+          <p>This email was sent to ${email}</p>
+          <p>© ${new Date().getFullYear()} Flight Training System. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};

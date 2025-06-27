@@ -1,7 +1,10 @@
 import nodemailer from "nodemailer";
 
 import dotenv from "dotenv";
-import { emailForgotPasswordOTP } from "./email_message";
+import {
+  emailForgotPasswordOTP,
+  instructorConformationsTamplate,
+} from "./email_message";
 
 dotenv.config();
 
@@ -33,15 +36,34 @@ export const sendEmail = async (
   await mailTransporter.sendMail(mailOptions);
 };
 
-
-export const sendForgotPasswordOTP = async (email: string, otp: string): Promise<void> => {
+export const sendForgotPasswordOTP = async (
+  email: string,
+  otp: string
+): Promise<void> => {
   const htmlContent = emailForgotPasswordOTP(email, otp);
   await sendEmail(email, "OTP Code for Password Reset", htmlContent);
-}
-
+};
 
 export const verifyOTP = (email: string, userOTP: string) => {
   const htmlContent = emailForgotPasswordOTP(email, userOTP);
-   sendEmail(email, "OTP Code for Password Reset", htmlContent);
+  sendEmail(email, "OTP Code for Password Reset", htmlContent);
 };
 
+export const instructorConformations = async (
+  instructorEmail: string,
+  studentName: string,
+  logDetails: any
+) => {
+  const htmlContent = instructorConformationsTamplate(
+    instructorEmail,
+    studentName,
+    logDetails
+  );
+  await sendEmail(
+    instructorEmail,
+    `New Flight Log Submission from ${studentName}`,
+    htmlContent
+  );
+};
+
+ 

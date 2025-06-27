@@ -25,4 +25,3 @@ export const getWeatherData = async (location: string) => {
     throw new Error('Failed to fetch weather data');
   }
 };
-// Additional weather functions can be added here
