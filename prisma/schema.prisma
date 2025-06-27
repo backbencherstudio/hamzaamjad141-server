@@ -14,18 +14,24 @@ datasource db {
 }
 
 model User {
-  id         Int        @id @default(autoincrement())
-  name       String
-  email      String     @unique
-  password   String?
-  image      String?
-  license    Licese     @default(NO_LICENCE)
-  role       Role       @default(ADMIN)
-  authProvider String? 
-  isVerified Boolean    @default(false)
-  createdAt  DateTime   @default(now()) @map("created_at")
-  updatedAt  DateTime   @updatedAt
-  
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  password     String?
+  image        String?
+  license      Licese   @default(NO_LICENCE)
+  role         Role     @default(ADMIN)
+  authProvider String?
+  isVerified   Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt
+
+  instructor    Instructor[]
+  addLog        AddLog?
+  userNewMember UserNewMember?
+  pilotWeather  PilotWeather?
+  userInstructor UserInstructor?
+
   @@map("users")
 }
 
@@ -35,7 +41,7 @@ model Ucode {
   email      String    @unique
   password   String
   image      String?
-  license    Licese     @default(NO_LICENCE)
+  license    Licese    @default(NO_LICENCE)
   otp        String?
   expiration DateTime?
   createdAt  DateTime  @default(now())
@@ -55,3 +61,96 @@ enum Licese {
   CH
 }
 
+model UserNewMember {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  subscription String?
+  status       String?
+  action       String?
+  userId       Int      @unique
+  user         User     @relation(fields: [userId], references: [id])
+  createdAt    DateTime @default(now())
+}
+
+model Instructor {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  phone     String?
+  status    String?
+  action    String?
+  userId    Int      
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userInstructor UserInstructor?
+}
+model UserInstructor {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  phone     String?
+  status    String?
+  action    String?
+  username  String?
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id])
+  insturctorId    Int  @unique     
+  instructor      Instructor     @relation(fields: [insturctorId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  addLog    AddLog[]
+}
+
+model AddLog {
+  id           Int        @id @default(autoincrement())
+  date         DateTime   @default(now())
+  from         String
+  to           String
+  aircrafttype String
+  tailNumber   String
+  flightTime   Int
+  pictime      String?
+  dualrcv      String?
+  daytime      String
+  nightime     String
+  ifrtime      String
+  crossCountry String
+  takeoffs     Int
+  landings     Int
+  userId       Int        @unique
+  user         User       @relation(fields: [userId], references: [id])
+  instructorId Int
+  instructor   UserInstructor @relation(fields: [instructorId], references: [id])
+  action       Action @default(active)
+  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime   @default(now())
+
+  @@map("add_logs")
+}
+
+model Location {
+  id      String         @id @default(uuid())
+  name    String         @unique
+  weather PilotWeather[]
+}
+
+model PilotWeather {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @unique
+  user       User     @relation(fields: [userId], references: [id])
+  location   Location @relation(fields: [locationId], references: [id])
+  locationId String
+  data       Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  @@unique([userId, locationId])
+
+  @@map("pilot_weather")
+}
+
+enum Action{
+  active
+  inactive
+}

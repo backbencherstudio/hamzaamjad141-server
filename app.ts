@@ -1,14 +1,14 @@
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import morgan from "morgan";
+import "./config/deactivateOldUsers";
 
 
 import path from "path";
 
- import users from './models/users/users.routes';
 import cookieParser from "cookie-parser";
-import weatherRouter from './models/weather/weather.route';
-
+ 
+import v1 from "./models/v1/index";
 
 
 const app = express();
@@ -41,9 +41,7 @@ app.use(morgan("dev"));
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-
-app.use("/users", users);
-app.use('/api/weather', weatherRouter);   
+app.use("/", v1)
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.status(404).json({
