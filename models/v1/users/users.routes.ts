@@ -10,7 +10,7 @@ import { verifyUser } from "../../../middleware/verifyUsers";
 const router = express.Router();
 
 
-router.post("/register", upload.single("image"), createUser);
+router.post("/register", createUser);
 router.post("/registerVerify",  verifyOtpAndCreateUser);
 router.post("/login",  loginUser);
 router.post("/forgetPassword",  forgotPassword);

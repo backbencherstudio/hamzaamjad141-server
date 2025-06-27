@@ -7,4 +7,5 @@ const router = express.Router();
 
 router.post('/create',verifyUser('ADMIN'), createInstructor);
 router.get('/user_instructor',  userInstructor);
+
 export default router;

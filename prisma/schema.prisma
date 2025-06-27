@@ -14,33 +14,31 @@ datasource db {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
+  id           String   @id @default(cuid())
   name         String
   email        String   @unique
   password     String?
   image        String?
   license      Licese   @default(NO_LICENCE)
-  role         Role     @default(ADMIN)
+  role         Role     @default(USER)
   authProvider String?
-  isVerified   Boolean  @default(false)
+
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt
 
-  instructor    Instructor[]
-  addLog        AddLog?
-  userNewMember UserNewMember?
-  pilotWeather  PilotWeather?
+  instructor     Instructor[]
+  addLog         AddLog?
+  pilotWeather   PilotWeather?
   userInstructor UserInstructor?
 
   @@map("users")
 }
 
 model Ucode {
-  id         Int       @id @default(autoincrement())
+  id         String    @id @default(cuid())
   name       String
   email      String    @unique
   password   String
-  image      String?
   license    Licese    @default(NO_LICENCE)
   otp        String?
   expiration DateTime?
@@ -61,51 +59,41 @@ enum Licese {
   CH
 }
 
-model UserNewMember {
-  id           Int      @id @default(autoincrement())
-  name         String
-  email        String   @unique
-  subscription String?
-  status       String?
-  action       String?
-  userId       Int      @unique
-  user         User     @relation(fields: [userId], references: [id])
-  createdAt    DateTime @default(now())
-}
 
 model Instructor {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  phone     String?
-  status    String?
-  action    String?
-  userId    Int      
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String          @id @default(cuid())
+  name           String
+  email          String          @unique
+  phone          String?
+  status         String?
+  action         String?
+  userId         String
+  user           User            @relation(fields: [userId], references: [id])
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   userInstructor UserInstructor?
 }
+
 model UserInstructor {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  phone     String?
-  status    String?
-  action    String?
-  username  String?
-  userId    Int      @unique
-  user      User     @relation(fields: [userId], references: [id])
-  insturctorId    Int  @unique     
-  instructor      Instructor     @relation(fields: [insturctorId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  addLog    AddLog[]
+  id           String     @id @default(cuid())
+  name         String
+  email        String     @unique
+  phone        String?
+  status       String?
+  action       String?
+  username     String?
+  userId       String     @unique
+  user         User       @relation(fields: [userId], references: [id])
+  insturctorId String     @unique
+  instructor   Instructor @relation(fields: [insturctorId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  addLog       AddLog[]
 }
 
 model AddLog {
-  id           Int        @id @default(autoincrement())
-  date         DateTime   @default(now())
+  id           Int            @id @default(autoincrement())
+  date         DateTime       @default(now())
   from         String
   to           String
   aircrafttype String
@@ -119,13 +107,13 @@ model AddLog {
   crossCountry String
   takeoffs     Int
   landings     Int
-  userId       Int        @unique
-  user         User       @relation(fields: [userId], references: [id])
-  instructorId Int
+  userId       String            @unique
+  user         User           @relation(fields: [userId], references: [id])
+  instructorId String
   instructor   UserInstructor @relation(fields: [instructorId], references: [id])
-  action       Action @default(active)
-  updatedAt    DateTime   @updatedAt
-  createdAt    DateTime   @default(now())
+  action       Action         @default(active)
+  updatedAt    DateTime       @updatedAt
+  createdAt    DateTime       @default(now())
 
   @@map("add_logs")
 }
@@ -137,20 +125,20 @@ model Location {
 }
 
 model PilotWeather {
-  id         Int      @id @default(autoincrement())
-  userId     Int      @unique
+  id         String   @id @default(cuid())
+  userId     String      @unique
   user       User     @relation(fields: [userId], references: [id])
   location   Location @relation(fields: [locationId], references: [id])
   locationId String
   data       Json
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  @@unique([userId, locationId])
 
+  @@unique([userId, locationId])
   @@map("pilot_weather")
 }
 
-enum Action{
+enum Action {
   active
   inactive
 }

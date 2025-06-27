@@ -10,9 +10,7 @@ import {
   sendForgotPasswordOTP,
   sendOTP,
 } from "../../../utils/emailService.utils";
-import { v4 as uuidv4 } from "uuid"; 
-
-import cookieParser from "cookie-parser";
+import { v4 as uuidv4 } from "uuid";
 
 const prisma = new PrismaClient();
 
@@ -21,50 +19,61 @@ const tempUserStore = new Map<string, any>();
 export const createUser = async (req: Request, res: Response) => {
   try {
     const { name, email, password, license } = req.body;
-    if (!name || !email || !password) {
-       res.status(400).json({
-        success: false,
-        message: "Name, email, and password are required",
+
+    const missingField = ["name", "email", "password", "license"].find(
+      (field) => !req.body[field]
+    );
+
+    if (missingField) {
+      res.status(400).json({
+        message: `${missingField} is required!`,
       });
+      return;
     }
 
     const existingUser = await prisma.ucode.findUnique({ where: { email } });
+
     if (existingUser) {
-       res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Email already exists",
       });
     }
 
-    const image = req.file;
     const otp = generateOTP();
     const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
-    const hashedPassword = await bcrypt.hash(password, 10);
 
-    const UcodeCreate = await prisma.ucode.create({
-      data: {
+    const hashedPassword = await bcrypt.hash(password, 8);
+
+    const UcodeUpsert = await prisma.ucode.upsert({
+      where: { email },
+      update: {
+        name,
+        license,
+        password: hashedPassword,
+        otp,
+        expiration: otpExpiry,
+      },
+      create: {
         name,
         email,
         license,
         password: hashedPassword,
-        image: image ? image.filename : null,
         otp,
         expiration: otpExpiry,
       },
     });
-    console.log("UcodeCreate:", UcodeCreate);
 
     await sendForgotPasswordOTP(email, otp);
 
-     res.status(200).json({
+    res.status(200).json({
       success: true,
       message: "Verification OTP sent to your email",
-      nextStep: "verify-otp",
-      userId: UcodeCreate.id,
+      userId: UcodeUpsert.id,
     });
   } catch (error) {
     console.error("Error in createUser:", error);
-     res.status(500).json({
+    res.status(500).json({
       success: false,
       message: "Failed to create user",
       error: error instanceof Error ? error.message : "Unknown error",
@@ -73,56 +82,44 @@ export const createUser = async (req: Request, res: Response) => {
 };
 
 export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
-  console.log("Verify OTP and create user request body:", req.body);
-
   try {
     const { otp, ucodeId } = req.body;
 
     if (!ucodeId) {
-       res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Ucode ID is required",
       });
     }
 
     const unverifiedUser = await prisma.ucode.findUnique({
-      where: { id: parseInt(ucodeId) }
+      where: { id: ucodeId },
     });
 
     if (!unverifiedUser) {
-       res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Invalid registration request",
       });
+      return;
     }
 
     if (new Date() > unverifiedUser.expiration!) {
-      const newOtp = generateOTP();
-      const newOtpExpiry = new Date(Date.now() + 15 * 60 * 1000);
-
-      await prisma.ucode.update({
-        where: { id: unverifiedUser.id },
-        data: {
-          otp: newOtp,
-          expiration: newOtpExpiry
-        }
-      });
-
-      await sendForgotPasswordOTP(unverifiedUser.email, newOtp);
-
-       res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "OTP expired. New OTP sent",
         shouldResendOtp: true,
-        ucodeId: unverifiedUser.id
+        ucodeId: unverifiedUser.id,
       });
+      return;
     }
 
     if (unverifiedUser.otp !== otp) {
-       res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Invalid OTP",
       });
+      return;
     }
 
     const [verifiedUser] = await prisma.$transaction([
@@ -131,32 +128,14 @@ export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
           name: unverifiedUser.name,
           email: unverifiedUser.email,
           password: unverifiedUser.password,
-          license: unverifiedUser.license || null,
-          image: unverifiedUser.image || null,
-          isVerified: true,
+          license: unverifiedUser.license,
         },
       }),
-      prisma.ucode.update({
-        where: { id: unverifiedUser.id },
-        data: {
-          otp: null,
-          expiration: null,
-        }
-      })
-    ]);
 
-    await prisma.userNewMember.create({
-      data: {
-        name: unverifiedUser.name,
-        email: unverifiedUser.email,
-        subscription: "subscribed",
-        status: "active",
-        action: "active",
-        user: {
-          connect: { id: verifiedUser.id }
-        }
-      }
-    });
+      prisma.ucode.delete({
+        where: { id: unverifiedUser.id },
+      }),
+    ]);
 
     const token = jwt.sign(
       { id: verifiedUser.id, email: verifiedUser.email },
@@ -173,15 +152,12 @@ export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
         name: verifiedUser.name,
         email: verifiedUser.email,
         license: verifiedUser.license,
-        image: verifiedUser.image ? getImageUrl(`/uploads/${verifiedUser.image}`) : null,
       },
     };
 
-     res.status(201).json(response);
-
+    res.status(201).json(response);
   } catch (error) {
-    console.error("Verification error:", error);
-     res.status(500).json({
+    res.status(500).json({
       success: false,
       message: "Verification failed",
       error: error instanceof Error ? error.message : "Unknown error",
@@ -190,7 +166,6 @@ export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
 };
 
 export const loginUser = async (req: Request, res: Response) => {
-  console.log("Login request body:", req.body);
   try {
     const { email, password } = req.body;
     const missingField = ["email", "password"].find(
@@ -201,15 +176,15 @@ export const loginUser = async (req: Request, res: Response) => {
       res.status(400).json({
         message: `${missingField} is required!`,
       });
-      return; 
+      return;
     }
-    
+
     const user = await prisma.user.findUnique({
       where: {
         email,
       },
     });
-    console.log("User found:", user);
+
     if (!user) {
       res.status(404).json({
         message: "User not found",
@@ -229,7 +204,9 @@ export const loginUser = async (req: Request, res: Response) => {
       process.env.JWT_SECRET as string,
       { expiresIn: "100d" }
     );
+
     console.log("Token expires at:", token);
+
     res.status(200).json({
       success: true,
       message: "Login successful",
@@ -237,7 +214,6 @@ export const loginUser = async (req: Request, res: Response) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        image: user.image ? `${baseUrl}/uploads/${user.image}` : null,
       },
       token,
     });
@@ -245,19 +221,16 @@ export const loginUser = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Something went wrong",
-      error,
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 };
-
-
 
 export const changePassword = async (req: any, res: Response) => {
   console.log("Change password request body:", req.body);
   try {
     const { id } = req.user;
     const { oldPassword, newPassword } = req.body;
-    console.log("User ID:", id);
 
     if (!oldPassword || !newPassword) {
       res
@@ -282,10 +255,10 @@ export const changePassword = async (req: any, res: Response) => {
       return;
     }
 
-    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    const hashedNewPassword = await bcrypt.hash(newPassword, 8);
 
     await prisma.user.update({
-      where: { id: parseInt(id, 10) },
+      where: { id: id },
       data: { password: hashedNewPassword },
     });
 
@@ -333,7 +306,7 @@ export const sendOtp = async (req: Request, res: Response) => {
         email,
         password: hashedPassword,
         otp: otp,
-        expiration: new Date(Date.now() + 10 * 60 * 1000), 
+        expiration: new Date(Date.now() + 10 * 60 * 1000),
       },
     });
 
@@ -365,15 +338,10 @@ export const sendOtp = async (req: Request, res: Response) => {
   }
 };
 
-interface VerifyOtpRequest {
-  email: string;
-  userEnteredOtp: string;
-}
-
 export const verifyOtp = async (req: Request, res: Response) => {
   console.log("Verify OTP request body:", req.body);
   try {
-    const { email, userEnteredOtp }: VerifyOtpRequest = req.body;
+    const { email, userEnteredOtp } = req.body;
 
     if (!email || !userEnteredOtp) {
       res.status(400).json({
@@ -415,7 +383,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
       data: {
         email: userCode.email,
         name: userCode.name || null,
-        password: userCode.password, 
+        password: userCode.password,
         isVerified: true,
       },
     });
@@ -450,7 +418,6 @@ export const verifyOtp = async (req: Request, res: Response) => {
 };
 
 export const forgotPassword = async (req: Request, res: Response) => {
-  console.log("Forgot Password request body:", req.body);
   try {
     const { email } = req.body;
 
@@ -466,7 +433,8 @@ export const forgotPassword = async (req: Request, res: Response) => {
     });
 
     const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + 15 * 60 * 1000); 
+
+    const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
     if (!existingRecord) {
       const newRecord = await prisma.ucode.create({
@@ -474,7 +442,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
           email,
           otp,
           expiration: otpExpiry,
-          name: "", 
+          name: "",
           password: "",
         },
       });
@@ -499,11 +467,18 @@ export const forgotPassword = async (req: Request, res: Response) => {
       });
     }
 
-    await prisma.ucode.update({
+    await prisma.ucode.upsert({
       where: { email },
-      data: {
+      update: {
         otp,
         expiration: otpExpiry,
+      },
+      create: {
+        email,
+        otp,
+        expiration: otpExpiry,
+        name: "",
+        password: "",
       },
     });
 
@@ -624,7 +599,6 @@ export const googleLogin = async (req: Request, res: Response) => {
       { expiresIn: "360d" }
     );
 
-
     res.status(200).json({
       success: true,
       message: "User authenticated successfully",
@@ -646,9 +620,9 @@ export const googleLogin = async (req: Request, res: Response) => {
 };
 
 export const facebookLogin = async (req: Request, res: Response) => {
-  console.log("Facebook Auth route hit",req.body);
+  console.log("Facebook Auth route hit", req.body);
   try {
-    const { name, email, image,authProvider  } = req.body;
+    const { name, email, image, authProvider } = req.body;
 
     if (!name || !email || !image) {
       res.status(400).json({
@@ -668,7 +642,7 @@ export const facebookLogin = async (req: Request, res: Response) => {
         data: {
           name,
           email,
-          authProvider ,
+          authProvider,
           image: savedImagePath,
           isVerified: true,
         },
@@ -702,9 +676,9 @@ export const facebookLogin = async (req: Request, res: Response) => {
 };
 
 export const updateAdmin = async (req: any, res: Response) => {
-  console.log("Update Admin route hit",req.body);
+  console.log("Update Admin route hit", req.body);
   try {
-    console.log("Update Admin request body:", req.body); 
+    console.log("Update Admin request body:", req.body);
     const { id } = req.user;
     const { name, email } = req.body;
     const newImage = req.file;
@@ -717,7 +691,7 @@ export const updateAdmin = async (req: any, res: Response) => {
       if (newImage) {
         fs.unlinkSync(path.join(__dirname, "../../uploads", newImage.filename));
       }
-       res.status(404).json({ message: "User not found" });
+      res.status(404).json({ message: "User not found" });
     }
 
     const isEmailChanging = email && email !== existingUser.email;
@@ -725,7 +699,7 @@ export const updateAdmin = async (req: any, res: Response) => {
     if (isEmailChanging) {
       const verificationToken = uuidv4();
       const otp = generateOTP();
-      const otpExpiry = new Date(Date.now() + 15 * 60 * 1000); 
+      const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
       tempUserStore.set(verificationToken, {
         userId: existingUser.id,
@@ -734,62 +708,69 @@ export const updateAdmin = async (req: any, res: Response) => {
         otpExpiry,
         currentData: {
           name: name || existingUser.name,
-          image: newImage ? newImage.filename : existingUser.image
-        }
+          image: newImage ? newImage.filename : existingUser.image,
+        },
       });
       await sendForgotPasswordOTP(email, otp);
       if (newImage) {
-        const tempImagePath = path.join(__dirname, "../../uploads", newImage.filename);
+        const tempImagePath = path.join(
+          __dirname,
+          "../../uploads",
+          newImage.filename
+        );
         if (fs.existsSync(tempImagePath)) {
           fs.unlinkSync(tempImagePath);
         }
       }
 
-       res.status(200).json({
+      res.status(200).json({
         success: true,
         message: "Verification OTP sent to your new email",
         verificationToken,
-        requiresEmailVerification: true
+        requiresEmailVerification: true,
+      });
+    } else {
+      if (newImage && existingUser.image) {
+        const oldImagePath = path.join(
+          __dirname,
+          "../../uploads",
+          existingUser.image
+        );
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
+
+      const user = await prisma.user.update({
+        where: { id: parseInt(id, 10) },
+        data: {
+          name: name || existingUser.name,
+          image: newImage ? newImage.filename : existingUser.image,
+          email: existingUser.email,
+        },
+      });
+
+      const imageUrl = user.image
+        ? getImageUrl(`/uploads/${user.image}`)
+        : null;
+
+      res.status(200).json({
+        success: true,
+        message: "User updated successfully",
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: imageUrl,
+        },
       });
     }
-    else{
-    if (newImage && existingUser.image) {
-      const oldImagePath = path.join(__dirname, "../../uploads", existingUser.image);
-      if (fs.existsSync(oldImagePath)) {
-        fs.unlinkSync(oldImagePath);
-      }
-    }
-
-    const user = await prisma.user.update({
-      where: { id: parseInt(id, 10) },
-      data: {
-        name: name || existingUser.name,
-        image: newImage ? newImage.filename : existingUser.image,
-        email: existingUser.email, 
-      },
-    });
-
-    const imageUrl = user.image ? getImageUrl(`/uploads/${user.image}`) : null;
-
-     res.status(200).json({
-      success: true,
-      message: "User updated successfully",
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        image: imageUrl,
-      },
-    });
-    }
-    
-
   } catch (error) {
     if (req.file) {
       fs.unlinkSync(path.join(__dirname, "../../uploads", req.file.filename));
     }
 
-     res.status(500).json({
+    res.status(500).json({
       success: false,
       message: "Something went wrong",
       error: error instanceof Error ? error.message : "Unknown error",
@@ -803,23 +784,23 @@ export const verifyEmailUpdate = async (req: Request, res: Response) => {
 
     const verificationData = tempUserStore.get(verificationToken);
     if (!verificationData) {
-       res.status(400).json({
+      res.status(400).json({
         success: false,
-        message: "Invalid or expired verification token"
+        message: "Invalid or expired verification token",
       });
     }
 
     if (new Date(verificationData.otpExpiry) < new Date()) {
-       res.status(400).json({
+      res.status(400).json({
         success: false,
-        message: "OTP expired"
+        message: "OTP expired",
       });
     }
 
     if (verificationData.otp !== otp) {
-       res.status(400).json({
+      res.status(400).json({
         success: false,
-        message: "Invalid OTP"
+        message: "Invalid OTP",
       });
     }
 
@@ -829,7 +810,7 @@ export const verifyEmailUpdate = async (req: Request, res: Response) => {
         email: verificationData.newEmail,
         name: verificationData.currentData.name,
         image: verificationData.currentData.image,
-        isVerified: true
+        isVerified: true,
       },
     });
 
@@ -837,7 +818,7 @@ export const verifyEmailUpdate = async (req: Request, res: Response) => {
 
     const imageUrl = user.image ? getImageUrl(`/uploads/${user.image}`) : null;
 
-     res.status(200).json({
+    res.status(200).json({
       success: true,
       message: "Email updated successfully",
       user: {
@@ -847,9 +828,8 @@ export const verifyEmailUpdate = async (req: Request, res: Response) => {
         image: imageUrl,
       },
     });
-
   } catch (error) {
-     res.status(500).json({
+    res.status(500).json({
       success: false,
       message: "Email verification failed",
       error: error instanceof Error ? error.message : "Unknown error",

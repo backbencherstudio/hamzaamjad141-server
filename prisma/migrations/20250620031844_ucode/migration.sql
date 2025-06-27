@@ -1,3 +1,0 @@
--- AlterTable
-ALTER TABLE "Ucode" ALTER COLUMN "otp" DROP NOT NULL,
-ALTER COLUMN "expiration" DROP NOT NULL;
