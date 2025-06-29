@@ -16,6 +16,7 @@ const prisma = new PrismaClient();
 const tempUserStore = new Map<string, any>();
 
 export const createUser = async (req: Request, res: Response) => {
+  console.log("Create User request body:", req.body); 
   try {
     const { name, email, password, license } = req.body;
 
@@ -32,13 +33,7 @@ export const createUser = async (req: Request, res: Response) => {
 
     const existingUser = await prisma.ucode.findUnique({ where: { email } });
 
-    if (existingUser) {
-      res.status(400).json({
-        success: false,
-        message: "Email already exists",
-      });
-    }
-
+ 
     const otp = generateOTP();
     const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
@@ -63,7 +58,7 @@ export const createUser = async (req: Request, res: Response) => {
       },
     });
 
-    sendForgotPasswordOTP(email, otp);
+     sendForgotPasswordOTP(email, otp);
 
     res.status(200).json({
       success: true,
@@ -82,9 +77,9 @@ export const createUser = async (req: Request, res: Response) => {
 
 export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
   try {
-    const { otp, ucodeId } = req.body;
+    const { otp, email } = req.body;
 
-    if (!ucodeId) {
+    if (!email) {
       res.status(400).json({
         success: false,
         message: "Ucode ID is required",
@@ -92,7 +87,7 @@ export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
     }
 
     const unverifiedUser = await prisma.ucode.findUnique({
-      where: { id: ucodeId },
+      where: { email},
     });
 
     if (!unverifiedUser) {
@@ -132,7 +127,7 @@ export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
       }),
 
       prisma.ucode.delete({
-        where: { id: unverifiedUser.id },
+        where: { email },
       }),
     ]);
 
@@ -160,6 +155,48 @@ export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
       success: false,
       message: "Verification failed",
       error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+export const resendCode = async (req: Request, res: Response) => {
+  console.log("Verify OTP request body:", req.body);
+  try {
+    const { email } = req.body;
+
+    if (!email ) {
+      res.status(400).json({
+        success: false,
+        message: "Email  are required",
+      });
+    }
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
+    const uCode = await prisma.ucode.findUnique({
+      where: { email },
+    });
+    
+    const newUcode = await prisma.ucode.update({
+      where: { email },
+      data: {
+        email: uCode.email,
+        name: uCode.name,
+        password: uCode.password,
+        license: uCode.license,
+        otp: otp, 
+        expiration: otpExpiry
+      },
+    });
+    sendForgotPasswordOTP(email, otp);    
+
+    res.status(200).json({
+      success: true,
+      message: "OTP send successfully",      
+    });
+  } catch (error) {
+    console.error("Error in verifyOtp:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
     });
   }
 };
@@ -481,7 +518,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
       },
     });
 
-    await sendForgotPasswordOTP(email, otp);
+     sendForgotPasswordOTP(email, otp);
 
     res.status(200).json({
       success: true,

@@ -6,7 +6,10 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export const createInstructorAndAddLog = async (req: any, res: Response) => {
+export const createInstructorAndAddLog = async (
+  req: any,
+  res: Response
+) => {
   try {
     const { id } = req.user;
 
