@@ -85,11 +85,8 @@ model Weather {
   id     String @id @default(cuid())
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   data Json
-
   status weatherStatus @default(FAVURATE)
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
