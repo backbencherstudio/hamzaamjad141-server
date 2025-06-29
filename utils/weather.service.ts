@@ -4,8 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
-const BASE_URL = 'https://avwx.rest/api';
-
+ 
 export const getWeatherData = async (location: string) => {
   try {
     const response = await axios.get(`https://avwx.rest/api/metar/${location}`, {
