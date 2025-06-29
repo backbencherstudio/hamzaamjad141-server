@@ -1,18 +1,12 @@
 import { Request, Response } from "express";
 import {
   instructorConformations,
-  sendForgotPasswordOTP,
 } from "../../../utils/emailService.utils";
 import { PrismaClient } from "@prisma/client";
 
-// Extend Express Request interface to include 'user'
-
 const prisma = new PrismaClient();
 
-export const createInstructorAndAddLog = async (
-  req: Request,
-  res: Response
-) => {
+export const createInstructorAndAddLog = async (req: any, res: Response) => {
   try {
     const { id } = req.user;
 
@@ -99,4 +93,3 @@ export const createInstructorAndAddLog = async (
     });
   }
 };
-

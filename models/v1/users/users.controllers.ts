@@ -63,7 +63,7 @@ export const createUser = async (req: Request, res: Response) => {
       },
     });
 
-    await sendForgotPasswordOTP(email, otp);
+    sendForgotPasswordOTP(email, otp);
 
     res.status(200).json({
       success: true,
@@ -224,6 +224,7 @@ export const loginUser = async (req: Request, res: Response) => {
     });
   }
 };
+
 
 export const changePassword = async (req: any, res: Response) => {
   console.log("Change password request body:", req.body);
