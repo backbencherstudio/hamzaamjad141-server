@@ -37,7 +37,8 @@ export const getWeather = async (req, res) => {
 
         res.status(201).json(newWeather);
       }
-    } else {
+    }
+     else {
       const newWeather = await prisma.weather.create({
         data: {
           userId,
