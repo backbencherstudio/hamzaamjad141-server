@@ -3,10 +3,9 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export const createInstructor = async (req: Request, res: Response) => {
+export const createInstructor = async (req: any, res: Response) => {
   try {
     const { name, email, phone } = req.body;
-
     const missingField = ["name", "email", "phone"].find(
       (field) => !req.body[field]
     );
@@ -61,38 +60,38 @@ export const findInstructor = async (req: Request, res: Response) => {
       // If no search term provided, return all instructors
       const instructors = await prisma.instructor.findMany({
         orderBy: {
-          createdAt: 'desc'
-        }
+          createdAt: "desc",
+        },
       });
-       res.status(200).json({
+      res.status(200).json({
         success: true,
         data: instructors,
       });
-      return
+      return;
     }
 
     const searchTerm = search as string;
-    
+
     const instructors = await prisma.instructor.findMany({
       where: {
         OR: [
           {
-            name: { 
+            name: {
               contains: searchTerm,
-              mode: 'insensitive'
-            }
+              mode: "insensitive",
+            },
           },
           {
-            email: { 
+            email: {
               contains: searchTerm,
-              mode: 'insensitive'
-            }
-          }
-        ]
+              mode: "insensitive",
+            },
+          },
+        ],
       },
       orderBy: {
-        createdAt: 'desc'
-      }
+        createdAt: "desc",
+      },
     });
 
     res.status(200).json({
@@ -121,8 +120,6 @@ export const updateInstructor = async (req: Request, res: Response) => {
       });
       return;
     }
-
-    // Check if instructor exists
     const existingInstructor = await prisma.instructor.findUnique({
       where: { id },
     });
@@ -134,8 +131,6 @@ export const updateInstructor = async (req: Request, res: Response) => {
       });
       return;
     }
-
-    // Check if email is being updated to an existing one
     if (email && email !== existingInstructor.email) {
       const emailExists = await prisma.instructor.findUnique({
         where: { email },
@@ -213,5 +208,40 @@ export const deleteInstructor = async (req: Request, res: Response) => {
       message: "Failed to delete instructor",
       error: error instanceof Error ? error.message : "Unknown error",
     });
+  }
+};
+
+export const userInstructor = async (req: any, res: Response) => {
+  const {userInstructor} = req.body;
+  try {
+    const userId = req.user?.userId;
+    const existingUser = await prisma.user.findUnique({
+      where: {
+        id: userId, 
+      },
+    });
+    const Instructor = await prisma.instructor.findUnique({
+      where: {
+        id: userInstructor, 
+      },
+    });
+    const updatedUser = await prisma.user.update({
+    where: {
+      id: userId, // Replace with the actual user ID
+    },
+    data: {
+      name: existingUser.name,
+      email: existingUser.email,
+      instructorId: Instructor.id, // Change instructor association
+    },
+  });
+  res.status(200).json({
+      success: true,
+      data: updatedUser,
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };

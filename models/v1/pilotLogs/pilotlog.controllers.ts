@@ -5,16 +5,18 @@ import {
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
+export const addToInstructor= async (req: any,res: Response) => {
+}
 
 export const createInstructorAndAddLog = async (
   req: any,
   res: Response
 ) => {
   try {
-    const { id } = req.user;
+    const  id  = req.user?.userId;
 
     // Check if user exists
-    const user = await prisma.user.findUnique({ where: { id } });
+    const user = await prisma.user.findUnique({ where:  id  });
     if (!user) {
       res.status(404).json({
         success: false,
@@ -24,7 +26,7 @@ export const createInstructorAndAddLog = async (
     }
 
     // Check if user has an instructor assigned
-    if (!user.instructor) {
+    if (!user.instructorId) {
       res.status(400).json({
         success: false,
         message: "No instructor assigned to this user",
@@ -34,7 +36,7 @@ export const createInstructorAndAddLog = async (
 
     // Get instructor details
     const instructor = await prisma.instructor.findUnique({
-      where: { id: user.instructor },
+      where: { id: user.instructorId },
     });
 
     if (!instructor) {
