@@ -10,7 +10,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export const createInstructorAndAddLog = async (
-  req: Request,
+  req: any,
   res: Response
 ) => {
   try {
