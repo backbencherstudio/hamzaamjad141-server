@@ -4,7 +4,7 @@ import users from "./users/users.routes";
 import weatherRouter from "./weather/weather.route";
 import addlogRouter from "./pilotLogs/pilotlog.routes";
 import instructor from "./instructor/instructors.routes";
-
+import ai from "./ai/ai.routes";
 const router = express.Router();
 
 const moduleRoutes = [
@@ -12,6 +12,7 @@ const moduleRoutes = [
   { path: "/weather", route: weatherRouter },
   { path: "/addlog", route: addlogRouter },
   { path: "/instructor", route: instructor },
+  { path: "/ai",  route: ai } // Placeholder for AI routes
 ];
 
 moduleRoutes.forEach(({ path, route }) => {
