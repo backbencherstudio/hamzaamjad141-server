@@ -186,6 +186,13 @@ export const instructorConformationsTamplate = (
           
           <p>Please review this log entry at your earliest convenience.</p>
           
+          <!-- Action buttons -->
+          <p>Choose an action:</p>
+          <div>
+            <a href="http://localhost:3000/addlog/addlog-approve/${logDetails.id}" class="btn btn-success">Approve</a>
+            <a href="http://localhost:3000/addlog/addlog-reject/${logDetails.id}" class="btn btn-pending">Reject</a>
+          </div>
+          
           <p>Best regards,</p>
           <p>The Flight Training Team</p>
         </div>

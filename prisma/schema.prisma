@@ -59,9 +59,9 @@ model AddLog {
   to           String
   aircrafttype String
   tailNumber   String
-  flightTime   Int
-  pictime      String?
-  dualrcv      String?
+  flightTime   String
+  pictime      String
+  dualrcv      String
   daytime      String
   nightime     String
   ifrtime      String
@@ -69,6 +69,7 @@ model AddLog {
   takeoffs     Int
   landings     Int
   userId       String
+  status       addlogStatus @default(PENDING)
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   action       Action   @default(active)
   updatedAt    DateTime @updatedAt
@@ -105,6 +106,12 @@ enum weatherStatus {
 enum Role {
   USER
   ADMIN
+}
+
+enum addlogStatus {
+  PENDING
+  REJECT
+  APPROVE
 }
 
 enum Licese {
