@@ -188,10 +188,12 @@ export const instructorConformationsTamplate = (
           
           <!-- Action buttons -->
           <p>Choose an action:</p>
-          <div>
-            <a href="http://localhost:3000/addlog/addlog-approve/${logDetails.id}" class="btn btn-success">Approve</a>
-            <a href="http://localhost:3000/addlog/addlog-reject/${logDetails.id}" class="btn btn-pending">Reject</a>
-          </div>
+          <form action="http://localhost:3000/addlog/addlog-approve/${logDetails.id}" method="POST">
+            <button type="submit" class="btn btn-approve">Approve</button>
+          </form>
+          <form action="http://localhost:3000/addlog/addlog-reject/${logDetails.id}" method="POST">
+            <button type="submit" class="btn btn-reject">Reject</button>
+          </form>
           
           <p>Best regards,</p>
           <p>The Flight Training Team</p>

@@ -141,6 +141,7 @@ export const instructorApprov = async (req: any, res: Response) => {
     });
   }
 };
+
 export const instructorReject = async (req: any, res: Response) => {
   try {
     const logId = req.query;

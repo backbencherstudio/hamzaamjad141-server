@@ -7,9 +7,8 @@ const router = express.Router();
 
 router.post("/add-addlog", verifyUser('USER'), createInstructorAndAddLog);
 router.get("/get-logbook", verifyUser('USER'), getLogbookSummary);
-router.post("/addlog-approve/:id", verifyUser('USER'), instructorApprov);
-router.post("/addlog-reject/:id", verifyUser('USER'), instructorReject);
-router.post("/addlog-pending/:id", verifyUser('USER'), instructorApprov);
+router.post("/addlog-approve/:id", instructorApprov);
+router.post("/addlog-reject/:id", instructorReject);
 
 
 
