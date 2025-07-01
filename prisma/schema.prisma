@@ -75,7 +75,6 @@ model AddLog {
   updatedAt    DateTime     @updatedAt
   createdAt    DateTime     @default(now())
 
-  @@map("add_logs")
 }
 
 model Location {
