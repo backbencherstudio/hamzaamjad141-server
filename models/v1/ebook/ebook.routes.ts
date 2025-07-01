@@ -1,0 +1,32 @@
+import express from "express";
+import { verifyUser } from "../../../middleware/verifyUsers";
+import upload from "../../../config/multer.congig";
+import { createEbooks, getAllebook, updateEbook } from "./ebook.controllers";
+
+const router = express.Router();
+
+router.post(
+  "/create",
+//   verifyUser('ADMIN'),
+  upload.fields([
+    { name: 'pdf', maxCount: 1 }, 
+    { name: 'cover', maxCount: 1 }
+  ]),
+  createEbooks
+);
+
+router.get("/all",getAllebook);
+
+router.patch(
+  "/update/:id",
+  upload.fields([
+    { name: 'pdf', maxCount: 1 },
+    { name: 'cover', maxCount: 1 }
+  ]),
+  updateEbook
+);
+
+// router.delete("/delete/:id", deletePortcusts);
+
+
+export default router;

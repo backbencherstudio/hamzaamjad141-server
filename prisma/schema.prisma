@@ -103,7 +103,7 @@ model Portcusts {
   updatedAt DateTime @updatedAt
 }
 
-model Elearning {
+model Ebook {
   id        String   @id @default(cuid())
   title     String
   pdf       String

@@ -6,6 +6,7 @@ import addlogRouter from "./pilotLogs/pilotlog.routes";
 import instructor from "./instructor/instructors.routes";
 import ai from "./ai/ai.routes";
 import portcusts from "./portcusts/portcusts.routes";
+import ebook from "./ebook/ebook.routes";
 
 const router = express.Router();
 
@@ -15,7 +16,8 @@ const moduleRoutes = [
   { path: "/addlog", route: addlogRouter },
   { path: "/instructor", route: instructor },
   { path: "/ai",  route: ai },
-  { path: "/portcusts", route: portcusts  }
+  { path: "/portcusts", route: portcusts  },
+  { path: "/ebook", route: ebook }, 
 ];
 
 moduleRoutes.forEach(({ path, route }) => {
