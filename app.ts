@@ -48,7 +48,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-// Make sure this line is before your routes
+
 app.use(express.static(path.join(__dirname, "public")));
 
 export default app;
