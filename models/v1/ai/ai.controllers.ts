@@ -5,7 +5,7 @@ import { GoogleGenAI } from '@google/genai';
 
 export const generateAIResponse = async (req: Request, res: Response) => {
   try {
-    const { prompt } = req.body;
+    const { prompt } = req.params;
 
     if (!prompt) {
        res.status(400).json({
