@@ -20,7 +20,8 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt
 
-  instructor String?
+  instructorId String?  
+  instructor   Instructor? @relation(fields: [instructorId], references: [id])
   addLog     AddLog[]
   Weather    Weather[]
 
@@ -43,7 +44,7 @@ model Instructor {
   name  String
   email String @unique
   phone String
-
+  users     User[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -58,9 +59,9 @@ model AddLog {
   to           String
   aircrafttype String
   tailNumber   String
-  flightTime   Int
-  pictime      String?
-  dualrcv      String?
+  flightTime   String
+  pictime      String
+  dualrcv      String
   daytime      String
   nightime     String
   ifrtime      String
@@ -68,6 +69,7 @@ model AddLog {
   takeoffs     Int
   landings     Int
   userId       String
+  status       addlogStatus @default(PENDING)
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   action       Action   @default(active)
   updatedAt    DateTime @updatedAt
@@ -104,6 +106,12 @@ enum weatherStatus {
 enum Role {
   USER
   ADMIN
+}
+
+enum addlogStatus {
+  PENDING
+  REJECT
+  APPROVE
 }
 
 enum Licese {

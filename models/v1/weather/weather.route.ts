@@ -18,7 +18,7 @@ router.post("/add-favourite", verifyUser("ANY"), addToFavourite);
 router.post("/add-homebase", verifyUser("ANY"), addToHomeBase);
 
 router.get("/get-homebase", verifyUser("ANY"), getHomeBaseWeather);
-router.post("/get-favourite", verifyUser("ANY"), getFavouriteWeather);
+router.get("/get-favourite", verifyUser("ANY"), getFavouriteWeather);
 
 router.delete("/delete-favourite", verifyUser("ANY"), deleteFavouriteWeather);
 

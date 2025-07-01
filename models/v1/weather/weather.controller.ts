@@ -5,57 +5,6 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// export const getWeather = async (req, res) => {
-//   const { location, status, userId } = req.query;
-//   console.log("Received query parameters:", { location, status, userId });
-
-//   if (!location || !status || !userId) {
-//     res.status(400).json({ message: "Missing required parameters" });
-//   }
-
-//   try {
-//     const weatherData = await getWeatherData(location);
-
-//     if (status === "HOMEBASE") {
-//       const existingWeather = await prisma.weather.findFirst({
-//         where: {
-//           userId,
-//           status,
-//         },
-//       });
-//       console.log("Existing weather data:", existingWeather);
-//       if (existingWeather) {
-//         res.status(200).json({ message: "Weather data already saved" });
-//       } else {
-//         const newWeather = await prisma.weather.create({
-//           data: {
-//             userId,
-//             data: weatherData,
-//             status,
-//           },
-//         });
-
-//         res.status(201).json(newWeather);
-//       }
-//     } else {
-//       const newWeather = await prisma.weather.create({
-//         data: {
-//           userId,
-//           data: weatherData,
-//           status,
-//         },
-//       });
-//       res.status(201).json(newWeather);
-//     }
-//   } catch (error) {
-//     res.status(500).json({
-//       success: false,
-//       message: "Failed to create log entry",
-//       error: error instanceof Error ? error.message : "Unknown error",
-//     });
-//   }
-// };
-
 export const getWeather = async (req, res) => {
   const { location } = req.query;
 
@@ -79,6 +28,7 @@ export const getWeather = async (req, res) => {
 export const addToFavourite = async (req: any, res: Response) => {
   const { data } = req.body;
   const userId = req.user?.userId;
+  console.log("Data received in addToFavourite:", data);
 
   if (!userId) {
     res.status(401).json({ message: "Unauthorized user!" });
@@ -189,6 +139,82 @@ export const getHomeBaseWeather = async (req: any, res: Response) => {
   }
 };
 
-export const getFavouriteWeather = async (req: Request, res: Response) => {};
+export const getFavouriteWeather = async (req: any, res: Response) => {
+  console.log("getFavouriteWeather called");
+  try {
+    const userId = req.user?.userId;
 
-export const deleteFavouriteWeather = async (req: Request, res: Response) => {};
+    if (!userId) {
+      res.status(400).json({ message: "Authorization header are required!" });
+      return;
+    }
+
+    const data = await prisma.weather.findMany({
+      where: { userId, status: "FAVURATE" },
+    });
+
+    if (!data) {
+      res.status(404).json({ message: "No home base weather found" });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Home base weather fetched successfully",
+      data,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch weather data",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+export const deleteFavouriteWeather = async (req: any, res: Response) => {
+  console.log("deleteFavouriteWeather called"); 
+  const userId = req.user?.userId;
+  const { id } = req.body;
+  try {
+    if (!userId) {
+      res.status(400).json({ message: "Authorization header are required!" });
+      return;
+    }
+
+    if (!id) {
+      res
+        .status(400)
+        .json({
+          message: "Weather id is required to delete favourite weather",
+        });
+      return;
+    }
+
+    const deleted = await prisma.weather.deleteMany({
+      where: {
+        id,
+        userId,
+        status: "FAVURATE",
+      },
+    });
+
+    if (deleted.count === 0) {
+      res.status(400).json({ message: "No favourite weather found to delete" });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Favourite weather deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error in deleteFavouriteWeather:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete favourite weather",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+    return;
+  }
+};
