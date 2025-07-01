@@ -808,12 +808,7 @@ export const updateAdmin = async (req: any, res: Response) => {
       res.status(200).json({
         success: true,
         message: "User updated successfully",
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: imageUrl,
-        },
+        data:user
       });
     }
   } catch (error) {
