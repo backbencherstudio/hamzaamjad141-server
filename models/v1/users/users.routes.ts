@@ -1,6 +1,6 @@
 import express from "express";
 import { createUser, loginUser, updateAdmin, changePassword,sendOtp,verifyOtp,forgotPassword,verifyOtpAndResetPassword,
-    verifyOtpAndCreateUser, googleLogin,facebookLogin,verifyEmailUpdate } from "./users.controllers";
+    verifyOtpAndCreateUser, googleLogin,facebookLogin,verifyEmailUpdate,updateUser } from "./users.controllers";
  
 import upload from "../../../config/multer.congig";
  
@@ -19,7 +19,8 @@ router.patch("/changePassword", verifyUser('ANY'), changePassword);
 router.post('/google-login', googleLogin);
 router.post('/facebook-login', facebookLogin);
 router.post('/send-otp', sendOtp);
-router.put("/:id", verifyUser('ADMIN'), upload.single("image"), updateAdmin);
+router.put("/admin/:id", verifyUser('ADMIN'), upload.single("image"), updateAdmin);
+router.put("/:id", verifyUser('USER'), upload.single("image"), updateUser);
 router.post('/email-verify', verifyEmailUpdate);
 router.post('/verify-otp', verifyOtp);
 export default router;

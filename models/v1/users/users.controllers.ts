@@ -16,7 +16,7 @@ const prisma = new PrismaClient();
 const tempUserStore = new Map<string, any>();
 
 export const createUser = async (req: Request, res: Response) => {
-  console.log("Create User request body:", req.body); 
+  console.log("Create User request body:", req.body);
   try {
     const { name, email, password, license } = req.body;
 
@@ -33,7 +33,6 @@ export const createUser = async (req: Request, res: Response) => {
 
     const existingUser = await prisma.ucode.findUnique({ where: { email } });
 
- 
     const otp = generateOTP();
     const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
@@ -58,7 +57,7 @@ export const createUser = async (req: Request, res: Response) => {
       },
     });
 
-     sendForgotPasswordOTP(email, otp);
+    sendForgotPasswordOTP(email, otp);
 
     res.status(200).json({
       success: true,
@@ -87,7 +86,7 @@ export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
     }
 
     const unverifiedUser = await prisma.ucode.findUnique({
-      where: { email},
+      where: { email },
     });
 
     if (!unverifiedUser) {
@@ -163,7 +162,7 @@ export const resendCode = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
 
-    if (!email ) {
+    if (!email) {
       res.status(400).json({
         success: false,
         message: "Email  are required",
@@ -174,7 +173,7 @@ export const resendCode = async (req: Request, res: Response) => {
     const uCode = await prisma.ucode.findUnique({
       where: { email },
     });
-    
+
     const newUcode = await prisma.ucode.update({
       where: { email },
       data: {
@@ -182,15 +181,15 @@ export const resendCode = async (req: Request, res: Response) => {
         name: uCode.name,
         password: uCode.password,
         license: uCode.license,
-        otp: otp, 
-        expiration: otpExpiry
+        otp: otp,
+        expiration: otpExpiry,
       },
     });
-    sendForgotPasswordOTP(email, otp);    
+    sendForgotPasswordOTP(email, otp);
 
     res.status(200).json({
       success: true,
-      message: "OTP send successfully",      
+      message: "OTP send successfully",
     });
   } catch (error) {
     console.error("Error in verifyOtp:", error);
@@ -261,7 +260,6 @@ export const loginUser = async (req: Request, res: Response) => {
     });
   }
 };
-
 
 export const changePassword = async (req: any, res: Response) => {
   console.log("Change password request body:", req.body);
@@ -518,7 +516,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
       },
     });
 
-     sendForgotPasswordOTP(email, otp);
+    sendForgotPasswordOTP(email, otp);
 
     res.status(200).json({
       success: true,
@@ -534,8 +532,6 @@ export const forgotPassword = async (req: Request, res: Response) => {
     });
   }
 };
-
-
 
 export const verifyOtpAndResetPassword = async (
   req: Request,
@@ -714,11 +710,9 @@ export const facebookLogin = async (req: Request, res: Response) => {
 };
 
 export const updateAdmin = async (req: any, res: Response) => {
-  console.log("Update Admin route hit", req.body);
   try {
-    console.log("Update Admin request body:", req.body);
-    const  id  = req.user?.userId;
-    const { name, email } = req.body;
+    const id = req.user?.userId;
+    const { name, email, license, password } = req.body;
     const newImage = req.file;
 
     const existingUser = await prisma.user.findUnique({
@@ -730,26 +724,43 @@ export const updateAdmin = async (req: any, res: Response) => {
         fs.unlinkSync(path.join(__dirname, "../../uploads", newImage.filename));
       }
       res.status(404).json({ message: "User not found" });
+      return;
     }
 
     const isEmailChanging = email && email !== existingUser.email;
+    const isPasswordChanging =
+      password && !(await bcrypt.compare(password, existingUser.password));
 
-    if (isEmailChanging) {
-      const verificationToken = uuidv4();
+    if (isEmailChanging || isPasswordChanging) {
       const otp = generateOTP();
       const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
+      let hashedPassword = existingUser.password;
 
-      tempUserStore.set(verificationToken, {
-        userId: existingUser.id,
-        newEmail: email,
-        otp,
-        otpExpiry,
-        currentData: {
+      if (isPasswordChanging) {
+        hashedPassword = await bcrypt.hash(password, 8);
+      }
+
+      await prisma.ucode.upsert({
+        where: { email: isEmailChanging ? email : existingUser.email },
+        update: {
+          otp,
+          expiration: otpExpiry,
           name: name || existingUser.name,
-          image: newImage ? newImage.filename : existingUser.image,
+          password: hashedPassword,
+          license: license || existingUser.license,
+        },
+        create: {
+          email: isEmailChanging ? email : existingUser.email,
+          otp,
+          expiration: otpExpiry,
+          name: name || existingUser.name,
+          password: hashedPassword,
+          license: license || existingUser.license,
         },
       });
-      await sendForgotPasswordOTP(email, otp);
+
+      sendForgotPasswordOTP(isEmailChanging ? email : existingUser.email, otp);
+
       if (newImage) {
         const tempImagePath = path.join(
           __dirname,
@@ -763,11 +774,12 @@ export const updateAdmin = async (req: any, res: Response) => {
 
       res.status(200).json({
         success: true,
-        message: "Verification OTP sent to your new email",
-        verificationToken,
+        message: "Verification OTP sent to your email",
         requiresEmailVerification: true,
       });
+      return;
     } else {
+      // Normal update (no email or password change)
       if (newImage && existingUser.image) {
         const oldImagePath = path.join(
           __dirname,
@@ -785,6 +797,7 @@ export const updateAdmin = async (req: any, res: Response) => {
           name: name || existingUser.name,
           image: newImage ? newImage.filename : existingUser.image,
           email: existingUser.email,
+          license: license || existingUser.license,
         },
       });
 
@@ -816,44 +829,182 @@ export const updateAdmin = async (req: any, res: Response) => {
   }
 };
 
-export const verifyEmailUpdate = async (req: Request, res: Response) => {
+export const updateUser = async (req: any, res: Response) => {
   try {
-    const { verificationToken, otp } = req.body;
+    const id = req.user?.userId;
+    const { name, email, license, password } = req.body;
+    const newImage = req.file;
 
-    const verificationData = tempUserStore.get(verificationToken);
-    if (!verificationData) {
-      res.status(400).json({
-        success: false,
-        message: "Invalid or expired verification token",
-      });
+    const existingUser = await prisma.user.findUnique({
+      where: { id: id },
+    });
+
+    if (!existingUser) {
+      if (newImage) {
+        fs.unlinkSync(path.join(__dirname, "../../uploads", newImage.filename));
+      }
+      res.status(404).json({ message: "User not found" });
+      return;
     }
 
-    if (new Date(verificationData.otpExpiry) < new Date()) {
+    const isEmailChanging = email && email !== existingUser.email;
+    const isPasswordChanging =
+      password && !(await bcrypt.compare(password, existingUser.password));
+
+    if (isEmailChanging || isPasswordChanging) {
+      const otp = generateOTP();
+      const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
+      let hashedPassword = existingUser.password;
+
+      if (isPasswordChanging) {
+        hashedPassword = await bcrypt.hash(password, 8);
+      }
+
+      await prisma.ucode.upsert({
+        where: { email: isEmailChanging ? email : existingUser.email },
+        update: {
+          otp,
+          expiration: otpExpiry,
+          name: name || existingUser.name,
+          password: hashedPassword,
+          license: license || existingUser.license,
+        },
+        create: {
+          email: isEmailChanging ? email : existingUser.email,
+          otp,
+          expiration: otpExpiry,
+          name: name || existingUser.name,
+          password: hashedPassword,
+          license: license || existingUser.license,
+        },
+      });
+
+      sendForgotPasswordOTP(isEmailChanging ? email : existingUser.email, otp);
+
+      if (newImage) {
+        const tempImagePath = path.join(
+          __dirname,
+          "../../uploads",
+          newImage.filename
+        );
+        if (fs.existsSync(tempImagePath)) {
+          fs.unlinkSync(tempImagePath);
+        }
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Verification OTP sent to your email",
+        requiresEmailVerification: true,
+      });
+      return;
+    } else {
+      // Normal update (no email or password change)
+      if (newImage && existingUser.image) {
+        const oldImagePath = path.join(
+          __dirname,
+          "../../uploads",
+          existingUser.image
+        );
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
+
+      const user = await prisma.user.update({
+        where: { id: id },
+        data: {
+          name: name || existingUser.name,
+          image: newImage ? newImage.filename : existingUser.image,
+          email: existingUser.email,
+          license: license || existingUser.license,
+        },
+      });
+
+      const imageUrl = user.image
+        ? getImageUrl(`/uploads/${user.image}`)
+        : null;
+
+      res.status(200).json({
+        success: true,
+        message: "User updated successfully",
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: imageUrl,
+        },
+      });
+    }
+  } catch (error) {
+    if (req.file) {
+      fs.unlinkSync(path.join(__dirname, "../../uploads", req.file.filename));
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+export const verifyEmailUpdate = async (req: any, res: Response) => {
+  try {
+    const { email, otp } = req.body;
+
+    const ucodeRecord = await prisma.ucode.findUnique({
+      where: { email },
+    });
+    console.log(ucodeRecord);
+
+    if (!ucodeRecord) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid or expired verification request",
+      });
+      return;
+    }
+
+    if (new Date() > new Date(ucodeRecord.expiration)) {
       res.status(400).json({
         success: false,
         message: "OTP expired",
       });
+      return;
     }
 
-    if (verificationData.otp !== otp) {
+    if (ucodeRecord.otp !== otp) {
       res.status(400).json({
         success: false,
         message: "Invalid OTP",
       });
+      return;
     }
 
+    const existingUser = await prisma.user.findUnique({
+      where: { email: ucodeRecord.email },
+    });
+
+    console.log("Update User route hit");
+    console.log("Update User request body:", req.body);
+
+    // Update the user with new email and other info from ucode
     const user = await prisma.user.update({
-      where: { id: verificationData.userId },
+      where: {
+        id: existingUser.id, // Use userId from the request object
+      },
       data: {
-        email: verificationData.newEmail,
-        name: verificationData.currentData.name,
-        image: verificationData.currentData.image,
+        email: ucodeRecord.email || existingUser.email,
+        name: ucodeRecord.name || existingUser.name,
+        password: ucodeRecord.password || existingUser.password,
+        license: ucodeRecord.license || existingUser.license,
       },
     });
 
-    tempUserStore.delete(verificationToken);
-
-    const imageUrl = user.image ? getImageUrl(`/uploads/${user.image}`) : null;
+    await prisma.ucode.delete({
+      where: { email },
+    });
 
     res.status(200).json({
       success: true,
@@ -862,10 +1013,11 @@ export const verifyEmailUpdate = async (req: Request, res: Response) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        image: imageUrl,
+        license: user.license,
       },
     });
   } catch (error) {
+    console.error("verifyEmailUpdate error:", error);
     res.status(500).json({
       success: false,
       message: "Email verification failed",

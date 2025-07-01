@@ -9,8 +9,6 @@ export interface AuthenticatedRequest extends Request {
 }
 
 export const verifyUser = (...allowedRoles: string[]) => {
-
-
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     const authHeader = req.headers["authorization"];
 
