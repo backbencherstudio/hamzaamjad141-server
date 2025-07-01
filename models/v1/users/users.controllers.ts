@@ -132,7 +132,7 @@ export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
     ]);
 
     const token = jwt.sign(
-      { id: verifiedUser.id, email: verifiedUser.email },
+      { userId: verifiedUser.id, email: verifiedUser.email },
       process.env.JWT_SECRET as string,
       { expiresIn: "100d" }
     );
@@ -236,7 +236,7 @@ export const loginUser = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      { userId: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET as string,
       { expiresIn: "100d" }
     );
@@ -266,7 +266,7 @@ export const loginUser = async (req: Request, res: Response) => {
 export const changePassword = async (req: any, res: Response) => {
   console.log("Change password request body:", req.body);
   try {
-    const { id } = req.user;
+    const { userId } = req.user;
     const { oldPassword, newPassword } = req.body;
 
     if (!oldPassword || !newPassword) {
@@ -277,7 +277,7 @@ export const changePassword = async (req: any, res: Response) => {
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: id },
+      where: { id: userId },
     });
     console.log("User found for password change:", user);
 
@@ -295,7 +295,7 @@ export const changePassword = async (req: any, res: Response) => {
     const hashedNewPassword = await bcrypt.hash(newPassword, 8);
 
     await prisma.user.update({
-      where: { id: id },
+      where: { id: userId },
       data: { password: hashedNewPassword },
     });
 
@@ -350,7 +350,7 @@ export const sendOtp = async (req: Request, res: Response) => {
     sendForgotPasswordOTP(email, otp);
 
     const token = jwt.sign(
-      { id: user.id, email: user.email },
+      { userId: user.id, email: user.email },
       process.env.JWT_SECRET as string,
       { expiresIn: "100d" }
     );
@@ -717,7 +717,7 @@ export const updateAdmin = async (req: any, res: Response) => {
   console.log("Update Admin route hit", req.body);
   try {
     console.log("Update Admin request body:", req.body);
-    const { id } = req.user;
+    const  id  = req.user?.userId;
     const { name, email } = req.body;
     const newImage = req.file;
 
