@@ -20,10 +20,10 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt
 
-  instructorId String?  
+  instructorId String?
   instructor   Instructor? @relation(fields: [instructorId], references: [id])
-  addLog     AddLog[]
-  Weather    Weather[]
+  addLog       AddLog[]
+  Weather      Weather[]
 
   @@map("users")
 }
@@ -40,10 +40,10 @@ model Ucode {
 }
 
 model Instructor {
-  id    String @id @default(cuid())
-  name  String
-  email String @unique
-  phone String
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String
   users     User[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -53,8 +53,8 @@ model Instructor {
 }
 
 model AddLog {
-  id           Int      @id @default(autoincrement())
-  date         DateTime @default(now())
+  id           Int          @id @default(autoincrement())
+  date         DateTime     @default(now())
   from         String
   to           String
   aircrafttype String
@@ -70,12 +70,10 @@ model AddLog {
   landings     Int
   userId       String
   status       addlogStatus @default(PENDING)
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  action       Action   @default(active)
-  updatedAt    DateTime @updatedAt
-  createdAt    DateTime @default(now())
-
-  @@map("add_logs")
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action       Action       @default(active)
+  updatedAt    DateTime     @updatedAt
+  createdAt    DateTime     @default(now())
 }
 
 model Location {
@@ -84,11 +82,33 @@ model Location {
 }
 
 model Weather {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  data Json
-  status weatherStatus @default(FAVURATE)
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data      Json
+  status    weatherStatus @default(FAVURATE)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Portcusts {
+  id       String   @id @default(cuid())
+  title    String
+  hostName String
+  date     DateTime
+  mp3      String
+  cover    String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Ebook {
+  id        String   @id @default(cuid())
+  title     String
+  pdf       String
+  cover     String
+  date      DateTime
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
