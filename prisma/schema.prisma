@@ -35,6 +35,9 @@ model Ucode {
   password   String
   license    Licese    @default(NO_LICENCE)
   otp        String?
+
+  permissionToChangePassword Boolean @default(false)  
+  
   expiration DateTime?
   createdAt  DateTime  @default(now())
 }
