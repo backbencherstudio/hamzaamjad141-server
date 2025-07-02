@@ -13,8 +13,11 @@ const router = express.Router();
 router.post("/register", createUser);
 router.post("/registerVerify",  verifyOtpAndCreateUser);
 router.post("/login",  loginUser);
+
 router.post("/forgetPassword",  forgotPassword);
-router.post("/verify-reset-password",  verifyOtpAndResetPassword);
+router.post("/verify-top",  verifyOtpAndResetPassword);
+
+
 router.patch("/changePassword", verifyUser('ANY'), changePassword);
 router.post('/google-login', googleLogin);
 router.post('/facebook-login', facebookLogin);

@@ -16,7 +16,7 @@ const prisma = new PrismaClient();
 const tempUserStore = new Map<string, any>();
 
 export const createUser = async (req: Request, res: Response) => {
-  console.log("Create User request body:", req.body); 
+  console.log("Create User request body:", req.body);
   try {
     const { name, email, password, license } = req.body;
 
@@ -33,7 +33,6 @@ export const createUser = async (req: Request, res: Response) => {
 
     const existingUser = await prisma.ucode.findUnique({ where: { email } });
 
- 
     const otp = generateOTP();
     const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
@@ -58,7 +57,7 @@ export const createUser = async (req: Request, res: Response) => {
       },
     });
 
-     sendForgotPasswordOTP(email, otp);
+    sendForgotPasswordOTP(email, otp);
 
     res.status(200).json({
       success: true,
@@ -87,7 +86,7 @@ export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
     }
 
     const unverifiedUser = await prisma.ucode.findUnique({
-      where: { email},
+      where: { email },
     });
 
     if (!unverifiedUser) {
@@ -163,7 +162,7 @@ export const resendCode = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
 
-    if (!email ) {
+    if (!email) {
       res.status(400).json({
         success: false,
         message: "Email  are required",
@@ -174,7 +173,7 @@ export const resendCode = async (req: Request, res: Response) => {
     const uCode = await prisma.ucode.findUnique({
       where: { email },
     });
-    
+
     const newUcode = await prisma.ucode.update({
       where: { email },
       data: {
@@ -182,15 +181,15 @@ export const resendCode = async (req: Request, res: Response) => {
         name: uCode.name,
         password: uCode.password,
         license: uCode.license,
-        otp: otp, 
-        expiration: otpExpiry
+        otp: otp,
+        expiration: otpExpiry,
       },
     });
-    sendForgotPasswordOTP(email, otp);    
+    sendForgotPasswordOTP(email, otp);
 
     res.status(200).json({
       success: true,
-      message: "OTP send successfully",      
+      message: "OTP send successfully",
     });
   } catch (error) {
     console.error("Error in verifyOtp:", error);
@@ -261,7 +260,6 @@ export const loginUser = async (req: Request, res: Response) => {
     });
   }
 };
-
 
 export const changePassword = async (req: any, res: Response) => {
   console.log("Change password request body:", req.body);
@@ -462,48 +460,13 @@ export const forgotPassword = async (req: Request, res: Response) => {
         success: false,
         message: "Email is required",
       });
+      return;
     }
-
-    const existingRecord = await prisma.ucode.findUnique({
-      where: { email },
-    });
 
     const otp = generateOTP();
-
     const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
-    if (!existingRecord) {
-      const newRecord = await prisma.ucode.create({
-        data: {
-          email,
-          otp,
-          expiration: otpExpiry,
-          name: "",
-          password: "",
-        },
-      });
-
-      await sendForgotPasswordOTP(email, otp);
-
-      res.status(200).json({
-        success: true,
-        message: "OTP sent successfully",
-        otpExpiry: otpExpiry.toISOString(),
-      });
-    }
-
-    if (
-      existingRecord.expiration &&
-      new Date(existingRecord.expiration) > new Date()
-    ) {
-      res.status(400).json({
-        success: false,
-        message: "OTP already sent. Please wait before requesting a new one.",
-        otpExpiry: existingRecord.expiration.toISOString(),
-      });
-    }
-
-    await prisma.ucode.upsert({
+    const user = await prisma.ucode.upsert({
       where: { email },
       update: {
         otp,
@@ -518,7 +481,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
       },
     });
 
-     sendForgotPasswordOTP(email, otp);
+    sendForgotPasswordOTP(email, otp);
 
     res.status(200).json({
       success: true,
@@ -535,52 +498,36 @@ export const forgotPassword = async (req: Request, res: Response) => {
   }
 };
 
-
-
 export const verifyOtpAndResetPassword = async (
   req: Request,
   res: Response
 ) => {
-  const { email, otp, newPassword, confirmPassword } = req.body;
+  const { email, otp } = req.body;
 
   try {
-    if (newPassword !== confirmPassword) {
-      res.status(400).json({ message: "Passwords do not match" });
-    }
     const user = await prisma.ucode.findUnique({ where: { email } });
     if (!user) {
       res.status(404).json({ message: "User not found" });
+      return;
     }
-    console.log("User found for password reset:", user);
 
-    if (!user.otp || !user.expiration) {
-      res.status(400).json({ message: "No OTP requested" });
-    }
-    if (new Date() > user.expiration) {
-      res.status(400).json({ message: "OTP expired" });
-    }
     if (user.otp !== otp) {
       res.status(400).json({ message: "Invalid OTP" });
+      return;
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-    console.log("User found for password reset:", existingUser);
+    if (new Date() > user.expiration) {
+      res.status(400).json({ message: "OTP has expired" });
+      return;
+    }
 
-    await prisma.user.update({
-      where: { email },
-      data: {
-        password: hashedPassword,
-      },
-    });
-
-    res.status(200).json({ message: "Password reset successfully" });
+    res.status(200).json({ message: "OTP verified successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Error resetting password" });
+    res.status(500).json({ message: "Error verifying OTP" });
   }
 };
+
+
 
 const downloadAndSaveImage = async (imageUrl: string): Promise<string> => {
   try {
@@ -717,7 +664,7 @@ export const updateAdmin = async (req: any, res: Response) => {
   console.log("Update Admin route hit", req.body);
   try {
     console.log("Update Admin request body:", req.body);
-    const  id  = req.user?.userId;
+    const id = req.user?.userId;
     const { name, email } = req.body;
     const newImage = req.file;
 
