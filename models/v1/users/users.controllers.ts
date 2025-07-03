@@ -777,47 +777,44 @@ export const facebookLogin = async (req: Request, res: Response) => {
 };
 
 
-export const updateAdmin = async (req: any, res: Response) => {
+export const updateImage = async (req: any, res: Response) => {
+  console.log("iamge",req.body);
   try {
-    const id = req.user?.userId;
-    const { name } = req.body;
-    const newImage = req.file;
+    const id = req.user?.userId; 
+    const newImage = req.file; 
 
+    if (!newImage) {
+       res.status(400).json({ message: "No image uploaded" });
+       return
+    }
     const existingUser = await prisma.user.findUnique({
       where: { id: id },
     });
 
     if (!existingUser) {
-      if (newImage) {
-        fs.unlinkSync(path.join(__dirname, "../../uploads", newImage.filename));
-      }
-      res.status(404).json({ message: "User not found" });
-      return;
+      fs.unlinkSync(path.join(__dirname, "../../uploads", newImage.filename));
+       res.status(404).json({ message: "User not found" });
+       return
     }
-
-    if (newImage) {
-      if (existingUser.image) {
-        const oldImagePath = path.join(__dirname, "../../uploads", existingUser.image);
-        if (fs.existsSync(oldImagePath)) {
-          fs.unlinkSync(oldImagePath);
-        }
+    if (existingUser.image) {
+      const oldImagePath = path.join(__dirname, "../../uploads", existingUser.image);
+      if (fs.existsSync(oldImagePath)) {
+        fs.unlinkSync(oldImagePath); 
       }
     }
-
     const user = await prisma.user.update({
       where: { id: id },
       data: {
-        name: name || existingUser.name,
-        image: newImage ? newImage.filename : existingUser.image,
+        image: newImage.filename, 
       },
     });
 
-    const imageUrl = user.image ? getImageUrl(`/uploads/${user.image}`) : null;
+    const imageUrl = `http://localhost:3000/uploads/${user.image}`; 
 
     res.status(200).json({
       success: true,
-      message: "User updated successfully",
-      data: user,
+      message: "Image updated successfully",
+      data: { ...user, imageUrl }, 
     });
   } catch (error) {
     if (req.file) {
@@ -831,7 +828,50 @@ export const updateAdmin = async (req: any, res: Response) => {
     });
   }
 };
+export const updateAdmin = async (req: any, res: Response) => {
+  console.log(req.body);
+  try {
+    const id = req.user?.userId;
+    const { name, oldPassword, newPassword, confirmPassword } = req.body;
+    const existingUser = await prisma.user.findUnique({
+      where: { id: id },
+    });
 
+    if (!existingUser) {
+       res.status(404).json({ message: "User not found" });
+       return
+    }
+    const isOldPasswordValid = await bcrypt.compare(oldPassword, existingUser.password);
+    if (!isOldPasswordValid) {
+       res.status(400).json({ message: "Old password is incorrect" });
+       return
+    }
+    if (newPassword !== confirmPassword) {
+       res.status(400).json({ message: "New password and confirm password do not match" });
+       return
+    }
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const user = await prisma.user.update({
+      where: { id: id },
+      data: {
+        name: name || existingUser.name, 
+        password: hashedPassword, 
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "User updated successfully",
+      data: user, 
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
 
 export const updateUser = async (req: any, res: Response) => {
   try {

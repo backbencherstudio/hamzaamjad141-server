@@ -15,6 +15,7 @@ import {
   verifyEmailUpdate,
   updateUser,
   resentOtp,
+  updateImage,
 } from "./users.controllers";
 
 import upload from "../../../config/multer.congig";
@@ -39,9 +40,15 @@ router.post("/facebook-login", facebookLogin);
 router.post("/send-otp", sendOtp);
 
 router.put(
-  "/admin/update",
-  verifyUser("ADMIN"),
+  "/user/update/img",
+  verifyUser("USER"),
   upload.single("image"),
+  updateImage
+);
+
+router.put(
+  "/user/update",
+  verifyUser("USER"),
   updateAdmin
 );
 
