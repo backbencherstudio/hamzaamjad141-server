@@ -25,19 +25,22 @@ model User {
   addLog       AddLog[]
   Weather      Weather[]
 
+  subscription          Subscription[]
+  currentSubscriptionId String?
+
   @@map("users")
 }
 
 model Ucode {
-  id         String    @id @default(cuid())
-  name       String
-  email      String    @unique
-  password   String
-  license    Licese    @default(NO_LICENCE)
-  otp        String?
+  id       String  @id @default(cuid())
+  name     String
+  email    String  @unique
+  password String
+  license  Licese  @default(NO_LICENCE)
+  otp      String?
 
-  permissionToChangePassword Boolean @default(false)  
-  
+  permissionToChangePassword Boolean @default(false)
+
   expiration DateTime?
   createdAt  DateTime  @default(now())
 }
@@ -114,6 +117,26 @@ model Ebook {
   date      DateTime
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Subscription {
+  id          String             @id @default(cuid())
+  userId      String            
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  price       Float
+  startDate   DateTime           @default(now())
+  endDate     DateTime
+  status      SubscriptionStatus @default(ACTIVE)
+  promoCode   String?
+  trialPeriod Boolean            @default(false)
+  
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  DEACTIVE
 }
 
 enum Action {

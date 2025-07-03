@@ -227,12 +227,12 @@ export const userInstructor = async (req: any, res: Response) => {
     });
     const updatedUser = await prisma.user.update({
     where: {
-      id: userId, // Replace with the actual user ID
+      id: userId,
     },
     data: {
       name: existingUser.name,
       email: existingUser.email,
-      instructorId: Instructor.id, // Change instructor association
+      instructorId: Instructor.id,
     },
   });
   res.status(200).json({

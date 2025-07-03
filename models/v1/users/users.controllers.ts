@@ -10,6 +10,7 @@ import {
   sendForgotPasswordOTP,
 } from "../../../utils/emailService.utils";
 import { v4 as uuidv4 } from "uuid";
+import { create } from "domain";
 
 const prisma = new PrismaClient();
 
@@ -62,7 +63,7 @@ export const createUser = async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       message: "Verification OTP sent to your email",
-      userId: UcodeUpsert.id,
+      userId: UcodeUpsert.email,
     });
   } catch (error) {
     console.error("Error in createUser:", error);
@@ -249,6 +250,13 @@ export const loginUser = async (req: Request, res: Response) => {
         id: user.id,
         name: user.name,
         email: user.email,
+        image: user.image
+          ? getImageUrl(`/uploads/${user.image}`)
+          : null,
+        role: user.role,
+        license: user.license,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
       },
       token,
     });

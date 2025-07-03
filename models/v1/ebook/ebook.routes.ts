@@ -1,7 +1,7 @@
 import express from "express";
 import { verifyUser } from "../../../middleware/verifyUsers";
 import upload from "../../../config/multer.congig";
-import { createEbooks, getAllebook, updateEbook } from "./ebook.controllers";
+import { createEbooks, getAllebook, updateEbook, deleteEbook } from "./ebook.controllers";
 
 const router = express.Router();
 
@@ -26,7 +26,7 @@ router.patch(
   updateEbook
 );
 
-// router.delete("/delete/:id", deletePortcusts);
+router.delete("/delete/:id", verifyUser('ADMIN'), deleteEbook);
 
 
 export default router;
