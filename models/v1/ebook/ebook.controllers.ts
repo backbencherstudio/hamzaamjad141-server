@@ -344,3 +344,48 @@ export const updateEbook = async (req: Request, res: Response) => {
     });
   }
 };
+
+// deleteEbook
+export const deleteEbook = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const ebook = await prisma.ebook.findUnique({
+      where: { id },
+    });
+    if (!ebook) {
+      res.status(404).json({
+        success: false,
+        message: "Ebook not found",
+      });
+      return;
+    }
+    const pdfFilePath = path.join(__dirname, "../../../uploads", ebook.pdf);
+    const coverFilePath = path.join(__dirname, "../../../uploads", ebook.cover);
+
+    // Delete PDF file if exists
+    if (fs.existsSync(pdfFilePath)) {
+      fs.unlinkSync(pdfFilePath);
+    }
+    // Delete cover image if exists
+    if (fs.existsSync(coverFilePath)) {
+      fs.unlinkSync(coverFilePath);
+    }
+
+    // Delete ebook from database
+    await prisma.ebook.delete({
+      where: { id },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Ebook deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting Ebook:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete Ebook",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};

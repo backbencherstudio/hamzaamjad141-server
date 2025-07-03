@@ -10,6 +10,4 @@ router.get("/get-logbook", verifyUser('USER'), getLogbookSummary);
 router.post("/addlog-approve/:id", instructorApprov);
 router.post("/addlog-reject/:id", instructorReject);
 
-
-
 export default router;
