@@ -15,7 +15,11 @@ export const getWeather = async (req, res) => {
 
   try {
     const weatherData = await getWeatherData(location);
-    res.status(200).json(weatherData);
+    res.status(200).json({
+      success: true,
+      message: "Weather data fetched successfully",
+      data: weatherData,
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -26,30 +30,50 @@ export const getWeather = async (req, res) => {
 };
 
 export const addToFavourite = async (req: any, res: Response) => {
-  const { data } = req.body;
+  const { location } = req.body;
   const userId = req.user?.userId;
-  console.log("Data received in addToFavourite:", data);
 
   if (!userId) {
     res.status(401).json({ message: "Unauthorized user!" });
     return;
   }
-  if (!data) {
-    res.status(400).json({ message: "data is requird!" });
+  if (!location) {
+    res.status(400).json({ message: "Location is required!" });
     return;
   }
+  
   try {
-    let createdWeather = await prisma.weather.create({
+    // First, verify the user exists
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!userExists) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    // Check if location already exists in favourites
+    const existing = await prisma.weather.findFirst({
+      where: { userId, location, status: "FAVURATE" },
+    });
+
+    if (existing) {
+      res.status(400).json({ message: "Location already in favourites" });
+      return;
+    }
+
+    const createdWeather = await prisma.weather.create({
       data: {
         userId,
-        data,
+        location,
         status: "FAVURATE",
       },
     });
 
     res.status(201).json({
       success: true,
-      message: "Weather added to favourites",
+      message: "Location added to favourites",
       data: createdWeather,
     });
   } catch (error) {
@@ -62,14 +86,12 @@ export const addToFavourite = async (req: any, res: Response) => {
   }
 };
 
-//  addHomeBaseWeather, getHomeBaseWeather, getFavouriteWeather, deleteFavouriteWeather
-
 export const addToHomeBase = async (req: any, res: Response) => {
-  const { data } = req.body;
+  const { location } = req.body;
   const userId = req.user?.userId;
 
-  if (!data || !userId) {
-    res.status(400).json({ message: "Data and user ID are required!" });
+  if (!location || !userId) {
+    res.status(400).json({ message: "Location and user ID are required!" });
     return;
   }
 
@@ -81,12 +103,12 @@ export const addToHomeBase = async (req: any, res: Response) => {
     const result = await prisma.weather.upsert({
       where: { id: existing?.id ?? "___dummy_id___" },
       update: {
-        data,
+        location,
         updatedAt: new Date(),
       },
       create: {
         userId,
-        data,
+        location,
         status: "HOMEBASE",
       },
     });
@@ -94,14 +116,14 @@ export const addToHomeBase = async (req: any, res: Response) => {
     res.status(existing ? 200 : 201).json({
       success: true,
       message: existing
-        ? "Home base weather updated"
-        : "Home base weather added",
+        ? "Home base location updated"
+        : "Home base location added",
       weather: result,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Failed to upsert home base weather",
+      message: "Failed to upsert home base location",
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }
@@ -116,19 +138,25 @@ export const getHomeBaseWeather = async (req: any, res: Response) => {
       return;
     }
 
-    const data = await prisma.weather.findFirst({
+    const homeBase = await prisma.weather.findFirst({
       where: { userId, status: "HOMEBASE" },
     });
 
-    if (!data) {
-      res.status(404).json({ message: "No home base weather found" });
+    if (!homeBase) {
+      res.status(404).json({ message: "No home base location found" });
       return;
     }
+
+    // Fetch current weather data for the home base location
+    const weatherData = await getWeatherData(homeBase.location);
 
     res.status(200).json({
       success: true,
       message: "Home base weather fetched successfully",
-      data,
+      data: {
+        ...homeBase,
+        weatherData
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -140,7 +168,6 @@ export const getHomeBaseWeather = async (req: any, res: Response) => {
 };
 
 export const getFavouriteWeather = async (req: any, res: Response) => {
-  console.log("getFavouriteWeather called");
   try {
     const userId = req.user?.userId;
 
@@ -149,19 +176,34 @@ export const getFavouriteWeather = async (req: any, res: Response) => {
       return;
     }
 
-    const data = await prisma.weather.findMany({
+    const favourites = await prisma.weather.findMany({
       where: { userId, status: "FAVURATE" },
     });
 
-    if (!data) {
-      res.status(404).json({ message: "No home base weather found" });
-      return;
-    }
+
+    // Fetch weather data for all favourite locations
+    const favouritesWithWeather = await Promise.all(
+      favourites.map(async (fav) => {
+        try {
+          const weatherData = await getWeatherData(fav.location);
+          return {
+            ...fav,
+            weatherData
+          };
+        } catch (error) {
+          return {
+            ...fav,
+            weatherData: null,
+            error: "Failed to fetch weather data"
+          };
+        }
+      })
+    );
 
     res.status(200).json({
       success: true,
-      message: "Home base weather fetched successfully",
-      data,
+      message: "Favourite weather fetched successfully",
+      data: favouritesWithWeather,
     });
   } catch (error) {
     res.status(500).json({
@@ -173,7 +215,6 @@ export const getFavouriteWeather = async (req: any, res: Response) => {
 };
 
 export const deleteFavouriteWeather = async (req: any, res: Response) => {
-  console.log("deleteFavouriteWeather called"); 
   const userId = req.user?.userId;
   const { id } = req.body;
   try {
@@ -183,11 +224,9 @@ export const deleteFavouriteWeather = async (req: any, res: Response) => {
     }
 
     if (!id) {
-      res
-        .status(400)
-        .json({
-          message: "Weather id is required to delete favourite weather",
-        });
+      res.status(400).json({
+        message: "Weather id is required to delete favourite weather",
+      });
       return;
     }
 

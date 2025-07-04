@@ -32,7 +32,7 @@ export const createUser = async (req: Request, res: Response) => {
       return;
     }
 
-    const existingUser = await prisma.ucode.findUnique({ where: { email } });
+    // const existingUser = await prisma.ucode.findUnique({ where: { email } });
 
     const otp = generateOTP();
     const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);

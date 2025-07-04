@@ -13,13 +13,13 @@ const router = express.Router();
 // Create a subscription
 router.post('/create', verifyUser('USER'), createSubscription);
 
-// Cancel subscription
-router.post('/cancel', verifyUser('USER'), cancelSubscription);
+// // Cancel subscription
+// router.post('/cancel', verifyUser('USER'), cancelSubscription);
 
-// Get subscription status
-router.get('/status', verifyUser('USER'), getSubscriptionStatus);
+// // Get subscription status
+// router.get('/status', verifyUser('USER'), getSubscriptionStatus);
 
-// Update subscription
-router.put('/update', verifyUser('USER'), updateSubscription);
+// // Update subscription
+// router.put('/update', verifyUser('USER'), updateSubscription);
 
 export default router;

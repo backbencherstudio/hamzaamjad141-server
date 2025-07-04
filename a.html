@@ -1,0 +1,40 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Get Stripe Payment Method ID</title>
+  <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+  <form id="payment-form">
+    <div id="card-element"></div>
+    <button id="submit-button">Get Payment Method ID</button>
+  </form>
+
+  <div id="payment-method-id"></div>
+
+  <script>
+    const stripe = Stripe('pk_test_51QuTWKClJBhr3sfisvZF8NprucrbSftJa16ma4XVStJG04nQ5i4tNL00XkBbfC0UFzY8AvnFhzt8wTk1CbXj57o500ncgA4fQl');
+    const elements = stripe.elements();
+    const card = elements.create('card');
+    card.mount('#card-element');
+
+    document.getElementById('payment-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const { paymentMethod, error } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: card,
+      });
+
+      if (error) {
+        console.error(error);
+      } else {
+        document.getElementById('payment-method-id').textContent = 
+          `Payment Method ID: ${paymentMethod.id}`;
+        console.log('Payment Method ID:', paymentMethod.id);
+      }
+    });
+  </script>
+</body>
+</html>

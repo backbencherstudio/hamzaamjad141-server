@@ -6,6 +6,11 @@ import path from "path";
  
 import v1 from "./models/v1/index";
 
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+
 const app = express();
 
 app.use(
@@ -15,6 +20,8 @@ app.use(
       "http://192.168.30.102:*",
       "http://localhost:5173",
       "http://localhost:3000",
+      "http://127.0.0.1:16439/a.html",
+      "http://127.0.0.1:16439"
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -28,6 +35,21 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(morgan("dev"));
 
+ 
+// app.use("/", async (req: Request, res: Response, next: NextFunction) => {
+//   try {
+//     // Use raw SQL to drop the Weather table
+//     await prisma.$executeRaw`DROP TABLE IF EXISTS "subscription" CASCADE`; // Adjust if your table name has different casing
+
+//     console.log("Weather table deleted successfully!");
+//     res.status(200).json({ message: "Weather table deleted successfully!" });
+//   } catch (error) {
+//     console.error("Error deleting Weather table:", error);
+//     res.status(500).json({ error: "Failed to delete Weather table" });
+//   } finally {
+//     await prisma.$disconnect();
+//   }
+// });
 
 
 
