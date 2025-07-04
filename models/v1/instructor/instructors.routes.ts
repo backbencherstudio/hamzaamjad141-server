@@ -6,7 +6,7 @@ import { verifyUser } from "../../../middleware/verifyUsers";
 const router = express.Router();
 
 router.post('/create',verifyUser('ADMIN'), createInstructor);
-router.post('/user-instructor',verifyUser('USER'), userInstructor);
+router.post('/set-instructor/:id',verifyUser('USER'), userInstructor);
 
 router.get('/find',  findInstructor);
 
