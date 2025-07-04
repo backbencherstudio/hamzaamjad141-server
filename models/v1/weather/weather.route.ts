@@ -20,6 +20,6 @@ router.post("/add-homebase", verifyUser("ANY"), addToHomeBase);
 router.get("/get-homebase", verifyUser("ANY"), getHomeBaseWeather);
 router.get("/get-favourite", verifyUser("ANY"), getFavouriteWeather);
 
-router.delete("/delete-favourite", verifyUser("ANY"), deleteFavouriteWeather);
+router.delete("/delete-favourite/:id", verifyUser("ANY"), deleteFavouriteWeather);
 
 export default router;
