@@ -16,6 +16,7 @@ import {
   updateUser,
   resentOtp,
   updateImage,
+  userInfo
 } from "./users.controllers";
 
 import upload from "../../../config/multer.congig";
@@ -61,4 +62,7 @@ router.patch(
 
 router.post("/email-verify", verifyEmailUpdate);
 router.post("/verify-otp", verifyOtp);
+
+
+router.get('/me', verifyUser('USER'), userInfo )
 export default router;

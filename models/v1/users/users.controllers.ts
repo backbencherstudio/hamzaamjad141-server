@@ -250,9 +250,7 @@ export const loginUser = async (req: Request, res: Response) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        image: user.image
-          ? getImageUrl(`/uploads/${user.image}`)
-          : null,
+        image: user.image ? getImageUrl(`/uploads/${user.image}`) : null,
         role: user.role,
         license: user.license,
         createdAt: user.createdAt,
@@ -458,14 +456,6 @@ export const verifyOtp = async (req: Request, res: Response) => {
   }
 };
 
-
-
-
-
-
-
-
-
 export const forgotPassword = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
@@ -644,13 +634,6 @@ export const resetPassword = async (req: Request, res: Response) => {
   }
 };
 
-
-
-
-
-
-
-
 const downloadAndSaveImage = async (imageUrl: string): Promise<string> => {
   try {
     const response = await fetch(imageUrl);
@@ -672,7 +655,6 @@ const downloadAndSaveImage = async (imageUrl: string): Promise<string> => {
     return imageUrl;
   }
 };
-
 
 export const googleLogin = async (req: Request, res: Response) => {
   console.log("Google Auth route hit");
@@ -719,6 +701,9 @@ export const googleLogin = async (req: Request, res: Response) => {
         email: user.email,
         image: user.image ? getImageUrl(`/uploads/${user.image}`) : null,
         role: user.role,
+        license: user.license,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
       },
       token,
     });
@@ -733,7 +718,7 @@ export const googleLogin = async (req: Request, res: Response) => {
 export const facebookLogin = async (req: Request, res: Response) => {
   console.log("Facebook Auth route hit", req.body);
   try {
-    const { name, email, image, } = req.body;
+    const { name, email, image } = req.body;
 
     if (!name || !email || !image) {
       res.status(400).json({
@@ -784,16 +769,15 @@ export const facebookLogin = async (req: Request, res: Response) => {
   }
 };
 
-
 export const updateImage = async (req: any, res: Response) => {
-  console.log("iamge",req.body);
+  console.log("iamge", req.body);
   try {
-    const id = req.user?.userId; 
-    const newImage = req.file; 
+    const id = req.user?.userId;
+    const newImage = req.file;
 
     if (!newImage) {
-       res.status(400).json({ message: "No image uploaded" });
-       return
+      res.status(400).json({ message: "No image uploaded" });
+      return;
     }
     const existingUser = await prisma.user.findUnique({
       where: { id: id },
@@ -801,28 +785,32 @@ export const updateImage = async (req: any, res: Response) => {
 
     if (!existingUser) {
       fs.unlinkSync(path.join(__dirname, "../../uploads", newImage.filename));
-       res.status(404).json({ message: "User not found" });
-       return
+      res.status(404).json({ message: "User not found" });
+      return;
     }
     if (existingUser.image) {
-      const oldImagePath = path.join(__dirname, "../../uploads", existingUser.image);
+      const oldImagePath = path.join(
+        __dirname,
+        "../../uploads",
+        existingUser.image
+      );
       if (fs.existsSync(oldImagePath)) {
-        fs.unlinkSync(oldImagePath); 
+        fs.unlinkSync(oldImagePath);
       }
     }
     const user = await prisma.user.update({
       where: { id: id },
       data: {
-        image: newImage.filename, 
+        image: newImage.filename,
       },
     });
 
-    const imageUrl = `http://localhost:3000/uploads/${user.image}`; 
+    const imageUrl = `http://localhost:3000/uploads/${user.image}`;
 
     res.status(200).json({
       success: true,
       message: "Image updated successfully",
-      data: { ...user, imageUrl }, 
+      data: { ...user, imageUrl },
     });
   } catch (error) {
     if (req.file) {
@@ -846,31 +834,36 @@ export const updateAdmin = async (req: any, res: Response) => {
     });
 
     if (!existingUser) {
-       res.status(404).json({ message: "User not found" });
-       return
+      res.status(404).json({ message: "User not found" });
+      return;
     }
-    const isOldPasswordValid = await bcrypt.compare(oldPassword, existingUser.password);
+    const isOldPasswordValid = await bcrypt.compare(
+      oldPassword,
+      existingUser.password
+    );
     if (!isOldPasswordValid) {
-       res.status(400).json({ message: "Old password is incorrect" });
-       return
+      res.status(400).json({ message: "Old password is incorrect" });
+      return;
     }
     if (newPassword !== confirmPassword) {
-       res.status(400).json({ message: "New password and confirm password do not match" });
-       return
+      res
+        .status(400)
+        .json({ message: "New password and confirm password do not match" });
+      return;
     }
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     const user = await prisma.user.update({
       where: { id: id },
       data: {
-        name: name || existingUser.name, 
-        password: hashedPassword, 
+        name: name || existingUser.name,
+        password: hashedPassword,
       },
     });
 
     res.status(200).json({
       success: true,
       message: "User updated successfully",
-      data: user, 
+      data: user,
     });
   } catch (error) {
     res.status(500).json({
@@ -1073,6 +1066,87 @@ export const verifyEmailUpdate = async (req: any, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Email verification failed",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+export const userInfo = async (req: any, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(400).json({ message: "User ID is required" });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        role: true,
+        license: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+    const imageUrl = user.image ? getImageUrl(`/uploads/${user.image}`) : null;
+    res.status(200).json({
+      success: true,
+      message: "User information retrieved successfully",
+      user: {
+        ...user,
+        image: imageUrl,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+export const deleteUser = async (req: any, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(400).json({ message: "User ID is required" });
+      return;
+    }
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+    if (user.image) {
+      const imagePath = path.join(__dirname, "../../uploads", user.image);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+    }
+
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+    res.status(200).json({
+      success: true,
+      message: "User deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong",
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }
