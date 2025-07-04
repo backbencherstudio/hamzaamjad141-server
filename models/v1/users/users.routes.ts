@@ -25,7 +25,7 @@ import { verifyUser } from "../../../middleware/verifyUsers";
 
 const router = express.Router();
 
-router.post("/register", createUser);
+
 router.post("/registerVerify", verifyOtpAndCreateUser);
 router.post("/login", loginUser);
 
