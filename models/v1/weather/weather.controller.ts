@@ -216,6 +216,7 @@ export const getFavouriteWeather = async (req: any, res: Response) => {
 
 export const deleteFavouriteWeather = async (req: any, res: Response) => {
   const userId = req.user?.userId;
+  const { id } = req.body;
   try {
     if (!userId) {
       res.status(400).json({ message: "Authorization header are required!" });
