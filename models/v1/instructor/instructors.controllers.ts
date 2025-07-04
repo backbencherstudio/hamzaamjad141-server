@@ -226,6 +226,7 @@ export const userInstructor = async (req: any, res: Response) => {
         id: id, 
       },
     });
+    console.log("idfjkldsjf", Instructor);
     const updatedUser = await prisma.user.update({
     where: {
       id: userId,
