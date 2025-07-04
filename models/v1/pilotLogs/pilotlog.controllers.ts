@@ -187,68 +187,53 @@ export const instructorReject = async (req: any, res: Response) => {
 export const getLogbookSummary = async (req: any, res: Response) => {
   try {
     const userId = req.user?.userId;
+    const statusFilter = req.query.status;
+    const page = parseInt(req.query.page as string) || 1; 
+    const limit = parseInt(req.query.limit as string) || 10; 
+
+
+    const skip = (page - 1) * limit;
+
+ 
     const logs = await prisma.addLog.findMany({
-      where: { 
+      where: {
         userId: userId,
-        status:"APPROVE"
-       },
+        status: statusFilter, 
+      },
+      skip: skip,  
+      take: limit,  
     });
 
+    
+    const totalLogs = await prisma.addLog.count({
+      where: {
+        userId: userId,
+        status: statusFilter,
+      },
+    });
+
+    const totalPages = Math.ceil(totalLogs / limit);
+
+ 
     if (!logs || logs.length === 0) {
-      res.status(404).json({
+    res.status(404).json({
         success: false,
-        message: "No flight logs found for this user",
+        message: `No flight logs found for this user with status: ${statusFilter}`,
       });
-      return;
+        return 
     }
-    const convertToTimeFormat = (totalMinutes: number): string => {
-      const hours = Math.floor(totalMinutes / 60);
-      const minutes = totalMinutes % 60;
-      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-    };
-    const convertToMinutes = (time: string): number => {
-      const [hours, minutes] = time.split(":").map(Number);
-      return hours * 60 + minutes;
-    };
 
-    let totalFlights = 0;
-    let totalHours = 0;
-    let picHours = 0;
-    let dayHours = 0;
-    let nightHours = 0;
-    let ifrHours = 0;
-    let totalTakeoffs = 0;
-    let totalLandings = 0;
-    let crossCountry = 0;
-    logs.forEach((log) => {
-      totalFlights += log.takeoffs + log.landings;
-      totalTakeoffs += log.takeoffs;
-      totalLandings += log.landings;
-      totalHours += convertToMinutes(log.flightTime || "0");
-      picHours += convertToMinutes(log.pictime || "0");
-      dayHours += convertToMinutes(log.daytime || "0");
-      nightHours += convertToMinutes(log.nightime || "0");
-      ifrHours += convertToMinutes(log.ifrtime || "0");
-      if (log.crossCountry === "Yes") {
-        crossCountry += 1;
-      }
-    });
-    const logbookSummary = {
-      totalFlights,
-      totalHours: convertToTimeFormat(totalHours),
-      picHours: convertToTimeFormat(picHours),
-      dayHours: convertToTimeFormat(dayHours),
-      nightHours: convertToTimeFormat(nightHours),
-      ifrHours: convertToTimeFormat(ifrHours),
-      totalTakeoffs,
-      totalLandings,
-      crossCountry,
-    };
-
+ 
     res.status(200).json({
       success: true,
       message: "Logbook summary fetched successfully",
-      data: logbookSummary,
+      data: {
+        logs,          
+        totalLogs,    
+        totalPages,  
+        currentPage: page, 
+        limit,       
+      },
     });
   } catch (error) {
     console.error("Error fetching logbook summary:", error);
