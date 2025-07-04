@@ -127,6 +127,7 @@ model Subscription {
   startDate   DateTime           @default(now())
   endDate     DateTime
   status      SubscriptionStatus @default(ACTIVE)
+  stripeSubscriptionId String?   // Added for Stripe subscription ID
   promoCode   String?
   trialPeriod Boolean            @default(false)
   
@@ -136,6 +137,8 @@ model Subscription {
 
 enum SubscriptionStatus {
   ACTIVE
+  CANCELLED
+  PAST_DUE
   DEACTIVE
 }
 
