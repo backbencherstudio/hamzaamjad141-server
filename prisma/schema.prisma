@@ -27,6 +27,7 @@ model User {
 
   subscription          Subscription[]
   currentSubscriptionId String?
+  promoCodes           PromoCode[]
 
   @@map("users")
 }
@@ -120,45 +121,30 @@ model Ebook {
 }
 
 model Subscription {
-  id                   String             @id @default(cuid())
-  userId               String
-  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  price                Float
-  startDate            DateTime           @default(now())
-  endDate              DateTime
-  status               SubscriptionStatus @default(ACTIVE)
-  stripeSubscriptionId String?
-  promoCodeId          String?
-  promoCode PromoCode? @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
-  trialPeriod          Boolean            @default(false)
-
-  subscribedBy SubscriptionMethord @default(STRIPE)
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-}
-
-enum SubscriptionMethord {
-  STRIPE
-  CODE
+  id          String             @id @default(cuid())
+  userId      String            
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  price       Float
+  startDate   DateTime           @default(now())
+  endDate     DateTime
+  status      SubscriptionStatus @default(ACTIVE)
+  trialPeriod Boolean            @default(false)
+  
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
 }
 
 model PromoCode {
   id        String   @id @default(cuid())
   code      String   @unique
-  status    String   @default("ACTIVE")
+  status    String   @default("Active")  
+  userId    String   
+  userName  String   
+  email     String? 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  subscriptions Subscription[]
-
-  @@map("promoCode") 
-}
-
-
-
-enum promoCodeStstus {
-  USED
-  ACTIVE
+  user      User     @relation(fields: [userId], references: [id]) 
 }
 
 enum SubscriptionStatus {

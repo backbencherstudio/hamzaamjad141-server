@@ -247,7 +247,7 @@ export const getLogbookSummary = async (req: any, res: Response) => {
 
 export const getLogSummary = async (req: any, res: Response) => {
   try {
-    const userId = req.user?.userId; // Get userId from the request
+    const userId = req.user?.userId; 
     if (!userId) {
        res.status(400).json({
         success: false,
@@ -255,18 +255,12 @@ export const getLogSummary = async (req: any, res: Response) => {
       });
       return
     }
-
-    // Fetch all logs for the user
     const logs = await prisma.addLog.findMany({
       where: {
         userId: userId,
       },
     });
-
-    // Filter for logs with 'APPROVED' status (adjust if your status value differs)
     const approvedLogs = logs.filter(log => log.status === 'APPROVE');
-
-    // If no approved logs exist, return a helpful message
     if (approvedLogs.length === 0) {
        res.status(404).json({
         success: false,
@@ -274,18 +268,16 @@ export const getLogSummary = async (req: any, res: Response) => {
       });
       return
     }
-
-    // Calculate the summary for approved logs
     const summary = approvedLogs.reduce((acc, log) => {
-      acc.totalFlights += 1;  // Count each approved log as a flight
-      acc.totalHours += parseFloat(log.flightTime) || 0;  // Sum total flight hours
-      acc.picHours += parseFloat(log.dualrcv) || 0;  // Sum PIC hours (Dual RCV)
-      acc.dayHours += parseFloat(log.daytime) || 0;  // Sum Daytime hours
-      acc.nightHours += parseFloat(log.nightime) || 0;  // Sum Nighttime hours
-      acc.ifrHours += parseFloat(log.ifrtime) || 0;  // Sum IFR hours
-      acc.totalTakeoffs += log.takeoffs || 0;  // Sum total takeoffs
-      acc.totalLandings += log.landings || 0;  // Sum total landings
-      acc.crossCountry += parseFloat(log.crossCountry) || 0;  // Sum cross-country hours
+      acc.totalFlights += 1; 
+      acc.totalHours += parseFloat(log.flightTime) || 0; 
+      acc.picHours += parseFloat(log.dualrcv) || 0;  
+      acc.dayHours += parseFloat(log.daytime) || 0;  
+      acc.nightHours += parseFloat(log.nightime) || 0;  
+      acc.ifrHours += parseFloat(log.ifrtime) || 0; 
+      acc.totalTakeoffs += log.takeoffs || 0;  
+      acc.totalLandings += log.landings || 0; 
+      acc.crossCountry += parseFloat(log.crossCountry) || 0;  
       return acc;
     }, {
       totalFlights: 0,
@@ -298,13 +290,11 @@ export const getLogSummary = async (req: any, res: Response) => {
       totalLandings: 0,
       crossCountry: 0,
     });
-
-    // Send the summary as a response
     res.status(200).json({
       success: true,
       message: 'Logbook summary fetched successfully',
       data: {
-        summary,  // The calculated summary
+        summary,  
       },
     });
   } catch (error) {
