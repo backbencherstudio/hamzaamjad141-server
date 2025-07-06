@@ -245,3 +245,76 @@ export const getLogbookSummary = async (req: any, res: Response) => {
   }
 };
 
+export const getLogSummary = async (req: any, res: Response) => {
+  try {
+    const userId = req.user?.userId; // Get userId from the request
+    if (!userId) {
+       res.status(400).json({
+        success: false,
+        message: "User not authenticated.",
+      });
+      return
+    }
+
+    // Fetch all logs for the user
+    const logs = await prisma.addLog.findMany({
+      where: {
+        userId: userId,
+      },
+    });
+
+    // Filter for logs with 'APPROVED' status (adjust if your status value differs)
+    const approvedLogs = logs.filter(log => log.status === 'APPROVE');
+
+    // If no approved logs exist, return a helpful message
+    if (approvedLogs.length === 0) {
+       res.status(404).json({
+        success: false,
+        message: 'No approved flight logs found for this user.',
+      });
+      return
+    }
+
+    // Calculate the summary for approved logs
+    const summary = approvedLogs.reduce((acc, log) => {
+      acc.totalFlights += 1;  // Count each approved log as a flight
+      acc.totalHours += parseFloat(log.flightTime) || 0;  // Sum total flight hours
+      acc.picHours += parseFloat(log.dualrcv) || 0;  // Sum PIC hours (Dual RCV)
+      acc.dayHours += parseFloat(log.daytime) || 0;  // Sum Daytime hours
+      acc.nightHours += parseFloat(log.nightime) || 0;  // Sum Nighttime hours
+      acc.ifrHours += parseFloat(log.ifrtime) || 0;  // Sum IFR hours
+      acc.totalTakeoffs += log.takeoffs || 0;  // Sum total takeoffs
+      acc.totalLandings += log.landings || 0;  // Sum total landings
+      acc.crossCountry += parseFloat(log.crossCountry) || 0;  // Sum cross-country hours
+      return acc;
+    }, {
+      totalFlights: 0,
+      totalHours: 0,
+      picHours: 0,
+      dayHours: 0,
+      nightHours: 0,
+      ifrHours: 0,
+      totalTakeoffs: 0,
+      totalLandings: 0,
+      crossCountry: 0,
+    });
+
+    // Send the summary as a response
+    res.status(200).json({
+      success: true,
+      message: 'Logbook summary fetched successfully',
+      data: {
+        summary,  // The calculated summary
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching logbook summary:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch logbook summary',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+};
+
+
