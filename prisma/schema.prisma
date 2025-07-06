@@ -129,7 +129,7 @@ model Subscription {
   status               SubscriptionStatus @default(ACTIVE)
   stripeSubscriptionId String?
   promoCodeId          String?
-  promoCode            promoCode?         @relation(fields: [promoCodeId], references: [id]) // Relation field
+  promoCode PromoCode? @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
   trialPeriod          Boolean            @default(false)
 
   subscribedBy SubscriptionMethord @default(STRIPE)
@@ -142,29 +142,23 @@ enum SubscriptionMethord {
   CODE
 }
 
-model promoCode {
-  id            String          @id @default(cuid())
-  code          String          @unique
-  status        promoCodeStstus @default(ACTIVE)
+model PromoCode {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   subscriptions Subscription[]
+
+  @@map("promoCode") 
 }
+
+
 
 enum promoCodeStstus {
   USED
   ACTIVE
-  id          String             @id @default(cuid())
-  userId      String            
-  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  price       Float
-  startDate   DateTime           @default(now())
-  endDate     DateTime
-  status      SubscriptionStatus @default(ACTIVE)
-  stripeSubscriptionId String?   // Added for Stripe subscription ID
-  promoCode   String?
-  trialPeriod Boolean            @default(false)
-  
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
 }
 
 enum SubscriptionStatus {

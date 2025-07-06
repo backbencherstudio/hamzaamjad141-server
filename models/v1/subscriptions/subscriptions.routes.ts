@@ -1,6 +1,6 @@
 import express from "express";
 import bodyParser from "body-parser";
-import { subscribe, handleWebhook  } from "./subscriptions.controllers";
+import { subscribe, handleWebhook,CreatePromoCode  } from "./subscriptions.controllers";
 import { verifyUser } from "../../../middleware/verifyUsers";
 
 const router = express.Router();
@@ -21,5 +21,6 @@ router.post(
   '/webhook',
    handleWebhook
 );
+router.post("/create-promocode",verifyUser('ADMIN'), CreatePromoCode);
 
 export default router;

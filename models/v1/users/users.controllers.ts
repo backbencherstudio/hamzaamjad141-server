@@ -76,6 +76,7 @@ export const createUser = async (req: Request, res: Response) => {
 };
 
 export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
+  console.log(req.body);
   try {
     const { otp, email } = req.body;
 
@@ -316,6 +317,7 @@ export const changePassword = async (req: any, res: Response) => {
 };
 
 export const sendOtp = async (req: Request, res: Response) => {
+
   console.log("Send OTP request body:", req.body);
   try {
     const { name, email, password } = req.body;
