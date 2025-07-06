@@ -5,7 +5,6 @@ import Stripe from 'stripe';
 const prisma = new PrismaClient();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Create subscription
 export const createSubscription = async (req: any, res: Response) => {
   const { email, amount, paymentMethodId, trialPeriod } = req.body;
 
@@ -31,7 +30,7 @@ export const createSubscription = async (req: any, res: Response) => {
       return
     }
 
-    // Create payment with Stripe
+    
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100),
       currency: 'usd',
@@ -41,11 +40,10 @@ export const createSubscription = async (req: any, res: Response) => {
     });
 
     if (paymentIntent.status === 'succeeded') {
-      // Calculate subscription end date (30 days from now)
       const endDate = new Date();
       endDate.setDate(endDate.getDate() + 30);
 
-      // Create subscription record
+
       const subscription = await prisma.subscription.create({
         data: {
           userId: user.id,

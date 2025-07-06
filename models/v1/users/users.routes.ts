@@ -16,7 +16,8 @@ import {
   updateUser,
   resentOtp,
   updateImage,
-  userInfo
+  userInfo,
+  deleteUser
 } from "./users.controllers";
 
 import upload from "../../../config/multer.congig";
@@ -65,4 +66,5 @@ router.post("/verify-otp", verifyOtp);
 
 
 router.get('/me', verifyUser('USER'), userInfo )
+router.post("/delete", verifyUser("ANY"), deleteUser);
 export default router;
