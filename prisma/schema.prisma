@@ -152,25 +152,10 @@ model promoCode {
 enum promoCodeStstus {
   USED
   ACTIVE
-  id          String             @id @default(cuid())
-  userId      String            
-  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  price       Float
-  startDate   DateTime           @default(now())
-  endDate     DateTime
-  status      SubscriptionStatus @default(ACTIVE)
-  stripeSubscriptionId String?   // Added for Stripe subscription ID
-  promoCode   String?
-  trialPeriod Boolean            @default(false)
-  
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
 }
 
 enum SubscriptionStatus {
   ACTIVE
-  CANCELLED
-  PAST_DUE
   DEACTIVE
 }
 
