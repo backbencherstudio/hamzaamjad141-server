@@ -163,8 +163,6 @@ enum promoCodeStstus {
 
 enum SubscriptionStatus {
   ACTIVE
-  CANCELLED
-  PAST_DUE
   DEACTIVE
 }
 

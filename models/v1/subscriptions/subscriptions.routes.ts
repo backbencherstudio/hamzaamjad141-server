@@ -23,4 +23,5 @@ router.post(
 );
 router.post("/create-promocode",verifyUser('ADMIN'), CreatePromoCode);
 
+router.post("/create-promocode",verifyUser('ADMIN'), CreatePromoCode);
 export default router;
