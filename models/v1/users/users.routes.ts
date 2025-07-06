@@ -16,7 +16,8 @@ import {
   updateUser,
   resentOtp,
   updateImage,
-  userInfo
+  userInfo,
+  deleteUser
 } from "./users.controllers";
 
 import upload from "../../../config/multer.congig";
@@ -25,7 +26,7 @@ import { verifyUser } from "../../../middleware/verifyUsers";
 
 const router = express.Router();
 
-router.post("/register", createUser);
+
 router.post("/registerVerify", verifyOtpAndCreateUser);
 router.post("/login", loginUser);
 
@@ -65,4 +66,5 @@ router.post("/verify-otp", verifyOtp);
 
 
 router.get('/me', verifyUser('USER'), userInfo )
+router.post("/delete", verifyUser("ANY"), deleteUser);
 export default router;

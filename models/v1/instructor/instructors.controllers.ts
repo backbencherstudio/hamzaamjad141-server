@@ -212,7 +212,8 @@ export const deleteInstructor = async (req: Request, res: Response) => {
 };
 
 export const userInstructor = async (req: any, res: Response) => {
-  const {userInstructor} = req.body;
+  const {id} = req.params;
+  
   try {
     const userId = req.user?.userId;
     const existingUser = await prisma.user.findUnique({
@@ -222,9 +223,10 @@ export const userInstructor = async (req: any, res: Response) => {
     });
     const Instructor = await prisma.instructor.findUnique({
       where: {
-        id: userInstructor, 
+        id: id, 
       },
     });
+    console.log("idfjkldsjf", Instructor);
     const updatedUser = await prisma.user.update({
     where: {
       id: userId,

@@ -641,7 +641,7 @@ const downloadAndSaveImage = async (imageUrl: string): Promise<string> => {
 
     const buffer = await response.arrayBuffer();
     const filename = `${uuidv4()}.jpg`;
-    const uploadDir = path.join(__dirname, "../../uploads");
+    const uploadDir = path.join(__dirname, "../../../uploads");
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
