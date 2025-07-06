@@ -9,8 +9,6 @@ export const subscribe = async (req: any, res: Response) => {
   try {
     const { paymentMethodId } = req.body;
     const { userId } = req.user;
-export const createSubscription = async (req: any, res: Response) => {
-  const { email, amount, paymentMethodId, trialPeriod } = req.body;
 
     const user = await prisma.user.findFirst({
       where: { id: userId },
@@ -37,30 +35,6 @@ export const createSubscription = async (req: any, res: Response) => {
         .json({ error: "User already has an active subscription" });
       return;
     }
-
-    
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100),
-      currency: 'usd',
-      payment_method: paymentMethodId,
-      confirm: true,
-      return_url: `${process.env.CLIENT_URL}/subscription/success`
-    });
-
-    if (paymentIntent.status === 'succeeded') {
-      const endDate = new Date();
-      endDate.setDate(endDate.getDate() + 30);
-
-
-      const subscription = await prisma.subscription.create({
-        data: {
-          userId: user.id,
-          price: parseFloat(amount),
-          endDate,
-          status: 'ACTIVE',
-          trialPeriod: trialPeriod || false
-        }
-      });
 
     const existingCustomers = await stripe.customers.list({
       email: user.email,
@@ -212,5 +186,31 @@ export const handleWebhook = async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error("Webhook error:", err);
     res.status(400).json({ error: err.message });
+  }
+};
+
+export const generateOTP = (): string => {
+  return Math.floor(1000 + Math.random() * 9000).toString();
+};
+  
+
+export const CreatePromoCode = async (req: any, res: Response) => {
+  try {
+    const code = generateOTP();
+    console.log(code);
+    const newPromoCode = await prisma.promoCode.create({
+      data: {
+        code,
+        status: 'ACTIVE', 
+      },
+    });
+    res.status(201).json({ 
+      success: true,
+      message: 'Promo code created successfully', 
+      promoCode: newPromoCode 
+    });
+  } catch (err) {
+    console.error('Error creating promo code:', err);
+    res.status(500).json({ success: false, message: 'Failed to create promo code', error: err.message });
   }
 };
