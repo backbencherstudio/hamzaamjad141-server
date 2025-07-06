@@ -33,7 +33,7 @@ router.post("/login", loginUser);
 router.post("/forgetPassword", forgotPassword);
 router.post("/verify-top", verifyOtpAndResetPassword);
 router.patch("/resent-otp", resentOtp);
-router.patch("/change-password", resetPassword);
+router.put("/change-password", resetPassword);
 
 router.patch("/update-assword", verifyUser("ANY"), changePassword);
 
@@ -67,4 +67,6 @@ router.post("/verify-otp", verifyOtp);
 
 router.get('/me', verifyUser('USER'), userInfo )
 router.post("/delete", verifyUser("ANY"), deleteUser);
+
+
 export default router;

@@ -23,12 +23,10 @@ app.use(
       "http://127.0.0.1:16439/a.html",
       "http://127.0.0.1:16439",
       "http://localhost:5173"
-    ],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    ]
   })
 );
+
 
 
 app.use(express.json());
@@ -53,6 +51,13 @@ app.use(morgan("dev"));
 // });
 
 
+app.use((req, res, next) => {
+  if (req.originalUrl === '/subscription/webhook') {
+    next();
+  } else {
+    express.json()(req, res, next);
+  }
+});
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 

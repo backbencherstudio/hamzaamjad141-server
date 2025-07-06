@@ -9,6 +9,7 @@ import portcusts from "./portcusts/portcusts.routes";
 import ebook from "./ebook/ebook.routes";
 import subscriptions from "./subscriptions/subscriptions.routes";
 
+
 const router = express.Router();
 
 const moduleRoutes = [
@@ -19,7 +20,8 @@ const moduleRoutes = [
   { path: "/ai",  route: ai },
   { path: "/portcusts", route: portcusts  },
   { path: "/ebook", route: ebook },
-  { path: "/subscription", route: subscriptions}
+  { path: "/subscription", route: subscriptions},
+
 ];
 
 moduleRoutes.forEach(({ path, route }) => {
