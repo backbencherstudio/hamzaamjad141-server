@@ -168,3 +168,28 @@ const handleSubscriptionCancelled = async (subscription: Stripe.Subscription) =>
     },
   });
 };
+
+export const generateOTP = (): string => {
+  return Math.floor(1000 + Math.random() * 9000).toString();
+};
+  
+export const CreatePromoCode = async (req: any, res: Response) => {
+  try {
+    const code = generateOTP();
+    console.log(code);
+    const newPromoCode = await prisma.promoCode.create({
+      data: {
+        code,
+        status: 'ACTIVE', 
+      },
+    });
+    res.status(201).json({ 
+      success: true,
+      message: 'Promo code created successfully', 
+      promoCode: newPromoCode 
+    });
+  } catch (err) {
+    console.error('Error creating promo code:', err);
+    res.status(500).json({ success: false, message: 'Failed to create promo code', error: err.message });
+  }
+};
