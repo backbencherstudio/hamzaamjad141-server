@@ -21,7 +21,8 @@ app.use(
       "http://localhost:5173",
       "http://localhost:3000",
       "http://127.0.0.1:16439/a.html",
-      "http://127.0.0.1:16439"
+      "http://127.0.0.1:16439",
+      "http://localhost:5173"
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
