@@ -52,6 +52,47 @@ export const createInstructor = async (req: any, res: Response) => {
   }
 };
 
+export const myInstructor = async (req: any, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(400).json({
+        success: false,
+        message: "User not authenticated",
+      });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        instructor: true,
+      },
+    });
+
+    if (!user || !user.instructor) {
+      res.status(404).json({
+        success: false,
+        message: "Instructor not found for this user",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user.instructor,
+    });
+  } catch (error) {
+    console.error("Error in myInstructor:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve instructor",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
 export const findInstructor = async (req: Request, res: Response) => {
   try {
     const { search } = req.query;
@@ -212,38 +253,66 @@ export const deleteInstructor = async (req: Request, res: Response) => {
 };
 
 export const userInstructor = async (req: any, res: Response) => {
-  const {id} = req.params;
-  
+  const { id } = req.params;
+
   try {
     const userId = req.user?.userId;
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        id: userId, 
-      },
-    });
-    const Instructor = await prisma.instructor.findUnique({
-      where: {
-        id: id, 
-      },
-    });
-    console.log("idfjkldsjf", Instructor);
-    const updatedUser = await prisma.user.update({
-    where: {
-      id: userId,
-    },
-    data: {
-      name: existingUser.name,
-      email: existingUser.email,
-      instructorId: Instructor.id,
-    },
-  });
-  res.status(200).json({
-      success: true,
-      data: updatedUser,
+    if (!userId) {
+      res.status(400).json({
+        success: false,
+        message: "User ID not found!",
+      });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
     });
 
+    if (!user) {
+      res.status(400).json({
+        success: false,
+        message: "User not found!",
+      });
+      return;
+    }
+
+    const instructor = await prisma.instructor.findUnique({
+      where: { id: id },
+    });
+
+    if (!instructor) {
+      res.status(404).json({
+        success: false,
+        message: "Instructor not found!",
+      });
+      return;
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        instructorId: instructor.id,
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        id: instructor.id,
+        name: instructor.name,
+        email: instructor.email,
+        phone: instructor.phone,
+        createdAt: instructor.createdAt,
+        updatedAt: instructor.updatedAt,
+      },
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("Error in userInstructor:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update instructor data",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 };

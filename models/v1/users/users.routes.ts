@@ -67,4 +67,6 @@ router.post("/verify-otp", verifyOtp);
 
 router.get('/me', verifyUser('USER'), userInfo )
 router.post("/delete", verifyUser("ANY"), deleteUser);
+
+
 export default router;

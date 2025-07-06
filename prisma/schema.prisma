@@ -27,6 +27,7 @@ model User {
 
   subscription          Subscription[]
   currentSubscriptionId String?
+  stripeCustomerId      String?
 
   @@map("users")
 }
@@ -120,21 +121,20 @@ model Ebook {
 }
 
 model Subscription {
-  id                   String             @id @default(cuid())
+  id                   String              @id @default(cuid())
   userId               String
-  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                 User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   price                Float
-  startDate            DateTime           @default(now())
+  startDate            DateTime            @default(now())
   endDate              DateTime
-  status               SubscriptionStatus @default(ACTIVE)
+  status               SubscriptionStatus  @default(ACTIVE)
   stripeSubscriptionId String?
   promoCodeId          String?
-  promoCode            promoCode?         @relation(fields: [promoCodeId], references: [id]) // Relation field
-  trialPeriod          Boolean            @default(false)
-
-  subscribedBy SubscriptionMethord @default(STRIPE)
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+  promoCode            promoCode?          @relation(fields: [promoCodeId], references: [id]) // Relation field
+  trialPeriod          Boolean             @default(false)
+  subscribedBy         SubscriptionMethord @default(STRIPE)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
 }
 
 enum SubscriptionMethord {

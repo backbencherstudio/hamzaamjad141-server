@@ -5,8 +5,8 @@ import {createInstructorAndAddLog,getLogbookSummary,instructorApprov,instructorR
 
 const router = express.Router();
 
-router.post("/add-addlog", verifyUser('USER'), createInstructorAndAddLog);
-router.get("/get-logbook", verifyUser('USER'), getLogbookSummary);
+router.post("/add-addlog", verifyUser('ANY'), createInstructorAndAddLog);
+router.get("/get-logbook", verifyUser('ANY'), getLogbookSummary);
 router.post("/addlog-approve/:id", instructorApprov);
 router.post("/addlog-reject/:id", instructorReject);
 
