@@ -38,6 +38,7 @@ export const subscribe = async (req: any, res: Response) => {
         where: { id: userId },
         data: { stripeCustomerId: customer.id },
       });
+      return
     }
 
 
