@@ -1,25 +1,25 @@
- 
-import express from 'express';
+import express from "express";
+import bodyParser from "body-parser";
+import { subscribe, handleWebhook  } from "./subscriptions.controllers";
 import { verifyUser } from "../../../middleware/verifyUsers";
-import {
-  createSubscription,
-  cancelSubscription,
-  getSubscriptionStatus,
-  updateSubscription
-} from './subscriptions.controllers';
 
 const router = express.Router();
 
-// Create a subscription
-router.post('/create', verifyUser('USER'), createSubscription);
+// Middleware
+router.use(bodyParser.json());
+router.use(bodyParser.raw({ type: "application/json" }));
 
-// // Cancel subscription
-// router.post('/cancel', verifyUser('USER'), cancelSubscription);
+// Monthly subscription endpoint
+router.post(
+  "/pay",
+  verifyUser('ANY'),
+   subscribe
+);
 
-// // Get subscription status
-// router.get('/status', verifyUser('USER'), getSubscriptionStatus);
-
-// // Update subscription
-// router.put('/update', verifyUser('USER'), updateSubscription);
+// Webhook endpoint
+router.post(
+  '/webhook',
+   handleWebhook
+);
 
 export default router;

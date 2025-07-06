@@ -1,33 +1,41 @@
-import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-import Stripe from 'stripe';
+import { Request, Response } from "express";
+import Stripe from "stripe";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+export const subscribe = async (req: any, res: Response) => {
+  try {
+    const { paymentMethodId } = req.body;
+    const { userId } = req.user;
 export const createSubscription = async (req: any, res: Response) => {
   const { email, amount, paymentMethodId, trialPeriod } = req.body;
 
-  if (!email || !amount || !paymentMethodId) {
-     res.status(400).json({
-      success: false,
-      message: "Email, amount, and payment method are required."
+    const user = await prisma.user.findFirst({
+      where: { id: userId },
     });
-    return
-  }
 
-  try {
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: { subscription: true }
-    });
+    console.log()
 
     if (!user) {
-       res.status(404).json({
-        success: false,
-        message: "User not found."
+      res.status(400).json({
+        message: "user Not found",
       });
-      return
+    }
+
+    const existingSubscription = await prisma.subscription.findFirst({
+      where: {
+        userId,
+        status: "ACTIVE",
+      },
+    });
+
+    if (existingSubscription) {
+      res
+        .status(400)
+        .json({ error: "User already has an active subscription" });
+      return;
     }
 
     
@@ -54,150 +62,155 @@ export const createSubscription = async (req: any, res: Response) => {
         }
       });
 
-      // Update user's current subscription
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { currentSubscriptionId: subscription.id }
-      });
+    const existingCustomers = await stripe.customers.list({
+      email: user.email,
+      limit: 1,
+    });
+    let customer: Stripe.Customer;
 
-      res.status(200).json({
-        success: true,
-        data: {
-          subscriptionId: subscription.id,
-          endDate: subscription.endDate,
-          status: subscription.status
-        }
-      });
+    if (existingCustomers.data.length > 0) {
+      customer = existingCustomers.data[0];
     } else {
-      throw new Error('Payment failed');
-    }
-  } catch (error) {
-    console.error('Error creating subscription:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create subscription.'
-    });
-  }
-};
-
-// Cancel subscription
-export const cancelSubscription = async (req: any, res: Response) => {
-  try {
-    const userId = req.user?.userId;
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { subscription: true }
-    });
-
-    if (!user?.currentSubscriptionId) {
-      return res.status(400).json({
-        success: false,
-        message: 'No active subscription found'
+      customer = await stripe.customers.create({
+        email: user.email,
+        metadata: { userId },
       });
     }
 
-    // Update subscription status
-    await prisma.subscription.update({
-      where: { id: user.currentSubscriptionId },
-      data: { status: 'DEACTIVE' }
+    try {
+      await stripe.paymentMethods.attach(paymentMethodId, {
+        customer: customer.id,
+      });
+    } catch (err: any) {
+      if (err.code !== "resource_already_attached") {
+        throw err;
+      }
+    }
+
+    await stripe.customers.update(customer.id, {
+      invoice_settings: {
+        default_payment_method: paymentMethodId,
+      },
     });
 
-    // Remove current subscription from user
+    const stripeSubscription = await stripe.subscriptions.create({
+      customer: customer.id,
+      items: [{ price: process.env.STRIPE_MONTHLY_PRICE_ID! }],
+      expand: ["latest_invoice"],
+    });
+
+    const dbSubscription = await prisma.subscription.create({
+      data: {
+        userId,
+        price: 22,
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        status: "ACTIVE",
+        stripeSubscriptionId: stripeSubscription.id,
+      },
+    });
+
     await prisma.user.update({
       where: { id: userId },
-      data: { currentSubscriptionId: null }
+      data: { currentSubscriptionId: dbSubscription.id },
     });
 
     res.json({
       success: true,
-      message: 'Subscription cancelled successfully'
+      message: "Subscription created successfully!",
+      customerId: customer.id,
+      subscriptionId: stripeSubscription.id,
     });
-  } catch (error) {
-    console.error('Error canceling subscription:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to cancel subscription'
-    });
+  } catch (error: any) {
+    console.error("Subscription error:", error);
+    res.status(400).json({ success: false, error: error.message });
   }
 };
 
-// Get subscription status
-export const getSubscriptionStatus = async (req: any, res: Response) => {
-  try {
-    const userId = req.user?.userId;
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        subscription: {
-          where: { status: 'ACTIVE' },
-          orderBy: { createdAt: 'desc' },
-          take: 1
-        }
-      }
-    });
+  const handleSuccessfulPayment =  async (invoice: Stripe.Invoice) => {
+    const subscriptionId = (invoice as any).subscription as string;
+    const customerId = invoice.customer as string;
+    
+    if (!subscriptionId) return;
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    const currentSubscription = user.subscription[0];
-
-    res.json({
-      success: true,
-      data: currentSubscription ? {
-        status: currentSubscription.status,
-        endDate: currentSubscription.endDate,
-        price: currentSubscription.price,
-        trialPeriod: currentSubscription.trialPeriod
-      } : null
-    });
-  } catch (error) {
-    console.error('Error getting subscription status:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get subscription status'
-    });
-  }
-};
-
-// Update subscription
-export const updateSubscription = async (req: any, res: Response) => {
-  const { price, endDate } = req.body;
-  
-  try {
-    const userId = req.user?.userId;
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
-
-    if (!user?.currentSubscriptionId) {
-      return res.status(400).json({
-        success: false,
-        message: 'No active subscription found'
-      });
-    }
-
-    const updatedSubscription = await prisma.subscription.update({
-      where: { id: user.currentSubscriptionId },
+    // Update subscription in database
+    await prisma.subscription.updateMany({
+      where: {
+        stripeSubscriptionId: subscriptionId,
+      },
       data: {
-        price: price ? parseFloat(price) : undefined,
-        endDate: endDate ? new Date(endDate) : undefined
-      }
+        status: "ACTIVE",
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Renew for 30 days
+      },
+    });
+  }
+
+
+
+  const handleFailedPayment = async (invoice: Stripe.Invoice) => {
+    const subscriptionId = (invoice as any).subscription as string;
+    
+    if (!subscriptionId) return;
+
+    await prisma.subscription.updateMany({
+      where: { stripeSubscriptionId: subscriptionId },
+      data: { status: "DEACTIVE" },
+    });
+  }
+
+
+
+  const handleSubscriptionCancelled = async (subscription: Stripe.Subscription) => {
+    const dbSubscription = await prisma.subscription.findFirst({
+      where: {
+        stripeSubscriptionId: subscription.id,
+      },
     });
 
-    res.json({
-      success: true,
-      message: 'Subscription updated successfully',
-      data: updatedSubscription
+    if (!dbSubscription) return;
+
+    await prisma.subscription.update({
+      where: {
+        id: dbSubscription.id,
+      },
+      data: {
+        status: "DEACTIVE",
+        endDate: new Date((subscription as any).current_period_end * 1000),
+      },
     });
-  } catch (error) {
-    console.error('Error updating subscription:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update subscription'
-    });
+  }
+
+
+export const handleWebhook = async (req: Request, res: Response) => {
+  const sig = req.headers["stripe-signature"] as string;
+
+  try {
+    const event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
+
+    switch (event.type) {
+      case "invoice.paid":
+        const invoice = event.data.object as Stripe.Invoice;
+        await handleSuccessfulPayment(invoice);
+        break;
+
+      case "invoice.payment_failed":
+        const failedInvoice = event.data.object as Stripe.Invoice;
+        await handleFailedPayment(failedInvoice);
+        break;
+
+      case "customer.subscription.deleted":
+        const subscription = event.data.object as Stripe.Subscription;
+        await handleSubscriptionCancelled(subscription);
+        break;
+    }
+
+    res.json({ received: true });
+  } catch (err: any) {
+    console.error("Webhook error:", err);
+    res.status(400).json({ error: err.message });
   }
 };
