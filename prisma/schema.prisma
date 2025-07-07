@@ -49,29 +49,35 @@ model Ucode {
 }
 
 model Instructor {
-  id        String   @id @default(cuid())
+  id        String         @id @default(cuid())
   name      String
-  email     String   @unique
+  email     String         @unique
   phone     String
   users     User[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  status    instructorType @default(ACTIVE)
 
   @@index([name])
   @@index([email])
 }
 
+enum instructorType {
+  ACTIVE
+  DEACTIVE
+}
+
 model AddLog {
-  id           String       @id @default(cuid())
+  id           String   @id @default(cuid())
   date         DateTime
   from         String
   to           String
   aircrafttype String
   tailNumber   String
 
-  flightTime   Float
-  pictime      Float
-  dualrcv      String
+  flightTime Float
+  pictime    Float
+  dualrcv    String
 
   daytime      Float
   nightime     Float
@@ -80,15 +86,15 @@ model AddLog {
   takeoffs     Int
   landings     Int
 
-  userId       String
-  status       addlogStatus @default(PENDING)
+  userId String
+  status addlogStatus @default(PENDING)
 
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  action       Action       @default(active)
-  
-  updatedAt    DateTime     @updatedAt
-  createdAt    DateTime     @default(now())
+  action Action @default(active)
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 }
 
 model Location {
