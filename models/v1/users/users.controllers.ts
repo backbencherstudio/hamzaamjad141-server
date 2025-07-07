@@ -675,13 +675,13 @@ export const googleLogin = async (req: Request, res: Response) => {
       where: { email },
     });
 
-    if (!user) {
-      res.status(400).json({
-        success: false,
-        message: "lab nai! shakin vai durbol",
-      });
-      return;
-    }
+    // if (!user) {
+    //   res.status(400).json({
+    //     success: false,
+    //     message: "lab nai! shakin vai durbol",
+    //   });
+    //   return;
+    // }
 
     if (!user) {
       const savedImagePath = await downloadAndSaveImage(image);
