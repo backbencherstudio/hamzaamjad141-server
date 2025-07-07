@@ -383,7 +383,6 @@ export const toDeActiveInstructor = async (req: any, res: Response) => {
       return;
     }
 
-
     const updatedInstructor = await prisma.instructor.update({
       where: { id },
       data: { status: "DEACTIVE" },
@@ -399,6 +398,88 @@ export const toDeActiveInstructor = async (req: any, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Failed to deactivate instructor",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+
+
+
+export const getAllInstructors = async (req: any, res: Response) => {
+  try {
+    const { page = 1, limit = 10, search = "" } = req.query;
+    const pageNumber = parseInt(page as string, 10);
+    const pageLimit = parseInt(limit as string, 10);
+
+    const skip = (pageNumber - 1) * pageLimit;
+
+    // Get total count of instructors based on search criteria (only name and email)
+    const totalInstructors = await prisma.instructor.count({
+      where: {
+        OR: [
+          {
+            name: {
+              contains: search, // Searching in the instructor's name
+              mode: "insensitive", // Case insensitive search
+            },
+          },
+          {
+            email: {
+              contains: search, // Searching in the instructor's email
+              mode: "insensitive", // Case insensitive search
+            },
+          },
+        ],
+      },
+    });
+
+    // Fetch instructors based on the search criteria (only name and email)
+    const instructors = await prisma.instructor.findMany({
+      skip: skip,
+      take: pageLimit,
+      orderBy: {
+        createdAt: "desc", // Ordering by creation date
+      },
+      where: {
+        OR: [
+          {
+            name: {
+              contains: search, // Searching in the instructor's name
+              mode: "insensitive", // Case insensitive search
+            },
+          },
+          {
+            email: {
+              contains: search, // Searching in the instructor's email
+              mode: "insensitive", // Case insensitive search
+            },
+          },
+        ],
+      },
+      include: {
+        users: {
+          select: {
+            name: true,
+            email: true,
+            license: true,
+          },
+        },
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: instructors,
+      total: totalInstructors,
+      page: pageNumber,
+      totalPages: Math.ceil(totalInstructors / pageLimit),
+    });
+  } catch (error) {
+    console.error("Error fetching instructors:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch instructors",
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }

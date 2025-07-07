@@ -449,3 +449,79 @@ export const getAllUserLogSummaries = async (req: any, res: Response) => {
     });
   }
 };
+
+
+
+export const getUserLogs = async (req: any, res: Response) => {
+  try {
+    const userId = req.params.userId;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const statusFilter = req.query.status;
+
+    const skip = (page - 1) * limit;
+
+ 
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true }
+    });
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+ 
+    const logs = await prisma.addLog.findMany({
+      where: {
+        userId: userId,
+        ...(statusFilter && { status: statusFilter })
+      },
+      skip: skip,
+      take: limit,
+      orderBy: {
+        date: 'desc' 
+      }
+    });
+
+
+    const totalLogs = await prisma.addLog.count({
+      where: {
+        userId: userId,
+        ...(statusFilter && { status: statusFilter })
+      }
+    });
+
+    const totalPages = Math.ceil(totalLogs / limit);
+
+    res.status(200).json({
+      success: true,
+      message: "User logs fetched successfully",
+      data: {
+        userInfo: {
+          id: user.id,
+          name: user.name,
+          email: user.email
+        },
+        logs,
+        pagination: {
+          totalLogs,
+          totalPages,
+          currentPage: page,
+          limit
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching user logs:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch user logs",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
