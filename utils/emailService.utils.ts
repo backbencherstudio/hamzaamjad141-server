@@ -56,6 +56,7 @@ export const instructorConformations = async (
   studentName: string,
   logDetails: any
 ) => {
+ 
   const htmlContent = instructorConformationsTamplate(
     instructorEmail,
     studentName,
