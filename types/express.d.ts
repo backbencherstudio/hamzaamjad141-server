@@ -29,3 +29,17 @@ declare global {
     }
   }
 }
+
+
+import { User } from "@prisma/client"; // or your user type
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        userId: string;
+        // add other properties if needed
+      };
+    }
+  }
+}

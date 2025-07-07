@@ -1,7 +1,7 @@
 import express from "express";
 import { verifyUser } from "../../../middleware/verifyUsers";
 import upload from "../../../config/multer.congig";
-import { createEbooks, getAllebook, updateEbook, deleteEbook } from "./ebook.controllers";
+import { createEbooks, getAllebook, updateEbook, deleteEbook, searchEbooks } from "./ebook.controllers";
 
 const router = express.Router();
 
@@ -15,7 +15,9 @@ router.post(
   createEbooks
 );
 
-router.get("/all",getAllebook);
+router.get("/all", getAllebook);
+
+router.get("/all-ebook", verifyUser('ADMIN'), searchEbooks);
 
 router.patch(
   "/update/:id",
