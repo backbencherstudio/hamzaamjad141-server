@@ -103,7 +103,7 @@ export const handleWebhook = async (req: Request, res: Response) => {
       process.env.STRIPE_WEBHOOK_SECRET!
     );
 
-    console.log("event", event)
+
 
     switch (event.type) {
       case "invoice.paid":

@@ -487,7 +487,7 @@ export const getUserLogs = async (req: any, res: Response) => {
         date: 'desc' 
       }
     });
-    console.log(logs)
+
 
     const totalLogs = await prisma.addLog.count({
       where: {

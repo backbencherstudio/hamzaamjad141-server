@@ -17,7 +17,7 @@ const prisma = new PrismaClient();
 const tempUserStore = new Map<string, any>();
 
 export const createUser = async (req: Request, res: Response) => {
-  console.log("Create User request body:", req.body);
+ 
   try {
     const { name, email, password, license } = req.body;
 
@@ -159,7 +159,7 @@ export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
 };
 
 export const resendCode = async (req: Request, res: Response) => {
-  console.log("Verify OTP request body:", req.body);
+
   try {
     const { email } = req.body;
 
@@ -241,7 +241,7 @@ export const loginUser = async (req: Request, res: Response) => {
       { expiresIn: "100d" }
     );
 
-    console.log("Token expires at:", token);
+    
 
     res.status(200).json({
       success: true,
@@ -282,7 +282,7 @@ export const changePassword = async (req: any, res: Response) => {
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
-    console.log("User found for password change:", user);
+ 
 
     if (!user) {
       res.status(404).json({ message: "password not found" });
@@ -316,7 +316,7 @@ export const changePassword = async (req: any, res: Response) => {
 };
 
 export const sendOtp = async (req: Request, res: Response) => {
-  console.log("Send OTP request body:", req.body);
+
   try {
     const { name, email, password } = req.body;
 
@@ -379,7 +379,7 @@ export const sendOtp = async (req: Request, res: Response) => {
 };
 
 export const verifyOtp = async (req: Request, res: Response) => {
-  console.log("Verify OTP request body:", req.body);
+
   try {
     const { email, userEnteredOtp } = req.body;
 
@@ -512,7 +512,6 @@ export const verifyOtpAndResetPassword = async (
   try {
     const user = await prisma.ucode.findUnique({ where: { email } });
 
-    console.log(user);
     if (!user) {
       res.status(404).json({ message: "User not found" });
       return;
@@ -661,7 +660,7 @@ export const googleLogin = async (req: Request, res: Response) => {
   console.log("Google Auth route hit");
   try {
     const { name, email, image } = req.body;
-    console.log("Google Auth request body:", req.body);
+
 
     if (!name || !email || !image) {
       res.status(400).json({
@@ -725,7 +724,7 @@ export const googleLogin = async (req: Request, res: Response) => {
 };
 
 export const facebookLogin = async (req: Request, res: Response) => {
-  console.log("Facebook Auth route hit", req.body);
+
   try {
     const { name, email, image } = req.body;
 

@@ -219,7 +219,7 @@ export const deleteLog = async (req: any, res: Response) => {
     const logId = req.params.id;
     const userId = req.user?.userId;
 
-    console.log(logId, userId )
+
 
     if (!userId) {
        res.status(401).json({

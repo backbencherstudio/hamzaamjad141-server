@@ -41,7 +41,7 @@ export const sendForgotPasswordOTP = async (
   otp: string
 ): Promise<void> => {
 
-  console.log(email, otp);
+
   const htmlContent = emailForgotPasswordOTP(email, otp);
   await sendEmail(email, "OTP Code for Password Reset", htmlContent);
 };
@@ -56,12 +56,14 @@ export const instructorConformations = async (
   studentName: string,
   logDetails: any
 ) => {
- 
+
   const htmlContent = instructorConformationsTamplate(
     instructorEmail,
     studentName,
     logDetails
   );
+
+  console.log(instructorEmail)
   await sendEmail(
     instructorEmail,
     `New Flight Log Submission from ${studentName}`,
