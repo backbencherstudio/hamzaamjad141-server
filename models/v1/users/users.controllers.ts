@@ -32,8 +32,6 @@ export const createUser = async (req: Request, res: Response) => {
       return;
     }
 
-    // const existingUser = await prisma.ucode.findUnique({ where: { email } });
-
     const otp = generateOTP();
     const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
@@ -146,6 +144,7 @@ export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
         name: verifiedUser.name,
         email: verifiedUser.email,
         license: verifiedUser.license,
+        role: verifiedUser.role
       },
     };
 
@@ -158,6 +157,7 @@ export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
     });
   }
 };
+
 export const resendCode = async (req: Request, res: Response) => {
   console.log("Verify OTP request body:", req.body);
   try {
@@ -833,6 +833,7 @@ export const updateImage = async (req: any, res: Response) => {
     });
   }
 };
+
 export const updateAdmin = async (req: any, res: Response) => {
   console.log(req.body);
   try {
