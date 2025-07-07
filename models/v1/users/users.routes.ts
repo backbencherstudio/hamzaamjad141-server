@@ -65,7 +65,7 @@ router.post("/email-verify", verifyEmailUpdate);
 router.post("/verify-otp", verifyOtp);
 
 
-router.get('/me', verifyUser('USER'), userInfo )
+router.get('/me', verifyUser('ANY'), userInfo )
 router.post("/delete", verifyUser("ANY"), deleteUser);
 
 

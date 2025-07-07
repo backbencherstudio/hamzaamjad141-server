@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export const createInstructorAndAddLog = async (req: any, res: Response) => {
+export const createLog = async (req: any, res: Response) => {
   try {
     const id = req.user?.userId;
 
@@ -181,7 +181,7 @@ export const instructorReject = async (req: any, res: Response) => {
   }
 };
 
-export const getLogbookSummary = async (req: any, res: Response) => {
+export const getLogbook = async (req: any, res: Response) => {
   try {
     const userId = req.user?.userId;
     const statusFilter = req.query.status;
@@ -242,7 +242,6 @@ export const deleteLog = async (req: any, res: Response) => {
     const logId = req.params.id;
     const userId = req.user?.userId;
 
-    // First, check if the log exists
     const existingLog = await prisma.addLog.findUnique({
       where: { id: logId },
     });
@@ -270,6 +269,83 @@ export const deleteLog = async (req: any, res: Response) => {
       success: false,
       message: "Failed to delete log entry",
       error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+
+export const getLogSummary = async (req: any, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    
+    if (!userId) {
+       res.status(400).json({
+        success: false,
+        message: "User not authenticated.",
+      });
+      return
+    }
+
+    const approvedLogs = await prisma.addLog.findMany({
+      where: {
+        userId: userId,
+        status: 'APPROVE',
+      },
+    });
+
+    // Calculate all metrics
+    const totalTakeoffs = approvedLogs.reduce((sum, log) => sum + (log.takeoffs || 0), 0);
+    const totalLandings = approvedLogs.reduce((sum, log) => sum + (log.landings || 0), 0);
+
+    const summary = {
+      totalFlights: approvedLogs.length,
+      totalHours: approvedLogs.reduce((sum, log) => sum + Number(log.flightTime || 0), 0),
+      picHours: approvedLogs.reduce((sum, log) => sum + Number(log.pictime || 0), 0),
+      dayHours: approvedLogs.reduce((sum, log) => sum + Number(log.daytime || 0), 0),
+      nightHours: approvedLogs.reduce((sum, log) => sum + Number(log.nightime || 0), 0),
+      ifrHours: approvedLogs.reduce((sum, log) => sum + Number(log.ifrtime || 0), 0),
+      totalTakeoffs: totalTakeoffs,
+      totalLandings: totalLandings,
+      crossCountry: approvedLogs.reduce((sum, log) => sum + Number(log.crossCountry || 0), 0),
+      // Add validation for takeoffs/landings mismatch
+      hasMismatch: totalTakeoffs !== totalLandings,
+    };
+
+    // Format numbers and prepare response
+    const formattedSummary = {
+      totalFlights: summary.totalFlights,
+      totalHours: parseFloat(summary.totalHours.toFixed(2)),
+      picHours: parseFloat(summary.picHours.toFixed(2)),
+      dayHours: parseFloat(summary.dayHours.toFixed(2)),
+      nightHours: parseFloat(summary.nightHours.toFixed(2)),
+      ifrHours: parseFloat(summary.ifrHours.toFixed(2)),
+      totalTakeoffs: summary.totalTakeoffs,
+      totalLandings: summary.totalLandings,
+      crossCountry: summary.crossCountry,
+    };
+
+    // Include warning if takeoffs and landings don't match
+    if (summary.hasMismatch) {
+       res.status(200).json({
+        success: true,
+        message: 'Logbook summary fetched with warnings',
+        warning: 'Takeoffs and landings count mismatch detected',
+        data: formattedSummary,
+      });
+      return
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Logbook summary fetched successfully',
+      data: formattedSummary,
+    });
+  } catch (error) {
+    console.error('Error fetching logbook summary:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch logbook summary',
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 };
