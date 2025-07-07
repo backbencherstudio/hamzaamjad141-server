@@ -316,3 +316,90 @@ export const userInstructor = async (req: any, res: Response) => {
     });
   }
 };
+
+export const toActiveInstructor = async (req: any, res: Response) => {
+  const { id } = req.params;
+  try {
+    const instructor = await prisma.instructor.findUnique({
+      where: { id },
+    });
+
+    if (!instructor) {
+      res.status(404).json({
+        success: false,
+        message: "Instructor not found!",
+      });
+      return;
+    }
+
+    if (instructor.status === "ACTIVE") {
+      res.status(400).json({
+        success: false,
+        message: "Instructor is already active!",
+      });
+      return;
+    }
+
+    const updatedInstructor = await prisma.instructor.update({
+      where: { id },
+      data: { status: "ACTIVE" },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Instructor activated successfully!",
+      data: updatedInstructor,
+    });
+  } catch (error) {
+    console.error("Error in toActiveInstructor:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to activate instructor",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+export const toDeActiveInstructor = async (req: any, res: Response) => {
+  const { id } = req.params;
+  try {
+    const instructor = await prisma.instructor.findUnique({
+      where: { id },
+    });
+
+    if (!instructor) {
+      res.status(404).json({
+        success: false,
+        message: "Instructor not found!",
+      });
+      return;
+    }
+
+    if (instructor.status === "DEACTIVE") {
+      res.status(400).json({
+        success: false,
+        message: "Instructor is already deactivated!",
+      });
+      return;
+    }
+
+
+    const updatedInstructor = await prisma.instructor.update({
+      where: { id },
+      data: { status: "DEACTIVE" },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Instructor deactivated successfully!",
+      data: updatedInstructor,
+    });
+  } catch (error) {
+    console.error("Error in toDeActiveInstructor:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to deactivate instructor",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};

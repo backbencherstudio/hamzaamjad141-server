@@ -54,12 +54,21 @@ model Instructor {
   email     String   @unique
   phone     String
   users     User[]
+
+  status    instructorType @default(ACTIVE)
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([name])
   @@index([email])
 }
+
+enum instructorType {
+  ACTIVE
+  DEACTIVE
+}
+
 
 model AddLog {
   id           String       @id @default(cuid())
@@ -86,7 +95,7 @@ model AddLog {
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   action       Action       @default(active)
-  
+
   updatedAt    DateTime     @updatedAt
   createdAt    DateTime     @default(now())
 }

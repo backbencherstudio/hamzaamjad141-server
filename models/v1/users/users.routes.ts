@@ -26,7 +26,7 @@ import { verifyUser } from "../../../middleware/verifyUsers";
 
 const router = express.Router();
 
-
+router.post("/register", createUser);
 router.post("/registerVerify", verifyOtpAndCreateUser);
 router.post("/login", loginUser);
 
@@ -35,7 +35,7 @@ router.post("/verify-top", verifyOtpAndResetPassword);
 router.patch("/resent-otp", resentOtp);
 router.put("/change-password", resetPassword);
 
-router.patch("/update-assword", verifyUser("ANY"), changePassword);
+router.patch("/update-password", verifyUser("ANY"), changePassword);
 
 router.post("/google-login", googleLogin);
 router.post("/facebook-login", facebookLogin);
