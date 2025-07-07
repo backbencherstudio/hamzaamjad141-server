@@ -221,6 +221,7 @@ export const loginUser = async (req: Request, res: Response) => {
         email,
       },
     });
+    console.log("check",user);
 
     if (!user) {
       res.status(404).json({
@@ -779,10 +780,11 @@ export const facebookLogin = async (req: Request, res: Response) => {
   }
 };
 
-export const updateImage = async (req: any, res: Response) => {
-  console.log("iamge", req.body);
+export const adminInfo = async (req: any, res: Response) => {
   try {
     const id = req.user?.userId;
+    console.log(id);
+    const { name } = req.body;
     const newImage = req.file;
 
     if (!newImage) {
@@ -811,11 +813,14 @@ export const updateImage = async (req: any, res: Response) => {
     const user = await prisma.user.update({
       where: { id: id },
       data: {
-        image: newImage.filename,
+        name:name || existingUser.name,
+        image:  newImage ? newImage.filename : existingUser.image,
       },
     });
 
-    const imageUrl = `http://localhost:3000/uploads/${user.image}`;
+    const imageUrl = user.image
+        ? getImageUrl(`/uploads/${user.image}`)
+        : null;
 
     res.status(200).json({
       success: true,
@@ -834,11 +839,11 @@ export const updateImage = async (req: any, res: Response) => {
     });
   }
 };
-export const updateAdmin = async (req: any, res: Response) => {
+export const updateAdminPassword = async (req: any, res: Response) => {
   console.log(req.body);
   try {
     const id = req.user?.userId;
-    const { name, oldPassword, newPassword, confirmPassword } = req.body;
+    const {  oldPassword, newPassword, confirmPassword } = req.body;
     const existingUser = await prisma.user.findUnique({
       where: { id: id },
     });
@@ -865,7 +870,6 @@ export const updateAdmin = async (req: any, res: Response) => {
     const user = await prisma.user.update({
       where: { id: id },
       data: {
-        name: name || existingUser.name,
         password: hashedPassword,
       },
     });

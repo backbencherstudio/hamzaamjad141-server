@@ -6,10 +6,7 @@ const prisma = new PrismaClient();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const subscribe = async (req: any, res: Response) => {
-<<<<<<< HEAD
-=======
     console.log(req.body)
->>>>>>> 462d7926584305da11e653d3b859c096f7fe086d
   try {
     const { paymentMethodId } = req.body;
     const { userId } = req.user;
@@ -35,14 +32,11 @@ export const subscribe = async (req: any, res: Response) => {
       customer = await stripe.customers.create({
         email: user.email,
         metadata: { userId },
-<<<<<<< HEAD
-=======
       });
 
       await prisma.user.update({
         where: { id: userId },
         data: { stripeCustomerId: customer.id },
->>>>>>> 462d7926584305da11e653d3b859c096f7fe086d
       });
     }
 
@@ -89,65 +83,6 @@ export const subscribe = async (req: any, res: Response) => {
     });
   } catch (error: any) {
     console.error("Subscription error:", error);
-<<<<<<< HEAD
-    res.status(400).json({ success: false, error: error.message });
-  }
-};
-
-  const handleSuccessfulPayment =  async (invoice: Stripe.Invoice) => {
-    const subscriptionId = (invoice as any).subscription as string;
-    const customerId = invoice.customer as string;
-    
-    if (!subscriptionId) return;
-
-    // Update subscription in database
-    await prisma.subscription.updateMany({
-      where: {
-        stripeSubscriptionId: subscriptionId,
-      },
-      data: {
-        status: "ACTIVE",
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Renew for 30 days
-      },
-    });
-  }
-
-
-
-  const handleFailedPayment = async (invoice: Stripe.Invoice) => {
-    const subscriptionId = (invoice as any).subscription as string;
-    
-    if (!subscriptionId) return;
-
-    await prisma.subscription.updateMany({
-      where: { stripeSubscriptionId: subscriptionId },
-      data: { status: "DEACTIVE" },
-    });
-  }
-
-
-
-  const handleSubscriptionCancelled = async (subscription: Stripe.Subscription) => {
-    const dbSubscription = await prisma.subscription.findFirst({
-      where: {
-        stripeSubscriptionId: subscription.id,
-      },
-    });
-
-    if (!dbSubscription) return;
-
-    await prisma.subscription.update({
-      where: {
-        id: dbSubscription.id,
-      },
-      data: {
-        status: "DEACTIVE",
-        endDate: new Date((subscription as any).current_period_end * 1000),
-      },
-    });
-  }
-
-=======
     res.status(400).json({ 
       success: false, 
       error: error.message,
@@ -156,7 +91,6 @@ export const subscribe = async (req: any, res: Response) => {
   }
 };
 
->>>>>>> 462d7926584305da11e653d3b859c096f7fe086d
 
 export const handleWebhook = async (req: Request, res: Response) => {
   const sig = req.headers["stripe-signature"] as string;

@@ -2,7 +2,7 @@ import express from "express";
 import {
   createUser,
   loginUser,
-  updateAdmin,
+  updateAdminPassword,
   changePassword,
   sendOtp,
   verifyOtp,
@@ -15,7 +15,7 @@ import {
   verifyEmailUpdate,
   updateUser,
   resentOtp,
-  updateImage,
+  adminInfo,
   userInfo,
   deleteUser
 } from "./users.controllers";
@@ -41,17 +41,21 @@ router.post("/google-login", googleLogin);
 router.post("/facebook-login", facebookLogin);
 router.post("/send-otp", sendOtp);
 
+// router.put(
+//   "/update-admininfo",verifyUser("ADMIN"), (req, res) => {
+//   res.send(`Hello`);  
+// });
 router.put(
-  "/user/update/img",
-  verifyUser("USER"),
+  "/update-admininfo",
+  verifyUser("ADMIN"),
   upload.single("image"),
-  updateImage
+  adminInfo
 );
 
 router.put(
-  "/user/update",
-  verifyUser("USER"),
-  updateAdmin
+  "/admin-password",
+  verifyUser("ADMIN"),
+  updateAdminPassword
 );
 
 router.patch(
