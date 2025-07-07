@@ -1,7 +1,7 @@
 import express from "express";
 import upload from "../../../config/multer.congig";
 import { verifyUser } from "../../../middleware/verifyUsers";
-import {createLog, getLogbook, instructorApprov, instructorReject, deleteLog, getLogSummary} from "./pilotlog.controllers";
+import {createLog, getLogbook, instructorApprov, instructorReject, deleteLog, getLogSummary, getAllUserLogSummaries} from "./pilotlog.controllers";
 
 const router = express.Router();
 
@@ -15,5 +15,9 @@ router.get("/get-logsummary", verifyUser('USER'), getLogSummary);
 
 
 router.delete("/delete-log/:id", verifyUser('ANY'), deleteLog);
+
+
+router.get("/get-user-log-summary", verifyUser('ADMIN'), getAllUserLogSummaries);
+
 
 export default router;
