@@ -144,7 +144,7 @@ export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
         name: verifiedUser.name,
         email: verifiedUser.email,
         license: verifiedUser.license,
-        role: verifiedUser.role
+        role: verifiedUser.role,
       },
     };
 
@@ -508,11 +508,11 @@ export const verifyOtpAndResetPassword = async (
   res: Response
 ) => {
   const { email, otp } = req.body;
-  
+
   try {
     const user = await prisma.ucode.findUnique({ where: { email } });
-    
-    console.log(user)
+
+    console.log(user);
     if (!user) {
       res.status(404).json({ message: "User not found" });
       return;
@@ -884,125 +884,152 @@ export const updateAdmin = async (req: any, res: Response) => {
   }
 };
 
-export const updateUser = async (req: any, res: Response) => {
-  try {
-    const id = req.user?.userId;
-    const { name, email, license, password } = req.body;
-    const newImage = req.file;
 
-    const existingUser = await prisma.user.findUnique({
-      where: { id: id },
+
+
+
+
+
+
+
+
+
+
+const deleteImageIfNeeded = (
+  newImage: Express.Multer.File | { filename: string } | undefined
+) => {
+  if (newImage && newImage.filename) {
+    const imagePath = path.join(__dirname, "../../../uploads", newImage.filename);
+    if (fs.existsSync(imagePath)) {
+      fs.unlinkSync(imagePath);
+    }
+  }
+};
+
+export const updateUser = async (req: any, res: Response) => {
+  const userId = req.user?.userId;
+  const { name, license, oldPassword, newPassword } = req.body;
+  const newImage = req.file;
+
+  if (!userId) {
+    deleteImageIfNeeded(newImage);  
+    res.status(400).json({
+      success: false,
+      message: "User authentication required",
+    });
+    return;
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      deleteImageIfNeeded(newImage); // Delete image if uploaded
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    // Handle password change if requested
+    if (oldPassword || newPassword) {
+      if (!oldPassword || !newPassword) {
+        deleteImageIfNeeded(newImage); // Delete image if uploaded
+        res.status(400).json({
+          success: false,
+          message: "Both old and new passwords are required",
+        });
+        return;
+      }
+
+      const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+      if (!isPasswordValid) {
+        deleteImageIfNeeded(newImage); // Delete image if uploaded
+        res.status(400).json({
+          success: false,
+          message: "Current password is incorrect",
+        });
+        return;
+      }
+
+      // Directly update password without OTP verification
+      const hashedPassword = await bcrypt.hash(newPassword, 8);
+      await prisma.user.update({
+        where: { id: userId },
+        data: { password: hashedPassword },
+      });
+
+      deleteImageIfNeeded(newImage); // Delete image if uploaded
+      res.status(200).json({
+        success: true,
+        message: "Password updated successfully",
+      });
+      return;
+    }
+
+    // Handle profile updates
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (license !== undefined) updateData.license = license;
+
+    if (newImage) {
+      // Delete old image if exists
+      if (user.image) {
+        deleteImageIfNeeded({ filename: user.image });
+      }
+      updateData.image = newImage.filename;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      deleteImageIfNeeded(newImage); // Delete image if uploaded
+      res.status(400).json({
+        success: false,
+        message: "No update data provided",
+      });
+      return;
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
     });
 
-    if (!existingUser) {
-      if (newImage) {
-        fs.unlinkSync(path.join(__dirname, "../../uploads", newImage.filename));
-      }
-      res.status(404).json({ message: "User not found" });
-      return;
-    }
-
-    const isEmailChanging = email && email !== existingUser.email;
-    const isPasswordChanging =
-      password && !(await bcrypt.compare(password, existingUser.password));
-
-    if (isEmailChanging || isPasswordChanging) {
-      const otp = generateOTP();
-      const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
-      let hashedPassword = existingUser.password;
-
-      if (isPasswordChanging) {
-        hashedPassword = await bcrypt.hash(password, 8);
-      }
-
-      await prisma.ucode.upsert({
-        where: { email: isEmailChanging ? email : existingUser.email },
-        update: {
-          otp,
-          expiration: otpExpiry,
-          name: name || existingUser.name,
-          password: hashedPassword,
-          license: license || existingUser.license,
-        },
-        create: {
-          email: isEmailChanging ? email : existingUser.email,
-          otp,
-          expiration: otpExpiry,
-          name: name || existingUser.name,
-          password: hashedPassword,
-          license: license || existingUser.license,
-        },
-      });
-
-      sendForgotPasswordOTP(isEmailChanging ? email : existingUser.email, otp);
-
-      if (newImage) {
-        const tempImagePath = path.join(
-          __dirname,
-          "../../uploads",
-          newImage.filename
-        );
-        if (fs.existsSync(tempImagePath)) {
-          fs.unlinkSync(tempImagePath);
-        }
-      }
-
-      res.status(200).json({
-        success: true,
-        message: "Verification OTP sent to your email",
-        requiresEmailVerification: true,
-      });
-      return;
-    } else {
-      // Normal update (no email or password change)
-      if (newImage && existingUser.image) {
-        const oldImagePath = path.join(
-          __dirname,
-          "../../uploads",
-          existingUser.image
-        );
-        if (fs.existsSync(oldImagePath)) {
-          fs.unlinkSync(oldImagePath);
-        }
-      }
-
-      const user = await prisma.user.update({
-        where: { id: id },
-        data: {
-          name: name || existingUser.name,
-          image: newImage ? newImage.filename : existingUser.image,
-          email: existingUser.email,
-          license: license || existingUser.license,
-        },
-      });
-
-      const imageUrl = user.image
-        ? getImageUrl(`/uploads/${user.image}`)
-        : null;
-
-      res.status(200).json({
-        success: true,
-        message: "User updated successfully",
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: imageUrl,
-        },
-      });
-    }
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      user: {
+        id: updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        image: updatedUser.image
+          ? getImageUrl(`/uploads/${updatedUser.image}`)
+          : null,
+        license: updatedUser.license,
+      },
+    });
   } catch (error) {
-    if (req.file) {
-      fs.unlinkSync(path.join(__dirname, "../../uploads", req.file.filename));
-    }
-
+    console.error("Update error:", error);
+    deleteImageIfNeeded(newImage); // Delete image if uploaded
     res.status(500).json({
       success: false,
-      message: "Something went wrong",
+      message: "Failed to update user",
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 export const verifyEmailUpdate = async (req: any, res: Response) => {
   try {
