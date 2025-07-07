@@ -675,13 +675,13 @@ export const googleLogin = async (req: Request, res: Response) => {
       where: { email },
     });
 
-    if (!user) {
-      res.status(400).json({
-        success: false,
-        message: "lab nai! shakin vai durbol",
-      });
-      return;
-    }
+    // if (!user) {
+    //   res.status(400).json({
+    //     success: false,
+    //     message: "lab nai! shakin vai durbol",
+    //   });
+    //   return;
+    // }
 
     if (!user) {
       const savedImagePath = await downloadAndSaveImage(image);
@@ -906,6 +906,14 @@ const deleteImageIfNeeded = (
   }
 };
 
+
+
+
+
+
+
+
+
 export const updateUser = async (req: any, res: Response) => {
   const userId = req.user?.userId;
   const { name, license, oldPassword, newPassword } = req.body;
@@ -923,7 +931,7 @@ export const updateUser = async (req: any, res: Response) => {
   try {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
-      deleteImageIfNeeded(newImage); // Delete image if uploaded
+      deleteImageIfNeeded(newImage);
       res.status(404).json({
         success: false,
         message: "User not found",
@@ -932,9 +940,10 @@ export const updateUser = async (req: any, res: Response) => {
     }
 
     // Handle password change if requested
+    let passwordUpdated = false;
     if (oldPassword || newPassword) {
       if (!oldPassword || !newPassword) {
-        deleteImageIfNeeded(newImage); // Delete image if uploaded
+        deleteImageIfNeeded(newImage);
         res.status(400).json({
           success: false,
           message: "Both old and new passwords are required",
@@ -944,7 +953,7 @@ export const updateUser = async (req: any, res: Response) => {
 
       const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
       if (!isPasswordValid) {
-        deleteImageIfNeeded(newImage); // Delete image if uploaded
+        deleteImageIfNeeded(newImage);
         res.status(400).json({
           success: false,
           message: "Current password is incorrect",
@@ -952,19 +961,7 @@ export const updateUser = async (req: any, res: Response) => {
         return;
       }
 
-      // Directly update password without OTP verification
-      const hashedPassword = await bcrypt.hash(newPassword, 8);
-      await prisma.user.update({
-        where: { id: userId },
-        data: { password: hashedPassword },
-      });
-
-      deleteImageIfNeeded(newImage); // Delete image if uploaded
-      res.status(200).json({
-        success: true,
-        message: "Password updated successfully",
-      });
-      return;
+      passwordUpdated = true;
     }
 
     // Handle profile updates
@@ -973,15 +970,19 @@ export const updateUser = async (req: any, res: Response) => {
     if (license !== undefined) updateData.license = license;
 
     if (newImage) {
-      // Delete old image if exists
       if (user.image) {
         deleteImageIfNeeded({ filename: user.image });
       }
       updateData.image = newImage.filename;
     }
 
+    // If password is being updated, add it to updateData
+    if (passwordUpdated) {
+      updateData.password = await bcrypt.hash(newPassword, 8);
+    }
+
     if (Object.keys(updateData).length === 0) {
-      deleteImageIfNeeded(newImage); // Delete image if uploaded
+      deleteImageIfNeeded(newImage);
       res.status(400).json({
         success: false,
         message: "No update data provided",
@@ -1009,7 +1010,7 @@ export const updateUser = async (req: any, res: Response) => {
     });
   } catch (error) {
     console.error("Update error:", error);
-    deleteImageIfNeeded(newImage); // Delete image if uploaded
+    deleteImageIfNeeded(newImage);
     res.status(500).json({
       success: false,
       message: "Failed to update user",
@@ -1017,7 +1018,6 @@ export const updateUser = async (req: any, res: Response) => {
     });
   }
 };
-
 
 
 
