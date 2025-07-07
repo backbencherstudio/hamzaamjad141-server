@@ -783,10 +783,8 @@ export const facebookLogin = async (req: Request, res: Response) => {
 export const adminInfo = async (req: any, res: Response) => {
   try {
     const id = req.user?.userId;
-    console.log(id);
     const { name } = req.body;
     const newImage = req.file;
-
     if (!newImage) {
       res.status(400).json({ message: "No image uploaded" });
       return;
@@ -794,7 +792,6 @@ export const adminInfo = async (req: any, res: Response) => {
     const existingUser = await prisma.user.findUnique({
       where: { id: id },
     });
-
     if (!existingUser) {
       fs.unlinkSync(path.join(__dirname, "../../uploads", newImage.filename));
       res.status(404).json({ message: "User not found" });
@@ -840,7 +837,6 @@ export const adminInfo = async (req: any, res: Response) => {
   }
 };
 export const updateAdminPassword = async (req: any, res: Response) => {
-  console.log(req.body);
   try {
     const id = req.user?.userId;
     const {  oldPassword, newPassword, confirmPassword } = req.body;
