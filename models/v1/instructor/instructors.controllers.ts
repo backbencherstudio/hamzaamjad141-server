@@ -405,36 +405,52 @@ export const toDeActiveInstructor = async (req: any, res: Response) => {
 
 
 
-
 export const getAllInstructors = async (req: any, res: Response) => {
   try {
-    const { page = 1, limit = 10, search = "" } = req.query;
+    const { page = 1, limit = 10, search = "", type = "ALL" } = req.query;
     const pageNumber = parseInt(page as string, 10);
     const pageLimit = parseInt(limit as string, 10);
 
     const skip = (pageNumber - 1) * pageLimit;
 
-    // Get total count of instructors based on search criteria (only name and email)
+    // Validate the type parameter to ensure it is one of the allowed enum values or "ALL"
+    const validInstructorTypes = ["ACTIVE", "DEACTIVE", "ALL"];
+    if (!validInstructorTypes.includes(type)) {
+       res.status(400).json({
+        success: false,
+        message: `"${type}" is not a valid instructor type. Please use "ACTIVE", "DEACTIVE", or "ALL".`,
+      });
+      return
+    }
+
+    // Get total count of instructors based on search criteria (only name, email, and instructorType)
     const totalInstructors = await prisma.instructor.count({
       where: {
-        OR: [
+        AND: [
           {
-            name: {
-              contains: search, // Searching in the instructor's name
-              mode: "insensitive", // Case insensitive search
-            },
+            OR: [
+              {
+                name: {
+                  contains: search, // Searching in the instructor's name
+                  mode: "insensitive", // Case insensitive search
+                },
+              },
+              {
+                email: {
+                  contains: search, // Searching in the instructor's email
+                  mode: "insensitive", // Case insensitive search
+                },
+              },
+            ],
           },
-          {
-            email: {
-              contains: search, // Searching in the instructor's email
-              mode: "insensitive", // Case insensitive search
-            },
+          type !== "ALL" && {
+            status: type, // Filter by status if it's not "ALL"
           },
         ],
       },
     });
 
-    // Fetch instructors based on the search criteria (only name and email)
+    // Fetch instructors based on the search criteria (name, email, and instructorType)
     const instructors = await prisma.instructor.findMany({
       skip: skip,
       take: pageLimit,
@@ -442,18 +458,25 @@ export const getAllInstructors = async (req: any, res: Response) => {
         createdAt: "desc", // Ordering by creation date
       },
       where: {
-        OR: [
+        AND: [
           {
-            name: {
-              contains: search, // Searching in the instructor's name
-              mode: "insensitive", // Case insensitive search
-            },
+            OR: [
+              {
+                name: {
+                  contains: search, // Searching in the instructor's name
+                  mode: "insensitive", // Case insensitive search
+                },
+              },
+              {
+                email: {
+                  contains: search, // Searching in the instructor's email
+                  mode: "insensitive", // Case insensitive search
+                },
+              },
+            ],
           },
-          {
-            email: {
-              contains: search, // Searching in the instructor's email
-              mode: "insensitive", // Case insensitive search
-            },
+          type !== "ALL" && {
+            status: type, // Filter by status if it's not "ALL"
           },
         ],
       },
