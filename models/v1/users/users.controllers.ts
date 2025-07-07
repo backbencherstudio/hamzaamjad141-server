@@ -508,10 +508,11 @@ export const verifyOtpAndResetPassword = async (
   res: Response
 ) => {
   const { email, otp } = req.body;
-
+  
   try {
     const user = await prisma.ucode.findUnique({ where: { email } });
-
+    
+    console.log(user)
     if (!user) {
       res.status(404).json({ message: "User not found" });
       return;
