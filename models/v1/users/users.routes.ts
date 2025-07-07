@@ -39,34 +39,43 @@ router.patch("/update-password", verifyUser("ANY"), changePassword);
 
 router.post("/google-login", googleLogin);
 router.post("/facebook-login", facebookLogin);
-router.post("/send-otp", sendOtp);
 
-router.put(
-  "/user/update/img",
-  verifyUser("USER"),
-  upload.single("image"),
-  updateImage
-);
 
-router.put(
-  "/user/update",
-  verifyUser("USER"),
-  updateAdmin
-);
 
-router.patch(
-  "/user/update",
-  verifyUser("USER"),
-  upload.single("image"),
-  updateUser
-);
+// router.post("/send-otp", sendOtp);
 
-router.post("/email-verify", verifyEmailUpdate);
-router.post("/verify-otp", verifyOtp);
+// router.put(
+//   "/user/update/img",
+//   verifyUser("USER"),
+//   upload.single("image"),
+//   updateImage
+// );
+
+// router.put(
+//   "/user/update",
+//   verifyUser("USER"),
+//   updateAdmin
+// );
+
+// router.patch(
+//   "/user/update",
+//   verifyUser("USER"),
+//   upload.single("image"),
+//   updateUser
+// );
+
+// router.post("/email-verify", verifyEmailUpdate);
+
+
+
+// router.post("/verify-otp", verifyOtp);
+
+
 
 
 router.get('/me', verifyUser('ANY'), userInfo )
 router.post("/delete", verifyUser("ANY"), deleteUser);
 
+router.patch('/update-user',verifyUser("ANY"), upload.single("image"), updateUser)
 
 export default router;
