@@ -214,46 +214,58 @@ export const getFavouriteWeather = async (req: any, res: Response) => {
   }
 };
 
-export const deleteFavouriteWeather = async (req: any, res: Response) => {
-  const userId = req.user?.userId;
-  const { id } = req.body;
+export const deleteLog = async (req: any, res: Response) => {
   try {
+    const logId = req.params.id;
+    const userId = req.user?.userId;
+
+    console.log(logId, userId )
+
     if (!userId) {
-      res.status(400).json({ message: "Authorization header are required!" });
-      return;
-    }
-
-    if (!id) {
-      res.status(400).json({
-        message: "Weather id is required to delete favourite weather",
+       res.status(401).json({
+        success: false,
+        message: "Unauthorized: User ID missing",
       });
-      return;
+      return
     }
 
-    const deleted = await prisma.weather.deleteMany({
-      where: {
-        id,
-        userId,
-        status: "FAVURATE",
-      },
+ 
+    const existingLog = await prisma.addLog.findUnique({
+      where: { id: logId },
     });
 
-    if (deleted.count === 0) {
-      res.status(400).json({ message: "No favourite weather found to delete" });
-      return;
+    if (!existingLog) {
+       res.status(404).json({
+        success: false,
+        message: "Log not found",
+      });
+      return
     }
 
-    res.status(200).json({
+    // Check if the log belongs to the requesting user
+    if (existingLog.userId !== userId) {
+       res.status(403).json({
+        success: false,
+        message: "Forbidden: You don't have permission to delete this log",
+      });
+      return
+    }
+
+    const deletedLog = await prisma.addLog.delete({
+      where: { id: logId },
+    });
+
+     res.status(200).json({
       success: true,
-      message: "Favourite weather deleted successfully",
+      message: "Log deleted successfully",
+      data: deletedLog,
     });
   } catch (error) {
-    console.error("Error in deleteFavouriteWeather:", error);
-    res.status(500).json({
+    console.error("Error deleting log:", error);
+     res.status(500).json({
       success: false,
-      message: "Failed to delete favourite weather",
+      message: "Failed to delete log entry",
       error: error instanceof Error ? error.message : "Unknown error",
     });
-    return;
   }
 };

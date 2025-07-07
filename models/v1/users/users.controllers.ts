@@ -677,6 +677,14 @@ export const googleLogin = async (req: Request, res: Response) => {
     });
 
     if (!user) {
+      res.status(400).json({
+        success: false,
+        message: "lab nai! shakin vai durbol",
+      });
+      return;
+    }
+
+    if (!user) {
       const savedImagePath = await downloadAndSaveImage(image);
 
       user = await prisma.user.create({

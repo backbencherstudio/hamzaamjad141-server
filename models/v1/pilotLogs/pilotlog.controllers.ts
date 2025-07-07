@@ -8,12 +8,12 @@ export const createInstructorAndAddLog = async (req: any, res: Response) => {
   try {
     const id = req.user?.userId;
 
-    // Check if user exists
     const user = await prisma.user.findUnique({
       where: {
         id: id,
       },
     });
+
     if (!user) {
       res.status(404).json({
         success: false,
@@ -21,9 +21,7 @@ export const createInstructorAndAddLog = async (req: any, res: Response) => {
       });
       return;
     }
-    console.log(user);
 
-    // Check if user has an instructor assigned
     if (!user.instructorId) {
       res.status(400).json({
         success: false,
@@ -32,11 +30,9 @@ export const createInstructorAndAddLog = async (req: any, res: Response) => {
       return;
     }
 
-    // Get instructor details
     const instructor = await prisma.instructor.findUnique({
       where: { id: user.instructorId },
     });
-    console.log(instructor);
 
     if (!instructor) {
       res.status(404).json({
@@ -46,8 +42,8 @@ export const createInstructorAndAddLog = async (req: any, res: Response) => {
       return;
     }
 
-    // Validate required fields
     const logRequiredFields = [
+      "date",
       "from",
       "to",
       "aircrafttype",
@@ -100,37 +96,38 @@ export const createInstructorAndAddLog = async (req: any, res: Response) => {
   }
 };
 
+
 export const instructorApprov = async (req: any, res: Response) => {
   try {
     const logId = req.query;
-    const exitAddlog =await prisma.addLog.findFirst({
-      where:{id:logId}
-    })
+    const exitAddlog = await prisma.addLog.findFirst({
+      where: { id: logId },
+    });
     const updatedLog = await prisma.addLog.update({
       where: { id: exitAddlog.id },
-      data: { 
-        date:exitAddlog.date,
-        from:exitAddlog.from,
-        to:exitAddlog.to,
-        aircrafttype:exitAddlog.aircrafttype,
-        tailNumber:exitAddlog.tailNumber,
-        flightTime:exitAddlog.flightTime,
-        pictime:exitAddlog.pictime,
-        dualrcv:exitAddlog.dualrcv,
-        daytime:exitAddlog.daytime,
-        nightime:exitAddlog.nightime,
-        ifrtime:exitAddlog.ifrtime,
-        crossCountry:exitAddlog.crossCountry,
-        takeoffs:exitAddlog.takeoffs,
-        landings:exitAddlog.landings,
-        status: 'APPROVE' 
+      data: {
+        date: exitAddlog.date,
+        from: exitAddlog.from,
+        to: exitAddlog.to,
+        aircrafttype: exitAddlog.aircrafttype,
+        tailNumber: exitAddlog.tailNumber,
+        flightTime: exitAddlog.flightTime,
+        pictime: exitAddlog.pictime,
+        dualrcv: exitAddlog.dualrcv,
+        daytime: exitAddlog.daytime,
+        nightime: exitAddlog.nightime,
+        ifrtime: exitAddlog.ifrtime,
+        crossCountry: exitAddlog.crossCountry,
+        takeoffs: exitAddlog.takeoffs,
+        landings: exitAddlog.landings,
+        status: "APPROVE",
       },
     });
 
     res.status(200).json({
       success: true,
       message: "Log approved successfully",
-      data:updatedLog
+      data: updatedLog,
     });
   } catch (error) {
     console.error("Error approving log:", error);
@@ -145,34 +142,34 @@ export const instructorApprov = async (req: any, res: Response) => {
 export const instructorReject = async (req: any, res: Response) => {
   try {
     const logId = req.query;
-    const exitAddlog =await prisma.addLog.findFirst({
-      where:{id:logId}
-    })
+    const exitAddlog = await prisma.addLog.findFirst({
+      where: { id: logId },
+    });
     const updatedLog = await prisma.addLog.update({
       where: { id: exitAddlog.id },
-      data: { 
-        date:exitAddlog.date,
-        from:exitAddlog.from,
-        to:exitAddlog.to,
-        aircrafttype:exitAddlog.aircrafttype,
-        tailNumber:exitAddlog.tailNumber,
-        flightTime:exitAddlog.flightTime,
-        pictime:exitAddlog.pictime,
-        dualrcv:exitAddlog.dualrcv,
-        daytime:exitAddlog.daytime,
-        nightime:exitAddlog.nightime,
-        ifrtime:exitAddlog.ifrtime,
-        crossCountry:exitAddlog.crossCountry,
-        takeoffs:exitAddlog.takeoffs,
-        landings:exitAddlog.landings,
-        status: 'REJECT' 
+      data: {
+        date: exitAddlog.date,
+        from: exitAddlog.from,
+        to: exitAddlog.to,
+        aircrafttype: exitAddlog.aircrafttype,
+        tailNumber: exitAddlog.tailNumber,
+        flightTime: exitAddlog.flightTime,
+        pictime: exitAddlog.pictime,
+        dualrcv: exitAddlog.dualrcv,
+        daytime: exitAddlog.daytime,
+        nightime: exitAddlog.nightime,
+        ifrtime: exitAddlog.ifrtime,
+        crossCountry: exitAddlog.crossCountry,
+        takeoffs: exitAddlog.takeoffs,
+        landings: exitAddlog.landings,
+        status: "REJECT",
       },
     });
 
     res.status(200).json({
       success: true,
       message: "Log approved successfully",
-      data:updatedLog
+      data: updatedLog,
     });
   } catch (error) {
     console.error("Error approving log:", error);
@@ -188,23 +185,20 @@ export const getLogbookSummary = async (req: any, res: Response) => {
   try {
     const userId = req.user?.userId;
     const statusFilter = req.query.status;
-    const page = parseInt(req.query.page as string) || 1; 
-    const limit = parseInt(req.query.limit as string) || 10; 
-
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
 
     const skip = (page - 1) * limit;
 
- 
     const logs = await prisma.addLog.findMany({
       where: {
         userId: userId,
-        status: statusFilter, 
+        status: statusFilter,
       },
-      skip: skip,  
-      take: limit,  
+      skip: skip,
+      take: limit,
     });
 
-    
     const totalLogs = await prisma.addLog.count({
       where: {
         userId: userId,
@@ -214,25 +208,23 @@ export const getLogbookSummary = async (req: any, res: Response) => {
 
     const totalPages = Math.ceil(totalLogs / limit);
 
- 
     if (!logs || logs.length === 0) {
-    res.status(404).json({
+      res.status(404).json({
         success: false,
         message: `No flight logs found for this user with status: ${statusFilter}`,
       });
-        return 
+      return;
     }
 
- 
     res.status(200).json({
       success: true,
       message: "Logbook summary fetched successfully",
       data: {
-        logs,          
-        totalLogs,    
-        totalPages,  
-        currentPage: page, 
-        limit,       
+        logs,
+        totalLogs,
+        totalPages,
+        currentPage: page,
+        limit,
       },
     });
   } catch (error) {
@@ -245,66 +237,39 @@ export const getLogbookSummary = async (req: any, res: Response) => {
   }
 };
 
-export const getLogSummary = async (req: any, res: Response) => {
+export const deleteLog = async (req: any, res: Response) => {
   try {
-    const userId = req.user?.userId; 
-    if (!userId) {
-       res.status(400).json({
-        success: false,
-        message: "User not authenticated.",
-      });
-      return
-    }
-    const logs = await prisma.addLog.findMany({
-      where: {
-        userId: userId,
-      },
+    const logId = req.params.id;
+    const userId = req.user?.userId;
+
+    // First, check if the log exists
+    const existingLog = await prisma.addLog.findUnique({
+      where: { id: logId },
     });
-    const approvedLogs = logs.filter(log => log.status === 'APPROVE');
-    if (approvedLogs.length === 0) {
-       res.status(404).json({
+
+    if (!existingLog) {
+      res.status(404).json({
         success: false,
-        message: 'No approved flight logs found for this user.',
+        message: "Log not found",
       });
-      return
+      return;
     }
-    const summary = approvedLogs.reduce((acc, log) => {
-      acc.totalFlights += 1; 
-      acc.totalHours += parseFloat(log.flightTime) || 0; 
-      acc.picHours += parseFloat(log.dualrcv) || 0;  
-      acc.dayHours += parseFloat(log.daytime) || 0;  
-      acc.nightHours += parseFloat(log.nightime) || 0;  
-      acc.ifrHours += parseFloat(log.ifrtime) || 0; 
-      acc.totalTakeoffs += log.takeoffs || 0;  
-      acc.totalLandings += log.landings || 0; 
-      acc.crossCountry += parseFloat(log.crossCountry) || 0;  
-      return acc;
-    }, {
-      totalFlights: 0,
-      totalHours: 0,
-      picHours: 0,
-      dayHours: 0,
-      nightHours: 0,
-      ifrHours: 0,
-      totalTakeoffs: 0,
-      totalLandings: 0,
-      crossCountry: 0,
+
+    const deletedLog = await prisma.addLog.delete({
+      where: { id: logId },
     });
+
     res.status(200).json({
       success: true,
-      message: 'Logbook summary fetched successfully',
-      data: {
-        summary,  
-      },
+      message: "Log deleted successfully",
+      data: deletedLog,
     });
   } catch (error) {
-    console.error('Error fetching logbook summary:', error);
+    console.error("Error deleting log:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch logbook summary',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      message: "Failed to delete log entry",
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 };
-
-
