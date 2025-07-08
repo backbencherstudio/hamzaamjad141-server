@@ -15,5 +15,5 @@ router.post(
 );
 
 router.post("/create-promocode",verifyUser('ADMIN'), CreatePromoCode);
-router.get("/get-promocode",   getPromocode);
+router.get("/get-all-promocode",   getPromocode);
 export default router;
