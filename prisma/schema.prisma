@@ -22,16 +22,22 @@ model User {
 
   instructorId String?
   instructor   Instructor? @relation(fields: [instructorId], references: [id])
-  addLog       AddLog[]
-  Weather      Weather[]
 
-  PromoCodes PromoCode[]
+  addLog  AddLog[]
+  Weather Weather[]
+
+  promoCode PromoCode?
 
   subscription          Subscription[]
   currentSubscriptionId String?
   stripeCustomerId      String?
 
   @@map("users")
+}
+
+enum Role {
+  USER
+  ADMIN
 }
 
 model Ucode {
@@ -48,15 +54,24 @@ model Ucode {
   createdAt  DateTime  @default(now())
 }
 
-model Instructor {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  phone     String
-  users     User[]
+enum Licese {
+  NO_LICENCE
+  SPL
+  PPL
+  CPL
+  ATPL
+  CH
+}
 
-  status    instructorType @default(ACTIVE)
-  
+model Instructor {
+  id    String @id @default(cuid())
+  name  String
+  email String @unique
+  phone String
+  users User[]
+
+  status instructorType @default(ACTIVE)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -69,18 +84,17 @@ enum instructorType {
   DEACTIVE
 }
 
-
 model AddLog {
-  id           String       @id @default(cuid())
+  id           String   @id @default(cuid())
   date         DateTime
   from         String
   to           String
   aircrafttype String
   tailNumber   String
 
-  flightTime   Float
-  pictime      Float
-  dualrcv      String
+  flightTime Float
+  pictime    Float
+  dualrcv    String
 
   daytime      Float
   nightime     Float
@@ -89,15 +103,26 @@ model AddLog {
   takeoffs     Int
   landings     Int
 
-  userId       String
-  status       addlogStatus @default(PENDING)
+  userId String
+  status addlogStatus @default(PENDING)
 
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  action       Action       @default(active)
+  action Action @default(active)
 
-  updatedAt    DateTime     @updatedAt
-  createdAt    DateTime     @default(now())
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+enum Action {
+  active
+  inactive
+}
+
+enum addlogStatus {
+  PENDING
+  REJECT
+  APPROVE
 }
 
 model Location {
@@ -113,6 +138,11 @@ model Weather {
   status    weatherStatus @default(FAVURATE)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+}
+
+enum weatherStatus {
+  FAVURATE
+  HOMEBASE
 }
 
 model Portcusts {
@@ -138,20 +168,20 @@ model Ebook {
 }
 
 model Subscription {
-  id                   String              @id @default(cuid())
+  id                   String             @id @default(cuid())
   userId               String
-  user                 User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   price                Float
-  startDate            DateTime            @default(now())
+  startDate            DateTime           @default(now())
   endDate              DateTime
-  status               SubscriptionStatus  @default(ACTIVE)
+  status               SubscriptionStatus @default(ACTIVE)
   stripeSubscriptionId String?
   promoCodeId          String?
-  promoCode            promoCode?          @relation(fields: [promoCodeId], references: [id]) // Relation field
-  trialPeriod          Boolean             @default(false)
-  subscribedBy         SubscriptionMethord @default(STRIPE)
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
+
+  trialPeriod  Boolean             @default(false)
+  subscribedBy SubscriptionMethord @default(STRIPE)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
 }
 
 enum SubscriptionMethord {
@@ -159,59 +189,23 @@ enum SubscriptionMethord {
   CODE
 }
 
-model promoCode {
-  id            String          @id @default(cuid())
-  code          String          @unique
-  status        promoCodeStstus @default(ACTIVE)
-  subscriptions Subscription[]
-}
-
-enum promoCodeStstus {
-  USED
-  ACTIVE
-}
-
-model PromoCode {
-  id        String   @id @default(cuid())
-  code      String   @unique
-  status    String   @default("Active")
-  userId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id])
-}
-
 enum SubscriptionStatus {
   ACTIVE
   DEACTIVE
 }
 
-enum Action {
-  active
-  inactive
+model PromoCode {
+  id     String          @id @default(cuid())
+  code   String          @unique
+  status PromoCodeStatus @default(ACTIVE)
+  userId String?         @unique
+  user   User?           @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt()
 }
 
-enum weatherStatus {
-  FAVURATE
-  HOMEBASE
-}
-
-enum Role {
-  USER
-  ADMIN
-}
-
-enum addlogStatus {
-  PENDING
-  REJECT
-  APPROVE
-}
-
-enum Licese {
-  NO_LICENCE
-  SPL
-  PPL
-  CPL
-  ATPL
-  CH
+enum PromoCodeStatus {
+  ACTIVE
+  USED
 }

@@ -163,7 +163,7 @@ const handleSubscriptionCancelled = async (
 };
 
 export const generateOTP = (): string => {
-  return Math.floor(1000 + Math.random() * 9000).toString();
+  return Math.floor(1000 + Math.random() * 900000).toString();
 };
 
 export const CreatePromoCode = async (req: any, res: Response) => {
@@ -183,29 +183,48 @@ export const CreatePromoCode = async (req: any, res: Response) => {
     });
   } catch (err) {
     console.error("Error creating promo code:", err);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Failed to create promo code",
-        error: err.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Failed to create promo code",
+      error: err.message,
+    });
   }
 };
+
 
 export const getPromocode = async (req: any, res: Response) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || "";
+    const status = req.query.status; // Accept any status value
 
     const skip = (page - 1) * limit;
+
+    const whereClause: any = {
+      code: {
+        contains: search,
+        mode: 'insensitive',
+      }
+    };
+
+    // Add status filter if provided (no enum validation)
+    if (status) {
+      whereClause.status = status;
+    }
 
     const promoCodes = await prisma.promoCode.findMany({
       skip: skip,
       take: limit,
+      where: whereClause,
+      include: {
+        user: true,
+      },
     });
 
-    const totalPromoCodes = await prisma.promoCode.count();
+    const totalPromoCodes = await prisma.promoCode.count({
+      where: whereClause,
+    });
 
     res.status(200).json({
       success: true,
@@ -219,12 +238,10 @@ export const getPromocode = async (req: any, res: Response) => {
     });
   } catch (err) {
     console.error("Error fetching promo codes:", err);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Failed to fetch promo codes",
-        error: err.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch promo codes",
+      error: err.message,
+    });
   }
 };
