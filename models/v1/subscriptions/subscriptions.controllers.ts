@@ -6,22 +6,24 @@ const prisma = new PrismaClient();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const subscribe = async (req: any, res: Response) => {
-    console.log(req.body)
+  console.log(req.body);
   try {
     const { paymentMethodId } = req.body;
     const { userId } = req.user;
 
     const user = await prisma.user.findFirst({ where: { id: userId } });
     if (!user) {
-      res.status(400).json({ message: "User not found" }); 
-      return;   
-    } 
+      res.status(400).json({ message: "User not found" });
+      return;
+    }
 
     const existingSubscription = await prisma.subscription.findFirst({
       where: { userId, status: "ACTIVE" },
     });
     if (existingSubscription) {
-      res.status(400).json({ error: "User already has an active subscription" });
+      res
+        .status(400)
+        .json({ error: "User already has an active subscription" });
       return;
     }
 
@@ -38,14 +40,12 @@ export const subscribe = async (req: any, res: Response) => {
         where: { id: userId },
         data: { stripeCustomerId: customer.id },
       });
-      return
+      return;
     }
-
 
     await stripe.paymentMethods.attach(paymentMethodId, {
       customer: customer.id,
     });
-
 
     await stripe.customers.update(customer.id, {
       invoice_settings: {
@@ -53,13 +53,11 @@ export const subscribe = async (req: any, res: Response) => {
       },
     });
 
-
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,
       items: [{ price: process.env.STRIPE_MONTHLY_PRICE_ID }],
-      expand: ['latest_invoice.payment_intent'],
+      expand: ["latest_invoice.payment_intent"],
     });
-
 
     const dbSubscription = await prisma.subscription.create({
       data: {
@@ -84,14 +82,13 @@ export const subscribe = async (req: any, res: Response) => {
     });
   } catch (error: any) {
     console.error("Subscription error:", error);
-    res.status(400).json({ 
-      success: false, 
+    res.status(400).json({
+      success: false,
       error: error.message,
-      type: error.type
+      type: error.type,
     });
   }
 };
-
 
 export const handleWebhook = async (req: Request, res: Response) => {
   const sig = req.headers["stripe-signature"] as string;
@@ -102,8 +99,6 @@ export const handleWebhook = async (req: Request, res: Response) => {
       sig,
       process.env.STRIPE_WEBHOOK_SECRET!
     );
-
-
 
     switch (event.type) {
       case "invoice.paid":
@@ -126,8 +121,6 @@ export const handleWebhook = async (req: Request, res: Response) => {
   }
 };
 
-
-
 const handleSuccessfulPayment = async (invoice: Stripe.Invoice) => {
   const subscriptionId = (invoice as any).subscription as string | undefined;
   if (!subscriptionId) return;
@@ -141,7 +134,6 @@ const handleSuccessfulPayment = async (invoice: Stripe.Invoice) => {
   });
 };
 
-
 const handleFailedPayment = async (invoice: Stripe.Invoice) => {
   const subscriptionId = (invoice as any).subscription as string | undefined;
   if (!subscriptionId) return;
@@ -152,8 +144,9 @@ const handleFailedPayment = async (invoice: Stripe.Invoice) => {
   });
 };
 
-
-const handleSubscriptionCancelled = async (subscription: Stripe.Subscription) => {
+const handleSubscriptionCancelled = async (
+  subscription: Stripe.Subscription
+) => {
   const dbSubscription = await prisma.subscription.findFirst({
     where: { stripeSubscriptionId: subscription.id },
   });
@@ -170,9 +163,9 @@ const handleSubscriptionCancelled = async (subscription: Stripe.Subscription) =>
 };
 
 export const generateOTP = (): string => {
-  return Math.floor(1000 + Math.random() * 9000).toString();
+  return Math.floor(1000 + Math.random() * 900000).toString();
 };
-  
+
 export const CreatePromoCode = async (req: any, res: Response) => {
   try {
     const code = generateOTP();
@@ -180,16 +173,109 @@ export const CreatePromoCode = async (req: any, res: Response) => {
     const newPromoCode = await prisma.promoCode.create({
       data: {
         code,
-        status: 'ACTIVE', 
+        status: "ACTIVE",
       },
     });
-    res.status(201).json({ 
+    res.status(201).json({
       success: true,
-      message: 'Promo code created successfully', 
-      promoCode: newPromoCode 
+      message: "Promo code created successfully",
+      promoCode: newPromoCode,
     });
   } catch (err) {
-    console.error('Error creating promo code:', err);
-    res.status(500).json({ success: false, message: 'Failed to create promo code', error: err.message });
+    console.error("Error creating promo code:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to create promo code",
+      error: err.message,
+    });
+  }
+};
+
+
+export const getPromocode = async (req: any, res: Response) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || "";
+    const status = req.query.status;
+
+    const skip = (page - 1) * limit;
+
+    const whereClause: any = {
+      code: {
+        contains: search,
+        mode: 'insensitive',
+      }
+    };
+
+    if (status) {
+      whereClause.status = status;
+    }
+
+    const promoCodes = await prisma.promoCode.findMany({
+      skip: skip,
+      take: limit,
+      where: whereClause,
+      include: {
+        user: true,
+      },
+    });
+
+    const totalPromoCodes = await prisma.promoCode.count({
+      where: whereClause,
+    });
+
+    res.status(200).json({
+      success: true,
+      promoCodes: promoCodes,
+      pagination: {
+        total: totalPromoCodes,
+        page: page,
+        limit: limit,
+        totalPages: Math.ceil(totalPromoCodes / limit),
+      },
+    });
+  } catch (err) {
+    console.error("Error fetching promo codes:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch promo codes",
+      error: err.message,
+    });
+  }
+};
+
+
+export const deletePromoCode = async (req: any, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const existingCode = await prisma.promoCode.findUnique({
+      where: { id },
+    });
+
+    if (!existingCode) {
+       res.status(404).json({
+        success: false,
+        message: "Promo code not found",
+      });
+      return
+    }
+
+    await prisma.promoCode.delete({
+      where: { id },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Promo code deleted successfully",
+    });
+  } catch (err) {
+    console.error("Error deleting promo code:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete promo code",
+      error: err.message,
+    });
   }
 };
