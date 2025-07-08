@@ -130,7 +130,7 @@ export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
     ]);
 
     const token = jwt.sign(
-      { userId: verifiedUser.id, email: verifiedUser.email },
+      { userId: verifiedUser.id, email: verifiedUser.email, createdAt: verifiedUser.createdAt  },
       process.env.JWT_SECRET as string,
       { expiresIn: "100d" }
     );
@@ -236,7 +236,7 @@ export const loginUser = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      { userId: user.id, email: user.email, role: user.role, createdAt: user.createdAt },
       process.env.JWT_SECRET as string,
       { expiresIn: "100d" }
     );
@@ -353,7 +353,7 @@ export const sendOtp = async (req: Request, res: Response) => {
     sendForgotPasswordOTP(email, otp);
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { userId: user.id, email: user.email, createdAt: user.createdAt },
       process.env.JWT_SECRET as string,
       { expiresIn: "100d" }
     );
@@ -428,7 +428,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
     });
 
     const token = jwt.sign(
-      { userId: newUser.id, email: newUser.email },
+      { userId: newUser.id, email: newUser.email, newUser },
       process.env.JWT_SECRET!,
       { expiresIn: "1d" }
     );
@@ -695,7 +695,7 @@ export const googleLogin = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      { userId: user.id, email: user.email, role: user.role, createdAt: user.createdAt },
       process.env.JWT_SECRET,
       { expiresIn: "360d" }
     );
@@ -752,7 +752,7 @@ export const facebookLogin = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      { userId: user.id, email: user.email, role: user.role, createdAt: user.createdAt },
       process.env.JWT_SECRET,
       { expiresIn: "360d" }
     );
