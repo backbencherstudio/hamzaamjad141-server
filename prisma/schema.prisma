@@ -8,13 +8,14 @@ datasource db {
 }
 
 model User {
-  id           String  @id @default(cuid())
+  id           String     @id @default(cuid())
   name         String
-  email        String  @unique
+  email        String     @unique
   password     String?
   image        String?
-  license      Licese  @default(NO_LICENCE)
-  role         Role    @default(USER)
+  license      Licese     @default(NO_LICENCE)
+  role         Role       @default(USER)
+  status       userStatus @default(ACTIVE)
   authProvider String?
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -33,6 +34,11 @@ model User {
   stripeCustomerId      String?
 
   @@map("users")
+}
+
+enum userStatus {
+  ACTIVE
+  DEACTIVE
 }
 
 enum Role {
