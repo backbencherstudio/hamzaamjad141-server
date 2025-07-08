@@ -54,7 +54,7 @@ function App() {
     setErrorMessage("");
 
     try {
-      const response = await axios.post("http://localhost:3000/users/login", { email, password });
+      const response = await axios.post("https://war-receives-location-grace.trycloudflare.com/users/login", { email, password });
       if (response.data.success) {
         localStorage.setItem("token", response.data?.token);
         setShowPayment(true);
@@ -100,7 +100,7 @@ const handlePaymentSubmit = async () => {
   setLoading(true);
   try {
     const response = await axios.post(
-      "http://localhost:3000/subscription/pay",
+      "https://war-receives-location-grace.trycloudflare.com/subscription/pay",
       { paymentMethodId },
       {
         headers: { 

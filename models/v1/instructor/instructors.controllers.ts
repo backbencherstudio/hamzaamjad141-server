@@ -404,7 +404,6 @@ export const toDeActiveInstructor = async (req: any, res: Response) => {
 };
 
 
-
 export const getAllInstructors = async (req: any, res: Response) => {
   try {
     const { page = 1, limit = 10, search = "", type = "ALL" } = req.query;
@@ -413,49 +412,21 @@ export const getAllInstructors = async (req: any, res: Response) => {
 
     const skip = (pageNumber - 1) * pageLimit;
 
-    // Validate the type parameter to ensure it is one of the allowed enum values or "ALL"
     const validInstructorTypes = ["ACTIVE", "DEACTIVE", "ALL"];
     if (!validInstructorTypes.includes(type)) {
-       res.status(400).json({
+      res.status(400).json({
         success: false,
         message: `"${type}" is not a valid instructor type. Please use "ACTIVE", "DEACTIVE", or "ALL".`,
       });
-      return
+      return;
     }
 
-    // Get total count of instructors based on search criteria (only name, email, and instructorType)
-    const totalInstructors = await prisma.instructor.count({
-      where: {
-        AND: [
-          {
-            OR: [
-              {
-                name: {
-                  contains: search, // Searching in the instructor's name
-                  mode: "insensitive", // Case insensitive search
-                },
-              },
-              {
-                email: {
-                  contains: search, // Searching in the instructor's email
-                  mode: "insensitive", // Case insensitive search
-                },
-              },
-            ],
-          },
-          type !== "ALL" && {
-            status: type, // Filter by status if it's not "ALL"
-          },
-        ],
-      },
-    });
-
-    // Fetch instructors based on the search criteria (name, email, and instructorType)
+ 
     const instructors = await prisma.instructor.findMany({
       skip: skip,
       take: pageLimit,
       orderBy: {
-        createdAt: "desc", // Ordering by creation date
+        createdAt: "desc",
       },
       where: {
         AND: [
@@ -463,24 +434,27 @@ export const getAllInstructors = async (req: any, res: Response) => {
             OR: [
               {
                 name: {
-                  contains: search, // Searching in the instructor's name
-                  mode: "insensitive", // Case insensitive search
+                  contains: search,
+                  mode: "insensitive",
                 },
               },
               {
                 email: {
-                  contains: search, // Searching in the instructor's email
-                  mode: "insensitive", // Case insensitive search
+                  contains: search,
+                  mode: "insensitive",
                 },
               },
             ],
           },
-          type !== "ALL" && {
-            status: type, // Filter by status if it's not "ALL"
-          },
+          ...(type !== "ALL" ? [{ status: type }] : []),
         ],
       },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        status: true,
+        createdAt: true,
         users: {
           select: {
             name: true,
@@ -490,6 +464,9 @@ export const getAllInstructors = async (req: any, res: Response) => {
         },
       },
     });
+
+
+    const totalInstructors = instructors.length;
 
     res.status(200).json({
       success: true,
@@ -507,3 +484,4 @@ export const getAllInstructors = async (req: any, res: Response) => {
     });
   }
 };
+
