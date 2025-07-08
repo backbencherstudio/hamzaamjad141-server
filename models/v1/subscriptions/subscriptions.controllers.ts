@@ -197,7 +197,7 @@ export const getPromocode = async (req: any, res: Response) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const search = req.query.search || "";
-    const status = req.query.status; // Accept any status value
+    const status = req.query.status;
 
     const skip = (page - 1) * limit;
 
@@ -208,7 +208,6 @@ export const getPromocode = async (req: any, res: Response) => {
       }
     };
 
-    // Add status filter if provided (no enum validation)
     if (status) {
       whereClause.status = status;
     }
@@ -241,6 +240,41 @@ export const getPromocode = async (req: any, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch promo codes",
+      error: err.message,
+    });
+  }
+};
+
+
+export const deletePromoCode = async (req: any, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const existingCode = await prisma.promoCode.findUnique({
+      where: { id },
+    });
+
+    if (!existingCode) {
+       res.status(404).json({
+        success: false,
+        message: "Promo code not found",
+      });
+      return
+    }
+
+    await prisma.promoCode.delete({
+      where: { id },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Promo code deleted successfully",
+    });
+  } catch (err) {
+    console.error("Error deleting promo code:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete promo code",
       error: err.message,
     });
   }
