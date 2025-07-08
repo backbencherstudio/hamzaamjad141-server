@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { Prisma } from "@prisma/client";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -17,7 +18,6 @@ const prisma = new PrismaClient();
 const tempUserStore = new Map<string, any>();
 
 export const createUser = async (req: Request, res: Response) => {
- 
   try {
     const { name, email, password, license } = req.body;
 
@@ -130,7 +130,11 @@ export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
     ]);
 
     const token = jwt.sign(
-      { userId: verifiedUser.id, email: verifiedUser.email, createdAt: verifiedUser.createdAt  },
+      {
+        userId: verifiedUser.id,
+        email: verifiedUser.email,
+        createdAt: verifiedUser.createdAt,
+      },
       process.env.JWT_SECRET as string,
       { expiresIn: "100d" }
     );
@@ -159,7 +163,6 @@ export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
 };
 
 export const resendCode = async (req: Request, res: Response) => {
-
   try {
     const { email } = req.body;
 
@@ -236,12 +239,15 @@ export const loginUser = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role, createdAt: user.createdAt },
+      {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+      },
       process.env.JWT_SECRET as string,
       { expiresIn: "100d" }
     );
-
-    
 
     res.status(200).json({
       success: true,
@@ -282,7 +288,6 @@ export const changePassword = async (req: any, res: Response) => {
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
- 
 
     if (!user) {
       res.status(404).json({ message: "password not found" });
@@ -316,7 +321,6 @@ export const changePassword = async (req: any, res: Response) => {
 };
 
 export const sendOtp = async (req: Request, res: Response) => {
-
   try {
     const { name, email, password } = req.body;
 
@@ -379,7 +383,6 @@ export const sendOtp = async (req: Request, res: Response) => {
 };
 
 export const verifyOtp = async (req: Request, res: Response) => {
-
   try {
     const { email, userEnteredOtp } = req.body;
 
@@ -661,7 +664,6 @@ export const googleLogin = async (req: Request, res: Response) => {
   try {
     const { name, email, image } = req.body;
 
-
     if (!name || !email || !image) {
       res.status(400).json({
         success: false,
@@ -695,7 +697,12 @@ export const googleLogin = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role, createdAt: user.createdAt },
+      {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+      },
       process.env.JWT_SECRET,
       { expiresIn: "360d" }
     );
@@ -724,7 +731,6 @@ export const googleLogin = async (req: Request, res: Response) => {
 };
 
 export const facebookLogin = async (req: Request, res: Response) => {
-
   try {
     const { name, email, image } = req.body;
 
@@ -752,7 +758,12 @@ export const facebookLogin = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role, createdAt: user.createdAt },
+      {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+      },
       process.env.JWT_SECRET,
       { expiresIn: "360d" }
     );
@@ -883,35 +894,20 @@ export const updateAdmin = async (req: any, res: Response) => {
   }
 };
 
-
-
-
-
-
-
-
-
-
-
-
 const deleteImageIfNeeded = (
   newImage: Express.Multer.File | { filename: string } | undefined
 ) => {
   if (newImage && newImage.filename) {
-    const imagePath = path.join(__dirname, "../../../uploads", newImage.filename);
+    const imagePath = path.join(
+      __dirname,
+      "../../../uploads",
+      newImage.filename
+    );
     if (fs.existsSync(imagePath)) {
       fs.unlinkSync(imagePath);
     }
   }
 };
-
-
-
-
-
-
-
-
 
 export const updateUser = async (req: any, res: Response) => {
   const userId = req.user?.userId;
@@ -919,7 +915,7 @@ export const updateUser = async (req: any, res: Response) => {
   const newImage = req.file;
 
   if (!userId) {
-    deleteImageIfNeeded(newImage);  
+    deleteImageIfNeeded(newImage);
     res.status(400).json({
       success: false,
       message: "User authentication required",
@@ -1017,18 +1013,6 @@ export const updateUser = async (req: any, res: Response) => {
     });
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
 
 export const verifyEmailUpdate = async (req: any, res: Response) => {
   try {
@@ -1180,6 +1164,143 @@ export const deleteUser = async (req: any, res: Response) => {
       message: "User deleted successfully",
     });
   } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+
+
+export const getAllPilotUser = async (req: Request, res: Response) => {
+  const { status, page = 1, limit = 10, favorite, search } = req.query;
+
+  try {
+    const currentPage = Number(page);
+    const itemsPerPage = Number(limit);
+
+    let userStatus: "ACTIVE" | "DEACTIVE" | undefined = undefined;
+
+    if (status === "ACTIVE" || status === "DEACTIVE") {
+      userStatus = status.toUpperCase() as "ACTIVE" | "DEACTIVE";
+    }
+
+    const favoriteLocations = favorite
+      ? Array.isArray(favorite)
+        ? favorite
+        : [favorite]
+      : undefined;
+
+    const weatherWhere: any = {
+      OR: [{ status: "HOMEBASE" }, { status: "FAVURATE" }],
+    };
+
+    if (favoriteLocations) {
+      weatherWhere.AND = [
+        { status: "FAVURATE" },
+        { location: { in: favoriteLocations as string[] } },
+      ];
+    }
+
+    const searchWhere = search
+      ? {
+          OR: [
+            {
+              name: {
+                contains: search as string,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+            {
+              email: {
+                contains: search as string,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+          ],
+        }
+      : {};
+
+    const users = await prisma.user.findMany({
+      where: {
+        status: userStatus,
+        role: "USER",
+        Weather: favoriteLocations
+          ? {
+              some: {
+                status: "FAVURATE",
+                location: { in: favoriteLocations as string[] },
+              },
+            }
+          : undefined,
+        ...searchWhere,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        license: true,
+        status: true,
+        createdAt: true,
+        Weather: {
+          select: {
+            location: true,
+            status: true,
+          },
+          where: weatherWhere,
+        },
+      },
+      skip: (currentPage - 1) * itemsPerPage,
+      take: itemsPerPage,
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    const transformedUsers = users.map((user) => {
+      const homeBase = user.Weather.find(
+        (w) => w.status === "HOMEBASE"
+      )?.location;
+      const favorites = user.Weather.filter((w) => w.status === "FAVURATE").map(
+        (w) => w.location
+      );
+
+      const { Weather, ...userData } = user;
+
+      return {
+        ...userData,
+        homeBase: homeBase || null,
+        favorites: favorites.length > 0 ? favorites : null,
+      };
+    });
+
+    const totalUsers = await prisma.user.count({
+      where: {
+        status: userStatus,
+        role: "USER",
+        Weather: favoriteLocations
+          ? {
+              some: {
+                status: "FAVURATE",
+                location: { in: favoriteLocations as string[] },
+              },
+            }
+          : undefined,
+        ...searchWhere, // Apply search filter here too
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      users: transformedUsers,
+      totalUsers,
+      totalPages: Math.ceil(totalUsers / itemsPerPage),
+      currentPage,
+    });
+  } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
       message: "Something went wrong",
