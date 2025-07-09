@@ -226,17 +226,30 @@ export const overview = async (req: Request, res: Response) => {
     const { limit = 3 } = req.query;
     const limitNumber = Math.max(Number(limit), 1);
 
-    const totalUsers = await prisma.user.count();
+    const totalUsers = await prisma.user.count({
+      where: {
+        role: "USER"
+      }
+    });
 
     const totalInstructors = await prisma.instructor.count();
 
     const totalSubscribers = await prisma.subscription.count({
       where: {
         status: "ACTIVE",
+        user: {
+          role: "USER"
+        }
       },
     });
 
+
     const newMemberships = await prisma.subscription.findMany({
+      where: {
+        user: {
+          role: "USER"
+        }
+      },
       orderBy: {
         startDate: "desc",
       },
@@ -256,9 +269,10 @@ export const overview = async (req: Request, res: Response) => {
       },
     });
 
+
     const newPilotUsers = await prisma.user.findMany({
       where: {
-        role: "USER",
+        role: "USER"
       },
       take: limitNumber,
       select: {
@@ -281,7 +295,6 @@ export const overview = async (req: Request, res: Response) => {
       },
     });
 
-    // New Instructor Data
     const newInstructors = await prisma.instructor.findMany({
       take: limitNumber,
       select: {
@@ -290,8 +303,10 @@ export const overview = async (req: Request, res: Response) => {
         phone: true,
         email: true,
         status: true,
-
         users: {
+          where: {
+            role: "USER"
+          },
           select: {
             name: true,
             id: true,
@@ -309,7 +324,7 @@ export const overview = async (req: Request, res: Response) => {
         totalSubscribers,
         newMemberships,
         newPilotUsers,
-        newInstructors, // Added new instructors data
+        newInstructors,
       },
     });
   } catch (error) {
@@ -320,7 +335,6 @@ export const overview = async (req: Request, res: Response) => {
     });
   }
 };
-
 
 export const toActiveUser = async (req: any, res: Response) => {
   const { id } = req.params;
