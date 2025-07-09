@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Prisma } from "@prisma/client";
+import { Licese, Prisma } from "@prisma/client";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -11,11 +11,8 @@ import {
   sendForgotPasswordOTP,
 } from "../../../utils/emailService.utils";
 import { v4 as uuidv4 } from "uuid";
-import { create } from "domain";
 
 const prisma = new PrismaClient();
-
-const tempUserStore = new Map<string, any>();
 
 export const createUser = async (req: Request, res: Response) => {
   try {
@@ -318,68 +315,6 @@ export const changePassword = async (req: any, res: Response) => {
       success: false,
       message: "Something went wrong",
       error,
-    });
-  }
-};
-
-export const sendOtp = async (req: Request, res: Response) => {
-  try {
-    const { name, email, password } = req.body;
-
-    if (!name || !email || !password) {
-      res.status(400).json({
-        success: false,
-        message: "Name, email, and password are required",
-      });
-      return;
-    }
-    const existingUser = await prisma.ucode.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      res.status(400).json({
-        success: false,
-        message: "Email already exists",
-      });
-    }
-    const otp = generateOTP();
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await prisma.ucode.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        otp: otp,
-        expiration: new Date(Date.now() + 10 * 60 * 1000),
-      },
-    });
-
-    sendForgotPasswordOTP(email, otp);
-
-    const token = jwt.sign(
-      { userId: user.id, email: user.email, createdAt: user.createdAt },
-      process.env.JWT_SECRET as string,
-      { expiresIn: "100d" }
-    );
-
-    res.status(201).json({
-      success: true,
-      message: "OTP sent successfully",
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-      },
-    });
-  } catch (error) {
-    console.error("Error in sendOtp:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 };
@@ -792,112 +727,6 @@ export const facebookLogin = async (req: Request, res: Response) => {
   }
 };
 
-export const updateImage = async (req: any, res: Response) => {
-  console.log("iamge", req.body);
-  try {
-    const id = req.user?.userId;
-    const newImage = req.file;
-
-    if (!newImage) {
-      res.status(400).json({ message: "No image uploaded" });
-      return;
-    }
-    const existingUser = await prisma.user.findUnique({
-      where: { id: id },
-    });
-
-    if (!existingUser) {
-      fs.unlinkSync(path.join(__dirname, "../../uploads", newImage.filename));
-      res.status(404).json({ message: "User not found" });
-      return;
-    }
-    if (existingUser.image) {
-      const oldImagePath = path.join(
-        __dirname,
-        "../../uploads",
-        existingUser.image
-      );
-      if (fs.existsSync(oldImagePath)) {
-        fs.unlinkSync(oldImagePath);
-      }
-    }
-    const user = await prisma.user.update({
-      where: { id: id },
-      data: {
-        image: newImage.filename,
-      },
-    });
-
-    const imageUrl = `http://localhost:3000/uploads/${user.image}`;
-
-    res.status(200).json({
-      success: true,
-      message: "Image updated successfully",
-      data: { ...user, imageUrl },
-    });
-  } catch (error) {
-    if (req.file) {
-      fs.unlinkSync(path.join(__dirname, "../../uploads", req.file.filename));
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Something went wrong",
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-};
-
-export const updateAdmin = async (req: any, res: Response) => {
-  console.log(req.body);
-  try {
-    const id = req.user?.userId;
-    const { name, oldPassword, newPassword, confirmPassword } = req.body;
-    const existingUser = await prisma.user.findUnique({
-      where: { id: id },
-    });
-
-    if (!existingUser) {
-      res.status(404).json({ message: "User not found" });
-      return;
-    }
-    const isOldPasswordValid = await bcrypt.compare(
-      oldPassword,
-      existingUser.password
-    );
-    if (!isOldPasswordValid) {
-      res.status(400).json({ message: "Old password is incorrect" });
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      res
-        .status(400)
-        .json({ message: "New password and confirm password do not match" });
-      return;
-    }
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    const user = await prisma.user.update({
-      where: { id: id },
-      data: {
-        name: name || existingUser.name,
-        password: hashedPassword,
-      },
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "User updated successfully",
-      data: user,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Something went wrong",
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-};
-
 const deleteImageIfNeeded = (
   newImage: Express.Multer.File | { filename: string } | undefined
 ) => {
@@ -1019,84 +848,6 @@ export const updateUser = async (req: any, res: Response) => {
   }
 };
 
-export const verifyEmailUpdate = async (req: any, res: Response) => {
-  try {
-    const { email, otp } = req.body;
-
-    const ucodeRecord = await prisma.ucode.findUnique({
-      where: { email },
-    });
-    console.log(ucodeRecord);
-
-    if (!ucodeRecord) {
-      res.status(400).json({
-        success: false,
-        message: "Invalid or expired verification request",
-      });
-      return;
-    }
-
-    if (new Date() > new Date(ucodeRecord.expiration)) {
-      res.status(400).json({
-        success: false,
-        message: "OTP expired",
-      });
-      return;
-    }
-
-    if (ucodeRecord.otp !== otp) {
-      res.status(400).json({
-        success: false,
-        message: "Invalid OTP",
-      });
-      return;
-    }
-
-    const existingUser = await prisma.user.findUnique({
-      where: { email: ucodeRecord.email },
-    });
-
-    console.log("Update User route hit");
-    console.log("Update User request body:", req.body);
-
-    // Update the user with new email and other info from ucode
-    const user = await prisma.user.update({
-      where: {
-        id: existingUser.id, // Use userId from the request object
-      },
-      data: {
-        email: ucodeRecord.email || existingUser.email,
-        name: ucodeRecord.name || existingUser.name,
-        password: ucodeRecord.password || existingUser.password,
-        license: ucodeRecord.license || existingUser.license,
-      },
-    });
-
-    await prisma.ucode.delete({
-      where: { email },
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "Email updated successfully",
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        premium: user.premium,
-        license: user.license,
-      },
-    });
-  } catch (error) {
-    console.error("verifyEmailUpdate error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Email verification failed",
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-};
-
 export const userInfo = async (req: any, res: Response) => {
   try {
     const userId = req.user?.userId;
@@ -1168,7 +919,7 @@ export const deleteUser = async (req: any, res: Response) => {
     });
     res.status(200).json({
       success: true,
-      message: "User deleted successfully",
+      message: "successfully deleted",
     });
   } catch (error) {
     res.status(500).json({
@@ -1179,291 +930,109 @@ export const deleteUser = async (req: any, res: Response) => {
   }
 };
 
-export const getAllPilotUser = async (req: Request, res: Response) => {
-  const { status, page = 1, limit = 10, favorite, search } = req.query;
+export const sendChangeEmailOtp = async (req: any, res: Response) => {
+  const { email } = req.body;
+  const { userId } = req.user;
+
+  if (!email) {
+    res.status(400).json({ message: "new email are required." });
+    return;
+  }
 
   try {
-    const currentPage = Number(page);
-    const itemsPerPage = Number(limit);
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
-    let userStatus: "ACTIVE" | "DEACTIVE" | undefined = undefined;
-
-    if (status === "ACTIVE" || status === "DEACTIVE") {
-      userStatus = status.toUpperCase() as "ACTIVE" | "DEACTIVE";
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      res.status(404).json({ message: "User not found." });
+      return;
     }
 
-    const favoriteLocations = favorite
-      ? Array.isArray(favorite)
-        ? favorite
-        : [favorite]
-      : undefined;
-
-    const weatherWhere: any = {
-      OR: [{ status: "HOMEBASE" }, { status: "FAVURATE" }],
-    };
-
-    if (favoriteLocations) {
-      weatherWhere.AND = [
-        { status: "FAVURATE" },
-        { location: { in: favoriteLocations as string[] } },
-      ];
-    }
-
-    const searchWhere = search
-      ? {
-          OR: [
-            {
-              name: {
-                contains: search as string,
-                mode: Prisma.QueryMode.insensitive,
-              },
-            },
-            {
-              email: {
-                contains: search as string,
-                mode: Prisma.QueryMode.insensitive,
-              },
-            },
-          ],
-        }
-      : {};
-
-    const users = await prisma.user.findMany({
-      where: {
-        status: userStatus,
-        role: "USER",
-        Weather: favoriteLocations
-          ? {
-              some: {
-                status: "FAVURATE",
-                location: { in: favoriteLocations as string[] },
-              },
-            }
-          : undefined,
-        ...searchWhere,
+    const uCode = await prisma.ucode.upsert({
+      where: { email: email },
+      update: {
+        otp,
+        expiration: otpExpiry,
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        license: true,
-        premium: true,
-        status: true,
-        createdAt: true,
-        Weather: {
-          select: {
-            location: true,
-            status: true,
-          },
-          where: weatherWhere,
-        },
-      },
-      skip: (currentPage - 1) * itemsPerPage,
-      take: itemsPerPage,
-      orderBy: {
-        createdAt: "desc",
+      create: {
+        email: email,
+        name: "",
+        password: "",
+        otp,
+        expiration: otpExpiry,
       },
     });
 
-    const transformedUsers = users.map((user) => {
-      const homeBase = user.Weather.find(
-        (w) => w.status === "HOMEBASE"
-      )?.location;
-      const favorites = user.Weather.filter((w) => w.status === "FAVURATE").map(
-        (w) => w.location
-      );
-
-      const { Weather, ...userData } = user;
-
-      return {
-        ...userData,
-        homeBase: homeBase || null,
-        favorites: favorites.length > 0 ? favorites : null,
-      };
-    });
-
-    const totalUsers = await prisma.user.count({
-      where: {
-        status: userStatus,
-        role: "USER",
-        Weather: favoriteLocations
-          ? {
-              some: {
-                status: "FAVURATE",
-                location: { in: favoriteLocations as string[] },
-              },
-            }
-          : undefined,
-        ...searchWhere, // Apply search filter here too
-      },
-    });
+    // Send OTP to the new email
+    sendForgotPasswordOTP(email, otp);
 
     res.status(200).json({
       success: true,
-      users: transformedUsers,
-      totalUsers,
-      totalPages: Math.ceil(totalUsers / itemsPerPage),
-      currentPage,
+      message: "OTP sent to new email for verification.",
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      success: false,
-      message: "Something went wrong",
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
+    res.status(500).json({ message: "Something went wrong." });
   }
 };
 
-export const membership = async (req: Request, res: Response) => {
-  try {
-    const { status = "", search = "", page = 1, limit = 10 } = req.query;
+export const verifyChangeEmail = async (req: any, res: Response) => {
+  const { otp, email } = req.body;
+  const { userId } = req.user;
 
-    const whereConditions: any = {};
-
-    if (status && (status === "Subscribed" || status === "Non Subscribed")) {
-      whereConditions.subscription = {
-        status: status === "Subscribed" ? "ACTIVE" : "DEACTIVE",
-      };
-    }
-
-    if (search) {
-      whereConditions.OR = [
-        { name: { contains: search.toString(), mode: "insensitive" } },
-        { email: { contains: search.toString(), mode: "insensitive" } },
-      ];
-    }
-
-    const users = await prisma.user.findMany({
-      where: whereConditions,
-      skip: (Number(page) - 1) * Number(limit),
-      take: Number(limit),
-      select: {
-        name: true,
-        email: true,
-        premium: true,
-        subscription: {
-          select: {
-            startDate: true,
-            status: true,
-          },
-        },
-      },
-    });
-
-    const totalUsers = await prisma.user.count({
-      where: whereConditions,
-    });
-
-    res.status(200).json({
-      success: true,
-      data: users,
-      totalUsers,
-      totalPages: Math.ceil(totalUsers / Number(limit)),
-      currentPage: Number(page),
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Something went wrong",
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
+  if (!otp || !email) {
+    res
+      .status(400)
+      .json({ message: "User ID, OTP, and new email are required." });
+    return;
   }
-};
 
-export const overview = async (req: Request, res: Response) => {
   try {
-    const totalUsers = await prisma.user.count();
-
-    const totalInstructors = await prisma.instructor.count();
-
-    const totalSubscribers = await prisma.subscription.count({
-      where: {
-        status: "ACTIVE",
-      },
+    const uCode = await prisma.ucode.findUnique({
+      where: { email: email },
     });
 
-    const newMemberships = await prisma.subscription.findMany({
-      orderBy: {
-        startDate: "desc",
-      },
-      take: 3,
-      select: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            status: true,
-            premium: true,
-          },
-        },
-        startDate: true,
-        status: true,
-      },
+    if (!uCode) {
+      res
+        .status(404)
+        .json({ message: "No verification record found for this email." });
+      return;
+    }
+
+    if (new Date() > uCode.expiration!) {
+      res.status(400).json({
+        success: false,
+        message: "OTP expired. Please request a new OTP.",
+      });
+      return;
+    }
+
+    if (uCode.otp !== otp) {
+      res.status(400).json({ success: false, message: "Invalid OTP." });
+      return;
+    }
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { email: email },
     });
 
-    const newPilotUsers = await prisma.user.findMany({
-      where: {
-        role: "USER",
-      },
-      take: 3,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        license: true,
-        status: true,
-        Weather: {
-          select: {
-            location: true,
-            status: true,
-          },
-          where: {
-            status: {
-              in: ["HOMEBASE", "FAVURATE"],
-            },
-          },
-        },
-      },
-    });
-
-    // New Instructor Data
-    const newInstructors = await prisma.instructor.findMany({
-      take: 3,
-      select: {
-        id: true,
-        name: true,
-        phone: true,
-        email: true,
-        status: true,
-
-        users: {
-          select: {
-            name: true,
-            id: true,
-          },
-        },
-      },
-    });
+    await prisma.ucode.delete({ where: { email: email } });
 
     res.status(200).json({
       success: true,
-      message: "Overview fetched successfully",
-      data: {
-        totalUsers,
-        totalInstructors,
-        totalSubscribers,
-        newMemberships,
-        newPilotUsers,
-        newInstructors, // Added new instructors data
+      message: "Email updated successfully.",
+      user: {
+        id: updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        image: updatedUser.image
+          ? getImageUrl(`/uploads/${updatedUser.image}`)
+          : updatedUser.image,
       },
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Something went wrong",
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
+    console.error(error);
+    res.status(500).json({ message: "Something went wrong." });
   }
 };

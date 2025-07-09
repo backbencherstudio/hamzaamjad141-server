@@ -295,7 +295,7 @@ export const subscribeWithPromoCode = async (req: any, res: Response) => {
     if (existingSubscription) {
       res
         .status(400)
-        .json({ error: "User already has an active subscription" });
+        .json({ success: false, message: "User already has an active subscription" });
       return;
     }
 
@@ -303,7 +303,7 @@ export const subscribeWithPromoCode = async (req: any, res: Response) => {
       where: { code: promoCode },
     });
     if (!promo || promo.status !== "ACTIVE") {
-      res.status(400).json({ error: "Invalid or expired promo code" });
+      res.status(400).json({ success: false, message: "Invalid or expired promo code" });
       return;
     }
 
