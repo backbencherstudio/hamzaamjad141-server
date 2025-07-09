@@ -148,6 +148,7 @@ export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
         name: verifiedUser.name,
         email: verifiedUser.email,
         license: verifiedUser.license,
+        premium: verifiedUser.premium,
         role: verifiedUser.role,
       },
     };
@@ -259,6 +260,7 @@ export const loginUser = async (req: Request, res: Response) => {
         image: user.image ? getImageUrl(`/uploads/${user.image}`) : null,
         role: user.role,
         license: user.license,
+        premium: user.premium,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
@@ -717,6 +719,7 @@ export const googleLogin = async (req: Request, res: Response) => {
         image: user.image ? getImageUrl(`/uploads/${user.image}`) : null,
         role: user.role,
         license: user.license,
+        premium: user.premium,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
@@ -776,6 +779,7 @@ export const facebookLogin = async (req: Request, res: Response) => {
         name: user.name,
         email: user.email,
         image: user.image ? getImageUrl(`/uploads/${user.image}`) : null,
+        premium: user.premium,
         role: user.role,
       },
       token,
@@ -1000,6 +1004,7 @@ export const updateUser = async (req: any, res: Response) => {
         image: updatedUser.image
           ? getImageUrl(`/uploads/${updatedUser.image}`)
           : null,
+        premium: updatedUser.premium,
         license: updatedUser.license,
       },
     });
@@ -1078,6 +1083,7 @@ export const verifyEmailUpdate = async (req: any, res: Response) => {
         id: user.id,
         name: user.name,
         email: user.email,
+        premium: user.premium,
         license: user.license,
       },
     });
@@ -1108,6 +1114,7 @@ export const userInfo = async (req: any, res: Response) => {
         image: true,
         role: true,
         license: true,
+        premium: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -1171,8 +1178,6 @@ export const deleteUser = async (req: any, res: Response) => {
     });
   }
 };
-
-
 
 export const getAllPilotUser = async (req: Request, res: Response) => {
   const { status, page = 1, limit = 10, favorite, search } = req.query;
@@ -1242,6 +1247,7 @@ export const getAllPilotUser = async (req: Request, res: Response) => {
         name: true,
         email: true,
         license: true,
+        premium: true,
         status: true,
         createdAt: true,
         Weather: {
@@ -1301,6 +1307,159 @@ export const getAllPilotUser = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+export const membership = async (req: Request, res: Response) => {
+  try {
+    const { status = "", search = "", page = 1, limit = 10 } = req.query;
+
+    const whereConditions: any = {};
+
+    if (status && (status === "Subscribed" || status === "Non Subscribed")) {
+      whereConditions.subscription = {
+        status: status === "Subscribed" ? "ACTIVE" : "DEACTIVE",
+      };
+    }
+
+    if (search) {
+      whereConditions.OR = [
+        { name: { contains: search.toString(), mode: "insensitive" } },
+        { email: { contains: search.toString(), mode: "insensitive" } },
+      ];
+    }
+
+    const users = await prisma.user.findMany({
+      where: whereConditions,
+      skip: (Number(page) - 1) * Number(limit),
+      take: Number(limit),
+      select: {
+        name: true,
+        email: true,
+        premium: true,
+        subscription: {
+          select: {
+            startDate: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    const totalUsers = await prisma.user.count({
+      where: whereConditions,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: users,
+      totalUsers,
+      totalPages: Math.ceil(totalUsers / Number(limit)),
+      currentPage: Number(page),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+export const overview = async (req: Request, res: Response) => {
+  try {
+    const totalUsers = await prisma.user.count();
+
+    const totalInstructors = await prisma.instructor.count();
+
+    const totalSubscribers = await prisma.subscription.count({
+      where: {
+        status: "ACTIVE",
+      },
+    });
+
+    const newMemberships = await prisma.subscription.findMany({
+      orderBy: {
+        startDate: "desc",
+      },
+      take: 3,
+      select: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            status: true,
+            premium: true,
+          },
+        },
+        startDate: true,
+        status: true,
+      },
+    });
+
+    const newPilotUsers = await prisma.user.findMany({
+      where: {
+        role: "USER",
+      },
+      take: 3,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        license: true,
+        status: true,
+        Weather: {
+          select: {
+            location: true,
+            status: true,
+          },
+          where: {
+            status: {
+              in: ["HOMEBASE", "FAVURATE"],
+            },
+          },
+        },
+      },
+    });
+
+    // New Instructor Data
+    const newInstructors = await prisma.instructor.findMany({
+      take: 3,
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        email: true,
+        status: true,
+
+        users: {
+          select: {
+            name: true,
+            id: true,
+          },
+        },
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Overview fetched successfully",
+      data: {
+        totalUsers,
+        totalInstructors,
+        totalSubscribers,
+        newMemberships,
+        newPilotUsers,
+        newInstructors, // Added new instructors data
+      },
+    });
+  } catch (error) {
     res.status(500).json({
       success: false,
       message: "Something went wrong",

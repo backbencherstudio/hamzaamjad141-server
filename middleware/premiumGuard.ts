@@ -34,6 +34,7 @@ export const premiumGuard = async (
     });
 
     if (!validSubscription) {
+      console.log(232423)
       await prisma.subscription.updateMany({
         where: {
           userId: req.user.userId,
@@ -41,6 +42,11 @@ export const premiumGuard = async (
           endDate: { lte: new Date() },
         },
         data: { status: "DEACTIVE" },
+      });
+
+      await prisma.user.update({
+        where: { id: req.user.userId },
+        data: { premium: false },
       });
 
       res.status(403).json({

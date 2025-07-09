@@ -18,7 +18,9 @@ import {
   updateImage,
   userInfo,
   deleteUser,
-  getAllPilotUser
+  getAllPilotUser,
+  membership,
+  overview
 } from "./users.controllers";
 
 import upload from "../../../config/multer.congig";
@@ -79,5 +81,8 @@ router.post("/delete", verifyUser("ANY"), deleteUser);
 
 router.patch('/update-user',verifyUser("ANY"), upload.single("image"), updateUser)
 router.get('/all-pilot-user',   getAllPilotUser)
+router.get('/membership', membership)
+
+router.get('/dashboard', overview )
 
 export default router;

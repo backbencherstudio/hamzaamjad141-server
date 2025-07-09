@@ -72,7 +72,7 @@ export const subscribe = async (req: any, res: Response) => {
 
     await prisma.user.update({
       where: { id: userId },
-      data: { currentSubscriptionId: dbSubscription.id },
+      data: { currentSubscriptionId: dbSubscription.id, premium: true },
     });
 
     res.json({
@@ -191,7 +191,6 @@ export const CreatePromoCode = async (req: any, res: Response) => {
   }
 };
 
-
 export const getPromocode = async (req: any, res: Response) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -204,8 +203,8 @@ export const getPromocode = async (req: any, res: Response) => {
     const whereClause: any = {
       code: {
         contains: search,
-        mode: 'insensitive',
-      }
+        mode: "insensitive",
+      },
     };
 
     if (status) {
@@ -245,7 +244,6 @@ export const getPromocode = async (req: any, res: Response) => {
   }
 };
 
-
 export const deletePromoCode = async (req: any, res: Response) => {
   try {
     const { id } = req.params;
@@ -255,11 +253,11 @@ export const deletePromoCode = async (req: any, res: Response) => {
     });
 
     if (!existingCode) {
-       res.status(404).json({
+      res.status(404).json({
         success: false,
         message: "Promo code not found",
       });
-      return
+      return;
     }
 
     await prisma.promoCode.delete({
@@ -276,6 +274,69 @@ export const deletePromoCode = async (req: any, res: Response) => {
       success: false,
       message: "Failed to delete promo code",
       error: err.message,
+    });
+  }
+};
+
+export const subscribeWithPromoCode = async (req: any, res: Response) => {
+  try {
+    const { promoCode } = req.body;
+    const { userId } = req.user;
+
+    const user = await prisma.user.findFirst({ where: { id: userId } });
+    if (!user) {
+      res.status(400).json({ message: "User not found" });
+      return;
+    }
+
+    const existingSubscription = await prisma.subscription.findFirst({
+      where: { userId, status: "ACTIVE" },
+    });
+    if (existingSubscription) {
+      res
+        .status(400)
+        .json({ error: "User already has an active subscription" });
+      return;
+    }
+
+    const promo = await prisma.promoCode.findUnique({
+      where: { code: promoCode },
+    });
+    if (!promo || promo.status !== "ACTIVE") {
+      res.status(400).json({ error: "Invalid or expired promo code" });
+      return;
+    }
+
+    await prisma.promoCode.update({
+      where: { code: promoCode },
+      data: { status: "USED" },
+    });
+
+    const dbSubscription = await prisma.subscription.create({
+      data: {
+        userId,
+        price: 0,
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        status: "ACTIVE",
+      },
+    });
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { currentSubscriptionId: dbSubscription.id, premium: true },
+    });
+
+    res.json({
+      success: true,
+      message: "Subscription created successfully using promo code!",
+      subscriptionId: dbSubscription.id,
+    });
+  } catch (error: any) {
+    console.error("Subscription error:", error);
+    res.status(400).json({
+      success: false,
+      error: error.message,
     });
   }
 };
