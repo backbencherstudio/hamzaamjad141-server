@@ -150,7 +150,6 @@ export const membership = async (req: Request, res: Response) => {
 
     const whereConditions: any = {};
 
-    // Filter by user name or email
     if (search) {
       whereConditions.OR = [
         { name: { contains: search.toString(), mode: "insensitive" } },
@@ -158,7 +157,6 @@ export const membership = async (req: Request, res: Response) => {
       ];
     }
 
-    // Only apply subscription filter if status is specified
     if (status === "ACTIVE" || status === "DEACTIVE") {
       whereConditions.subscription = {
         some: {
@@ -167,7 +165,6 @@ export const membership = async (req: Request, res: Response) => {
       };
     }
 
-    // Fetch users with their subscriptions
     const users = await prisma.user.findMany({
       where: whereConditions,
       skip: (Number(page) - 1) * Number(limit),
@@ -193,14 +190,13 @@ export const membership = async (req: Request, res: Response) => {
       },
     });
 
-    // Filter out users who would have empty subscriptions after filtering
+
     const filteredUsers = users.filter(user => 
       status === "ACTIVE" || status === "DEACTIVE" 
         ? user.subscription.length > 0 
         : true
     );
 
-    // Count total matching users
     const totalUsers = await prisma.user.count({
       where: whereConditions,
     });
