@@ -22,7 +22,13 @@ app.use(
       "http://localhost:3000",
       "http://127.0.0.1:16439/a.html",
       "http://127.0.0.1:16439",
-      "http://localhost:5173"
+      "http://localhost:5173",
+      
+      "http://localhost:3001",
+      "http://localhost:3002",
+      "http://192.168.4.30:3001",
+      "http://192.168.4.30:3002"
+
     ]
   })
 );
