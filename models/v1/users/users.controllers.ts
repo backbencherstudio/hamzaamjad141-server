@@ -203,6 +203,7 @@ export const resendCode = async (req: Request, res: Response) => {
 };
 
 export const loginUser = async (req: Request, res: Response) => {
+  console.log(req.body)
   try {
     const { email, password } = req.body;
     const missingField = ["email", "password"].find(
@@ -221,7 +222,7 @@ export const loginUser = async (req: Request, res: Response) => {
         email,
       },
     });
-
+    console.log(user)
     if (!user) {
       res.status(404).json({
         message: "User not found",
