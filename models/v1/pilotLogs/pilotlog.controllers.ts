@@ -257,6 +257,7 @@ export const deleteLog = async (req: any, res: Response) => {
     const deletedLog = await prisma.addLog.delete({
       where: { id: logId },
     });
+    
 
     res.status(200).json({
       success: true,
@@ -334,6 +335,7 @@ export const getLogSummary = async (req: any, res: Response) => {
       });
       return
     }
+    
 
     res.status(200).json({
       success: true,
