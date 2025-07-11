@@ -188,10 +188,10 @@ export const instructorConformationsTamplate = (
           
           <!-- Action buttons -->
           <p>Choose an action:</p>
-          <form action="http://192.168.4.3:3000/addlog/addlog-approve/${logDetails.id}" method="POST">
+          <form action="https://hamzaamjad.signalsmind.com/addlog/addlog-approve/${logDetails.id}" method="POST">
             <button type="submit" class="btn btn-approve">Approve</button>
           </form>
-          <form action="http://192.168.4.3:3000/addlog/addlog-reject/${logDetails.id}" method="POST">
+          <form action="https://hamzaamjad.signalsmind.com/addlog/addlog-reject/${logDetails.id}" method="POST">
             <button type="submit" class="btn btn-reject">Reject</button>
           </form>
           
