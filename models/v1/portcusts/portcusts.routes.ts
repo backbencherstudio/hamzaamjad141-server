@@ -22,6 +22,7 @@ const router = express.Router();
 
 router.get("/all", getAllPortcusts);
 router.get("/get-all-portcusts", verifyUser('USER'), premiumGuard, getAllPortcusts);
+
 router.patch(
   "/update/:id", 
   upload.fields([
