@@ -4,3 +4,5 @@ uploads
 dist
 *.log
 prisma/migrations
+__test__
+

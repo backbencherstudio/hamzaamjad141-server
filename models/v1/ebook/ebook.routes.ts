@@ -22,7 +22,7 @@ router.post(
   createEbooks
 );
 
-router.get("/all", verifyUser("USER"), premiumGuard, getAllebook);
+router.get("/all",  getAllebook);
 
 router.get("/all-ebook", verifyUser("ADMIN"), searchEbooks);
 

@@ -105,13 +105,28 @@ export const getAllebook = async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
+    const search = (req.query.search as string)?.trim();
 
-    const ebooks = await prisma.ebook.findMany({
-      skip: skip,
-      take: limit,
-    });
+    const searchFilter: Prisma.EbookWhereInput = search
+      ? {
+          title: {
+            contains: search,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        }
+      : {};
 
-    const totalEbooks = await prisma.ebook.count();
+    const [ebooks, totalEbooks] = await Promise.all([
+      prisma.ebook.findMany({
+        where: searchFilter,
+        skip,
+        take: limit,
+        orderBy: {
+          date: "desc",
+        },
+      }),
+      prisma.ebook.count({ where: searchFilter }),
+    ]);
 
     const totalPages = Math.ceil(totalEbooks / limit);
 
