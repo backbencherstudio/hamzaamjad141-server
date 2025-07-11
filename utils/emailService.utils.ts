@@ -56,7 +56,8 @@ export const instructorConformations = async (
   studentName: string,
   logDetails: any
 ) => {
-
+console.log(instructorEmail)
+console.log(studentName)
   const htmlContent = instructorConformationsTamplate(
     instructorEmail,
     studentName,
@@ -69,6 +70,7 @@ export const instructorConformations = async (
     `New Flight Log Submission from ${studentName}`,
     htmlContent
   );
+  
 };
 
  

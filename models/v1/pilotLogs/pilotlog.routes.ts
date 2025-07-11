@@ -12,13 +12,13 @@ router.get("/get-logbook", verifyUser('ANY'), getLogbook);
 router.post("/addlog-approve/:id", instructorApprov);
 router.post("/addlog-reject/:id", instructorReject);
 
-router.get("/get-logsummary", verifyUser('USER'), premiumGuard, getLogSummary);
+router.get("/get-logsummary", verifyUser('ANY'), premiumGuard, getLogSummary);
 
 
 router.delete("/delete-log/:id", verifyUser('ANY'), deleteLog);
 
 
-router.get("/get-user-log-summary",   getAllUserLogSummaries);
+router.get("/get-user-log-summary", verifyUser('USER'), premiumGuard,  getAllUserLogSummaries);
 
 // Add this new route
 router.get("/get-user-logs/:userId", getUserLogs);
