@@ -28,6 +28,8 @@ model User {
   Weather Weather[]
 
   promoCode PromoCode?
+  // premiumUser Boolean    @default(true)
+  premium   Boolean    @default(true)
 
   subscription          Subscription[]
   currentSubscriptionId String?
@@ -64,7 +66,7 @@ enum Licese {
   NO_LICENCE
   SPL
   PPL
-  CPL
+  CPL1
   ATPL
   CH
 }
