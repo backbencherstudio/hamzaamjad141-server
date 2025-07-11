@@ -13,7 +13,7 @@ export const subscribe = async (req: any, res: Response) => {
 
     const user = await prisma.user.findFirst({ where: { id: userId } });
     if (!user) {
-      res.status(400).json({ message: "User not found" });
+      res.status(400).json({ success: false, message: "User not found" });
       return;
     }
 
@@ -285,7 +285,7 @@ export const subscribeWithPromoCode = async (req: any, res: Response) => {
 
     const user = await prisma.user.findFirst({ where: { id: userId } });
     if (!user) {
-      res.status(400).json({ message: "User not found" });
+      res.status(400).json({ success: false, message: "User not found" });
       return;
     }
 
@@ -293,9 +293,10 @@ export const subscribeWithPromoCode = async (req: any, res: Response) => {
       where: { userId, status: "ACTIVE" },
     });
     if (existingSubscription) {
-      res
-        .status(400)
-        .json({ success: false, message: "User already has an active subscription" });
+      res.status(400).json({
+        success: false,
+        message: "User already has an active subscription",
+      });
       return;
     }
 
@@ -303,7 +304,9 @@ export const subscribeWithPromoCode = async (req: any, res: Response) => {
       where: { code: promoCode },
     });
     if (!promo || promo.status !== "ACTIVE") {
-      res.status(400).json({ success: false, message: "Invalid or expired promo code" });
+      res
+        .status(400)
+        .json({ success: false, message: "Invalid or expired promo code" });
       return;
     }
 
