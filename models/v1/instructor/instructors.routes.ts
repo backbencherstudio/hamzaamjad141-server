@@ -26,7 +26,7 @@ router.post(
 
 router.get("/my-instructor", verifyUser("ANY"), premiumGuard, myInstructor);
 
-router.get("/find", premiumGuard, findInstructor);
+router.get("/find", verifyUser("ANY"), premiumGuard, findInstructor);
 
 router.patch("/update/:id", verifyUser("ADMIN"), updateInstructor);
 router.delete("/delete/:id", verifyUser("ADMIN"), deleteInstructor);
