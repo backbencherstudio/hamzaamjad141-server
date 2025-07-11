@@ -4,6 +4,7 @@ import express from 'express';
 import { verifyUser } from "../../../middleware/verifyUsers";
 import { createPortcusts, deletePortcusts, getAllPortcusts, updatePortcusts } from './portcusts.controllers';
 import upload from '../../../config/multer.congig';
+import { premiumGuard } from '../../../middleware/premiumGuard';
 
 
 const router = express.Router();
@@ -19,8 +20,8 @@ const router = express.Router();
   createPortcusts
 );
 
-router.get("/all",getAllPortcusts);
-
+router.get("/all", getAllPortcusts);
+router.get("/get-all-portcusts", verifyUser('USER'), premiumGuard, getAllPortcusts);
 router.patch(
   "/update/:id", 
   upload.fields([
