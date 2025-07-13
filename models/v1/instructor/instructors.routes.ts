@@ -10,6 +10,7 @@ import {
   toActiveInstructor,
   toDeActiveInstructor,
   getAllInstructors,
+  createInstructorByUser
 } from "./instructors.controllers";
 import { verifyUser } from "../../../middleware/verifyUsers";
 import { premiumGuard } from "../../../middleware/premiumGuard";
@@ -19,7 +20,7 @@ const router = express.Router();
 router.post("/create", verifyUser("ADMIN"), createInstructor); //by admin
 
 //conduction route create Instructor a user
-router.post("/create", verifyUser("USER"), createInstructor); 
+router.post("/create-by-user", verifyUser("USER"), createInstructorByUser); 
 
 router.post(
   "/set-instructor/:id",
