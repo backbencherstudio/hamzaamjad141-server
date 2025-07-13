@@ -16,7 +16,10 @@ import { premiumGuard } from "../../../middleware/premiumGuard";
 
 const router = express.Router();
 
-router.post("/create", verifyUser("ADMIN"), createInstructor);
+router.post("/create", verifyUser("ADMIN"), createInstructor); //by admin
+//conduction route
+
+
 router.post(
   "/set-instructor/:id",
   verifyUser("ANY"),
