@@ -34,6 +34,7 @@ export const createInstructor = async (req: any, res: Response) => {
         name,
         email,
         phone,
+        verify: false,
       },
     });
 
