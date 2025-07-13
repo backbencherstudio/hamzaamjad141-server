@@ -106,17 +106,52 @@ export const getAllPortcusts = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
+    const search = (req.query.search as string) || ""; 
     const skip = (page - 1) * limit;
+
+    const totalPortcusts = await prisma.portcusts.count({
+      where: {
+        OR: [
+          {
+            title: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+          {
+            hostName: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+        ],
+      },
+    });
 
     const portcusts = await prisma.portcusts.findMany({
       skip: skip,
       take: limit,
+      where: {
+        OR: [
+          {
+            title: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+          {
+            hostName: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+        ],
+      },
     });
-
-    const totalPortcusts = await prisma.portcusts.count();
 
     const totalPages = Math.ceil(totalPortcusts / limit);
 
+ 
     const portcustsWithUrls = portcusts.map((podcast) => ({
       ...podcast,
       mp3: getImageUrl(`/uploads/${podcast.mp3}`),
@@ -144,6 +179,7 @@ export const getAllPortcusts = async (req: Request, res: Response) => {
     });
   }
 };
+
 
 export const updatePortcusts = async (req: Request, res: Response) => {
   try {

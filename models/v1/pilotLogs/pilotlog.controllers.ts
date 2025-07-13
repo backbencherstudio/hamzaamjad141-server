@@ -257,6 +257,7 @@ export const deleteLog = async (req: any, res: Response) => {
     const deletedLog = await prisma.addLog.delete({
       where: { id: logId },
     });
+    
 
     res.status(200).json({
       success: true,
@@ -334,6 +335,7 @@ export const getLogSummary = async (req: any, res: Response) => {
       });
       return
     }
+    
 
     res.status(200).json({
       success: true,
@@ -346,6 +348,182 @@ export const getLogSummary = async (req: any, res: Response) => {
       success: false,
       message: 'Failed to fetch logbook summary',
       error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+};
+
+
+export const getAllUserLogSummaries = async (req: any, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const search = req.query.search || ""; 
+
+    const skip = (page - 1) * limit;
+
+    const users = await prisma.user.findMany({
+      where: {
+        name: {
+          contains: search,
+          mode: 'insensitive',
+        },
+      },
+      skip: skip,
+      take: limit,
+    });
+
+    // if (!users || users.length === 0) {
+    //    res.status(404).json({
+    //     success: false,
+    //     message: "No users found matching the search criteria.",
+    //   });
+    //   return
+    // }
+
+    const userSummaries = await Promise.all(users.map(async (user) => {
+      const approvedLogs = await prisma.addLog.findMany({
+        where: {
+          userId: user.id,
+          status: 'APPROVE',
+        },
+      });
+
+      const totalTakeoffs = approvedLogs.reduce((sum, log) => sum + (log.takeoffs || 0), 0);
+      const totalLandings = approvedLogs.reduce((sum, log) => sum + (log.landings || 0), 0);
+
+      const summary = {
+        totalFlights: approvedLogs.length,
+        totalHours: approvedLogs.reduce((sum, log) => sum + Number(log.flightTime || 0), 0),
+        picHours: approvedLogs.reduce((sum, log) => sum + Number(log.pictime || 0), 0),
+        dayHours: approvedLogs.reduce((sum, log) => sum + Number(log.daytime || 0), 0),
+        nightHours: approvedLogs.reduce((sum, log) => sum + Number(log.nightime || 0), 0),
+        ifrHours: approvedLogs.reduce((sum, log) => sum + Number(log.ifrtime || 0), 0),
+        totalTakeoffs: totalTakeoffs,
+        totalLandings: totalLandings,
+        crossCountry: approvedLogs.reduce((sum, log) => sum + Number(log.crossCountry || 0), 0),
+        hasMismatch: totalTakeoffs !== totalLandings,
+      };
+
+      return {
+        userId: user.id,
+        userName: user.name,
+        userEmail: user.email,
+        logSummary: {
+          ...summary,
+          totalHours: parseFloat(summary.totalHours.toFixed(2)),
+          picHours: parseFloat(summary.picHours.toFixed(2)),
+          dayHours: parseFloat(summary.dayHours.toFixed(2)),
+          nightHours: parseFloat(summary.nightHours.toFixed(2)),
+          ifrHours: parseFloat(summary.ifrHours.toFixed(2)),
+        },
+      };
+    }));
+
+
+    const totalUsers = await prisma.user.count({
+      where: {
+        name: {
+          contains: search,
+          mode: 'insensitive',
+        },
+      },
+    });
+
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    res.status(200).json({
+      success: true,
+      message: 'Users and their log summaries fetched successfully',
+      data: {
+        users: userSummaries,
+        totalUsers,
+        totalPages,
+        currentPage: page,
+        limit,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching user log summaries:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch user log summaries',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+};
+
+
+
+export const getUserLogs = async (req: any, res: Response) => {
+  try {
+    const userId = req.params.userId;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const statusFilter = req.query.status;
+
+    const skip = (page - 1) * limit;
+
+ 
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true }
+    });
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+ 
+    const logs = await prisma.addLog.findMany({
+      where: {
+        userId: userId,
+        ...(statusFilter && { status: statusFilter })
+      },
+      skip: skip,
+      take: limit,
+      orderBy: {
+        date: 'desc' 
+      }
+    });
+
+
+    const totalLogs = await prisma.addLog.count({
+      where: {
+        userId: userId,
+        ...(statusFilter && { status: statusFilter })
+      }
+    });
+
+    const totalPages = Math.ceil(totalLogs / limit);
+
+    res.status(200).json({
+      success: true,
+      message: "User logs fetched successfully",
+      data: {
+        userInfo: {
+          id: user.id,
+          name: user.name,
+          email: user.email
+        },
+        logs,
+        pagination: {
+          totalLogs,
+          totalPages,
+          currentPage: page,
+          limit
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching user logs:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch user logs",
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 };

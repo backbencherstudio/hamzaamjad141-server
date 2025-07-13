@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 export const createInstructor = async (req: any, res: Response) => {
   try {
     const { name, email, phone } = req.body;
+
     const missingField = ["name", "email", "phone"].find(
       (field) => !req.body[field]
     );
@@ -17,10 +18,9 @@ export const createInstructor = async (req: any, res: Response) => {
       return;
     }
 
-    const existingInstructor = await prisma.instructor.findUnique({
+    const existingInstructor = await prisma.instructor.findMany({
       where: { email: email },
     });
-
     if (existingInstructor) {
       res.status(400).json({
         success: false,
@@ -51,6 +51,58 @@ export const createInstructor = async (req: any, res: Response) => {
     });
   }
 };
+
+export const createInstructorByUser = async (req: any, res: Response) => {
+  
+  try {
+    const { name, email, phone } = req.body;
+    const missingField = ["name", "email", "phone"].find(
+      (field) => !req.body[field]
+    );
+
+    if (missingField) {
+      res.status(400).json({
+        message: `${missingField} is required!`,
+      });
+      return;
+    }
+
+    // const existingInstructor = await prisma.instructor.findUnique({
+    //   where: { email: email },
+    // });
+
+    // if (existingInstructor) {
+    //   res.status(400).json({
+    //     success: false,
+    //     message: "Instructor already exists.",
+    //   });
+    //   return;
+    // }
+
+    const newInstructor = await prisma.instructor.create({
+      data: {
+        name,
+        email,
+        phone,
+        verify: false,
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Instructor created successfully",
+      data: newInstructor,
+    });
+  } catch (error) {
+    console.error("Error in createInstructor:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to create instructor",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
 
 export const myInstructor = async (req: any, res: Response) => {
   try {
@@ -173,7 +225,7 @@ export const updateInstructor = async (req: Request, res: Response) => {
       return;
     }
     if (email && email !== existingInstructor.email) {
-      const emailExists = await prisma.instructor.findUnique({
+      const emailExists = await prisma.instructor.findMany({
         where: { email },
       });
 
@@ -316,3 +368,172 @@ export const userInstructor = async (req: any, res: Response) => {
     });
   }
 };
+
+export const toActiveInstructor = async (req: any, res: Response) => {
+  const { id } = req.params;
+  try {
+    const instructor = await prisma.instructor.findUnique({
+      where: { id },
+    });
+
+    if (!instructor) {
+      res.status(404).json({
+        success: false,
+        message: "Instructor not found!",
+      });
+      return;
+    }
+
+    if (instructor.status === "ACTIVE") {
+      res.status(400).json({
+        success: false,
+        message: "Instructor is already active!",
+      });
+      return;
+    }
+
+    const updatedInstructor = await prisma.instructor.update({
+      where: { id },
+      data: { status: "ACTIVE" },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Instructor activated successfully!",
+      data: updatedInstructor,
+    });
+  } catch (error) {
+    console.error("Error in toActiveInstructor:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to activate instructor",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+export const toDeActiveInstructor = async (req: any, res: Response) => {
+  const { id } = req.params;
+  try {
+    const instructor = await prisma.instructor.findUnique({
+      where: { id },
+    });
+
+    if (!instructor) {
+      res.status(404).json({
+        success: false,
+        message: "Instructor not found!",
+      });
+      return;
+    }
+
+    if (instructor.status === "DEACTIVE") {
+      res.status(400).json({
+        success: false,
+        message: "Instructor is already deactivated!",
+      });
+      return;
+    }
+
+    const updatedInstructor = await prisma.instructor.update({
+      where: { id },
+      data: { status: "DEACTIVE" },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Instructor deactivated successfully!",
+      data: updatedInstructor,
+    });
+  } catch (error) {
+    console.error("Error in toDeActiveInstructor:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to deactivate instructor",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+
+export const getAllInstructors = async (req: any, res: Response) => {
+  try {
+    const { page = 1, limit = 10, search = "", type = "ALL" } = req.query;
+    const pageNumber = parseInt(page as string, 10);
+    const pageLimit = parseInt(limit as string, 10);
+
+    const skip = (pageNumber - 1) * pageLimit;
+
+    const validInstructorTypes = ["ACTIVE", "DEACTIVE", "ALL"];
+    if (!validInstructorTypes.includes(type)) {
+      res.status(400).json({
+        success: false,
+        message: `"${type}" is not a valid instructor type. Please use "ACTIVE", "DEACTIVE", or "ALL".`,
+      });
+      return;
+    }
+
+ 
+    const instructors = await prisma.instructor.findMany({
+      skip: skip,
+      take: pageLimit,
+      orderBy: {
+        createdAt: "desc",
+      },
+      where: {
+        AND: [
+          {
+            OR: [
+              {
+                name: {
+                  contains: search,
+                  mode: "insensitive",
+                },
+              },
+              {
+                email: {
+                  contains: search,
+                  mode: "insensitive",
+                },
+              },
+            ],
+          },
+          ...(type !== "ALL" ? [{ status: type }] : []),
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        status: true,
+        createdAt: true,
+        users: {
+          select: {
+            name: true,
+            email: true,
+            license: true,
+          },
+        },
+      },
+    });
+
+
+    const totalInstructors = instructors.length;
+
+    res.status(200).json({
+      success: true,
+      data: instructors,
+      total: totalInstructors,
+      page: pageNumber,
+      totalPages: Math.ceil(totalInstructors / pageLimit),
+    });
+  } catch (error) {
+    console.error("Error fetching instructors:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch instructors",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+

@@ -1,0 +1,36 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const genai_1 = require("@google/genai");
+async function main() {
+    const ai = new genai_1.GoogleGenAI({
+        apiKey: 'AIzaSyA5up7kkJ1THciQC4sHs3HOEcfYzHHt9JA',
+    });
+    const config = {
+        thinkingConfig: {
+            thinkingBudget: -1,
+        },
+        responseMimeType: 'text/plain',
+    };
+    const model = 'gemini-2.5-pro';
+    const contents = [
+        {
+            role: 'user',
+            parts: [
+                {
+                    text: `INSERT_INPUT_HERE`,
+                },
+            ],
+        },
+    ];
+    const response = await ai.models.generateContentStream({
+        model,
+        config,
+        contents,
+    });
+    let fileIndex = 0;
+    for await (const chunk of response) {
+        console.log(chunk.text);
+    }
+}
+main();
+//# sourceMappingURL=ai.js.map

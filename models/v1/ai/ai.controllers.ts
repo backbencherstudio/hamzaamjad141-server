@@ -17,7 +17,7 @@ export const generateAIResponse = async (req: Request, res: Response) => {
 
 
     const ai = new GoogleGenAI({
-      apiKey: 'AIzaSyA5up7kkJ1THciQC4sHs3HOEcfYzHHt9JA',
+      apiKey: 'AIzaSyB1SguuevA0o2iR3RVdOjJg8iCMyCqZmTk',
     });
 
     const config = {

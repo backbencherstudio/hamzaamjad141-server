@@ -19,7 +19,9 @@ export const verifyUser = (...allowedRoles: string[]) => {
 
     try {
       const token = authHeader;
+
       const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+
       req.user = decoded;
 
       if (

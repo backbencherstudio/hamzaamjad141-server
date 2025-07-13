@@ -4,7 +4,6 @@ import {
   loginUser,
   updateAdminPassword,
   changePassword,
-  sendOtp,
   verifyOtp,
   forgotPassword,
   verifyOtpAndResetPassword,
@@ -12,34 +11,50 @@ import {
   verifyOtpAndCreateUser,
   googleLogin,
   facebookLogin,
-  verifyEmailUpdate,
   updateUser,
   resentOtp,
   adminInfo,
   userInfo,
-  deleteUser
+  deleteUser,
+  sendChangeEmailOtp, verifyChangeEmail
 } from "./users.controllers";
 
 import upload from "../../../config/multer.congig";
 
 import { verifyUser } from "../../../middleware/verifyUsers";
+import {
+  getAllPilotUser,
+  membership,
+  overview,
+  toActiveUser,
+  toDeActiveUser,
+} from "./admin.controllers";
 
 const router = express.Router();
 
 router.post("/register", createUser);
 router.post("/registerVerify", verifyOtpAndCreateUser);
+
+
 router.post("/login", loginUser);
+
 
 router.post("/forgetPassword", forgotPassword);
 router.post("/verify-top", verifyOtpAndResetPassword);
 router.patch("/resent-otp", resentOtp);
 router.put("/change-password", resetPassword);
 
-router.patch("/update-assword", verifyUser("ANY"), changePassword);
+router.patch("/update-password", verifyUser("ANY"), changePassword);
+
 
 router.post("/google-login", googleLogin);
 router.post("/facebook-login", facebookLogin);
-router.post("/send-otp", sendOtp);
+
+
+
+router.get("/me", verifyUser("ANY"), userInfo);
+
+router.post("/delete", verifyUser("ANY"), deleteUser);
 
 // router.put(
 //   "/update-admininfo",verifyUser("ADMIN"), (req, res) => {
@@ -58,19 +73,25 @@ router.put(
   updateAdminPassword
 );
 
+
 router.patch(
-  "/user/update",
-  verifyUser("USER"),
+  "/update-user",
+  verifyUser("ANY"),
   upload.single("image"),
   updateUser
 );
 
-router.post("/email-verify", verifyEmailUpdate);
-router.post("/verify-otp", verifyOtp);
+
+router.get("/all-pilot-user", verifyUser("ADMIN"), getAllPilotUser);
+router.get("/membership", verifyUser("ADMIN"), membership);
+router.get("/dashboard", verifyUser("ADMIN"), overview);
+router.patch("/to-active-user/:id", verifyUser("ADMIN"), toActiveUser);
+router.patch("/to-deactive-user/:id", verifyUser("ADMIN"), toDeActiveUser);
 
 
-router.get('/me', verifyUser('ANY'), userInfo )
-router.post("/delete", verifyUser("ANY"), deleteUser);
-
+//stpe1
+router.post("/send-change-email-otp", verifyUser("ANY"), sendChangeEmailOtp);
+//step2
+router.post("/verify-change-email", verifyUser("ANY"), verifyChangeEmail);
 
 export default router;

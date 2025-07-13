@@ -2,5 +2,9 @@
 node_modules
 uploads
 dist
+temp_auto_push.bat
 *.log
 prisma/migrations
+__test__
+worke......txt.gitignore
+branch_structure.json
