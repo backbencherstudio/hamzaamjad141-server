@@ -214,7 +214,18 @@ model PromoCode {
   updatedAt DateTime @updatedAt()
 }
 
+
 enum PromoCodeStatus {
   ACTIVE
   USED
 }
+
+enum Licese {
+  NO_LICENCE
+  SPL
+  PPL
+  CPL
+  ATPL
+  CH
+}
+

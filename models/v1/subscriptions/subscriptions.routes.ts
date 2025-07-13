@@ -13,7 +13,6 @@ router.post(
   bodyParser.raw({ type: "application/json" }),
   handleWebhook
 );
-
 router.post("/create-promocode",verifyUser('ADMIN'), CreatePromoCode);
 router.get("/get-all-promocode",   getPromocode);
 router.delete("/delete-promocode/:id", verifyUser('ADMIN'), deletePromoCode);

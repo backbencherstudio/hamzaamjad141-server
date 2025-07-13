@@ -2,6 +2,7 @@ import express from "express";
 import {
   createUser,
   loginUser,
+  updateAdminPassword,
   changePassword,
   verifyOtp,
   forgotPassword,
@@ -10,9 +11,9 @@ import {
   verifyOtpAndCreateUser,
   googleLogin,
   facebookLogin,
- 
   updateUser,
   resentOtp,
+  adminInfo,
   userInfo,
   deleteUser,
   sendChangeEmailOtp, verifyChangeEmail
@@ -30,7 +31,6 @@ import {
 } from "./admin.controllers";
 
 const router = express.Router();
-
 
 router.post("/register", createUser);
 router.post("/registerVerify", verifyOtpAndCreateUser);
@@ -51,9 +51,28 @@ router.post("/google-login", googleLogin);
 router.post("/facebook-login", facebookLogin);
 
 
+
 router.get("/me", verifyUser("ANY"), userInfo);
 
 router.post("/delete", verifyUser("ANY"), deleteUser);
+
+// router.put(
+//   "/update-admininfo",verifyUser("ADMIN"), (req, res) => {
+//   res.send(`Hello`);  
+// });
+router.put(
+  "/update-admininfo",
+  verifyUser("ADMIN"),
+  upload.single("image"),
+  adminInfo
+);
+
+router.put(
+  "/admin-password",
+  verifyUser("ADMIN"),
+  updateAdminPassword
+);
+
 
 router.patch(
   "/update-user",
