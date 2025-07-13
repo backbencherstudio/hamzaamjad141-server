@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import path from "path";
 import { getImageUrl } from "../../../utils/base_utl";
 import fs from "fs";
@@ -105,13 +105,28 @@ export const getAllebook = async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
+    const search = (req.query.search as string)?.trim();
 
-    const ebooks = await prisma.ebook.findMany({
-      skip: skip,
-      take: limit,
-    });
+    const searchFilter: Prisma.EbookWhereInput = search
+      ? {
+          title: {
+            contains: search,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        }
+      : {};
 
-    const totalEbooks = await prisma.ebook.count();
+    const [ebooks, totalEbooks] = await Promise.all([
+      prisma.ebook.findMany({
+        where: searchFilter,
+        skip,
+        take: limit,
+        orderBy: {
+          date: "desc",
+        },
+      }),
+      prisma.ebook.count({ where: searchFilter }),
+    ]);
 
     const totalPages = Math.ceil(totalEbooks / limit);
 
@@ -142,6 +157,72 @@ export const getAllebook = async (req: Request, res: Response) => {
     });
   }
 };
+
+
+export const searchEbooks = async (req: Request, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const searchQuery = req.query.search as string || '';
+    const skip = (page - 1) * limit;
+
+    // Properly typed where clause
+    const whereClause: Prisma.EbookWhereInput = searchQuery 
+      ? {
+          title: {
+            contains: searchQuery,
+            mode: 'insensitive' as const // Cast to Prisma's QueryMode type
+          }
+        } 
+      : {};
+
+    const [ebooks, totalEbooks] = await Promise.all([
+      prisma.ebook.findMany({
+        where: whereClause,
+        skip,
+        take: limit,
+        orderBy: {
+          createdAt: 'desc'
+        }
+      }),
+      prisma.ebook.count({ where: whereClause })
+    ]);
+
+    const totalPages = Math.ceil(totalEbooks / limit);
+
+    const ebooksWithUrls = ebooks.map(ebook => ({
+      ...ebook,
+      pdf: getImageUrl(`/uploads/${ebook.pdf}`),
+      cover: getImageUrl(`/uploads/${ebook.cover}`)
+    }));
+
+    res.status(200).json({
+      success: true,
+      message: searchQuery 
+        ? `Found ${ebooks.length} ebooks matching "${searchQuery}"`
+        : 'Fetched all ebooks',
+      data: {
+        ebooks: ebooksWithUrls,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalItems: totalEbooks,
+          itemsPerPage: limit
+        },
+        searchQuery: searchQuery || null
+      }
+    });
+
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to search ebooks',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+};
+
 
 // export const updateEbook = async (req: Request, res: Response) => {
 //   console.log(req.body);
