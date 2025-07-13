@@ -53,6 +53,7 @@ export const createInstructor = async (req: any, res: Response) => {
 };
 
 export const createInstructorByUser = async (req: any, res: Response) => {
+  
   try {
     const { name, email, phone } = req.body;
     const missingField = ["name", "email", "phone"].find(
