@@ -290,7 +290,6 @@ export const getLogSummary = async (req: any, res: Response) => {
     const approvedLogs = await prisma.addLog.findMany({
       where: {
         userId: userId,
-        status: 'APPROVE',
       },
     });
 

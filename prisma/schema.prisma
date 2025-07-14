@@ -126,12 +126,14 @@ model AddLog {
 enum Action {
   active
   inactive
+
 }
 
 enum addlogStatus {
   PENDING
   REJECT
   APPROVE
+  UNVERIFIED
 }
 
 model Location {
