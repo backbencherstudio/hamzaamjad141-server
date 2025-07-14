@@ -22,41 +22,11 @@ export const createLog = async (req: any, res: Response) => {
       return;
     }
 
-    if (!user.instructorId) {
-      res.status(400).json({
-        success: false,
-        message: "No instructor assigned to this user",
-      });
-      return;
-    }
-
-    const instructor = await prisma.instructor.findUnique({
-      where: { id: user.instructorId },
-    });
-
-    if (!instructor) {
-      res.status(404).json({
-        success: false,
-        message: "Instructor not found",
-      });
-      return;
-    }
-
     const logRequiredFields = [
       "date",
       "from",
       "to",
-      "aircrafttype",
       "tailNumber",
-      "flightTime",
-      "pictime",
-      "dualrcv",
-      "daytime",
-      "nightime",
-      "ifrtime",
-      "crossCountry",
-      "takeoffs",
-      "landings",
     ];
 
     const logMissingField = logRequiredFields.find((field) => !req.body[field]);
@@ -68,22 +38,34 @@ export const createLog = async (req: any, res: Response) => {
       return;
     }
 
+    let instructor = null;
+    if (user.instructorId) {
+      instructor = await prisma.instructor.findUnique({
+        where: { id: user.instructorId },
+      });
+    }
+
     const newLog = await prisma.addLog.create({
       data: {
         ...req.body,
         userId: id,
-        action: "active",
+        status: instructor ? "PENDING" : "UNVERIFIED",
+        action: "active"
       },
     });
 
-    instructorConformations(instructor.email, user.name, {
-      ...newLog,
-      createdAt: newLog.createdAt,
-    });
+    if (instructor) {
+      instructorConformations(instructor.email, user.name, {
+        ...newLog,
+        createdAt: newLog.createdAt,
+      });
+    }
 
     res.status(201).json({
       success: true,
-      message: "Log created successfully and instructor notified",
+      message: instructor
+        ? "Log created successfully and instructor notified"
+        : "Log created successfully with UNVERIFIED status",
       data: newLog,
     });
   } catch (error) {
@@ -141,45 +123,46 @@ export const instructorApprov = async (req: any, res: Response) => {
 
 export const instructorReject = async (req: any, res: Response) => {
   try {
-    const logId = req.query;
-    const exitAddlog = await prisma.addLog.findFirst({
-      where: { id: logId },
+    const logId = req.query.id;
+
+    if (!logId) {
+      res.status(400).json({
+        success: false,
+        message: "Log ID is required for rejection",
+      });
+      return;
+    }
+
+    const existingLog = await prisma.addLog.findUnique({
+      where: { id: logId as string },
     });
-    const updatedLog = await prisma.addLog.update({
-      where: { id: exitAddlog.id },
-      data: {
-        date: exitAddlog.date,
-        from: exitAddlog.from,
-        to: exitAddlog.to,
-        aircrafttype: exitAddlog.aircrafttype,
-        tailNumber: exitAddlog.tailNumber,
-        flightTime: exitAddlog.flightTime,
-        pictime: exitAddlog.pictime,
-        dualrcv: exitAddlog.dualrcv,
-        daytime: exitAddlog.daytime,
-        nightime: exitAddlog.nightime,
-        ifrtime: exitAddlog.ifrtime,
-        crossCountry: exitAddlog.crossCountry,
-        takeoffs: exitAddlog.takeoffs,
-        landings: exitAddlog.landings,
-        status: "REJECT",
-      },
+
+    if (!existingLog) {
+      res.status(404).json({
+        success: false,
+        message: "Log not found",
+      });
+      return;
+    }
+
+    await prisma.addLog.delete({
+      where: { id: logId as string },
     });
 
     res.status(200).json({
       success: true,
-      message: "Log approved successfully",
-      data: updatedLog,
+      message: "Log rejected and deleted successfully",
     });
   } catch (error) {
-    console.error("Error approving log:", error);
+    console.error("Error rejecting (deleting) log:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to approve log entry",
+      message: "Failed to reject and delete log entry",
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 };
+
 
 export const getLogbook = async (req: any, res: Response) => {
   try {
@@ -290,7 +273,6 @@ export const getLogSummary = async (req: any, res: Response) => {
     const approvedLogs = await prisma.addLog.findMany({
       where: {
         userId: userId,
-        status: 'APPROVE',
       },
     });
 
