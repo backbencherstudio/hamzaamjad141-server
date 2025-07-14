@@ -98,19 +98,19 @@ model AddLog {
   date         DateTime
   from         String
   to           String
-  aircrafttype String
+  aircrafttype String?  @default("")
   tailNumber   String
 
-  flightTime Float
-  pictime    Float
-  dualrcv    String
+  flightTime Float?  @default(0)
+  pictime    Float?  @default(0)
+  dualrcv    String? @default("")
 
-  daytime      Float
-  nightime     Float
-  ifrtime      Float
-  crossCountry Int
-  takeoffs     Int
-  landings     Int
+  daytime      Float @default(0)
+  nightime     Float @default(0)
+  ifrtime      Float @default(0)
+  crossCountry Int   @default(0)
+  takeoffs     Int   @default(0)
+  landings     Int   @default(0)
 
   userId String
   status addlogStatus @default(PENDING)
@@ -126,7 +126,6 @@ model AddLog {
 enum Action {
   active
   inactive
-
 }
 
 enum addlogStatus {
@@ -216,18 +215,7 @@ model PromoCode {
   updatedAt DateTime @updatedAt()
 }
 
-
 enum PromoCodeStatus {
   ACTIVE
   USED
 }
-
-enum Licese {
-  NO_LICENCE
-  SPL
-  PPL
-  CPL
-  ATPL
-  CH
-}
-

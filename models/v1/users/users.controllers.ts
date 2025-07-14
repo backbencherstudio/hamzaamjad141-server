@@ -71,7 +71,6 @@ export const createUser = async (req: Request, res: Response) => {
 };
 
 export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
-  console.log(req.body);
   try {
     const { otp, email } = req.body;
 
@@ -80,6 +79,7 @@ export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
         success: false,
         message: "Ucode ID is required",
       });
+      return;
     }
 
     const unverifiedUser = await prisma.ucode.findUnique({
@@ -108,6 +108,19 @@ export const verifyOtpAndCreateUser = async (req: Request, res: Response) => {
       res.status(400).json({
         success: false,
         message: "Invalid OTP",
+      });
+      return;
+    }
+
+    // Check if email already exists in users table
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      res.status(400).json({
+        success: false,
+        message: "Email already registered",
       });
       return;
     }
@@ -223,12 +236,7 @@ export const loginUser = async (req: Request, res: Response) => {
         email,
       },
     });
-
     console.log(user)
-
-    console.log("check",user);
-
-
     if (!user) {
       res.status(404).json({
         message: "User not found",
@@ -325,72 +333,6 @@ export const changePassword = async (req: any, res: Response) => {
     });
   }
 };
-
-
-export const sendOtp = async (req: Request, res: Response) => {
-
-  console.log("Send OTP request body:", req.body);
-  try {
-    const { name, email, password } = req.body;
-
-    if (!name || !email || !password) {
-      res.status(400).json({
-        success: false,
-        message: "Name, email, and password are required",
-      });
-      return;
-    }
-    const existingUser = await prisma.ucode.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      res.status(400).json({
-        success: false,
-        message: "Email already exists",
-      });
-    }
-    const otp = generateOTP();
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await prisma.ucode.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        otp: otp,
-        expiration: new Date(Date.now() + 10 * 60 * 1000),
-      },
-    });
-
-    sendForgotPasswordOTP(email, otp);
-
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      process.env.JWT_SECRET as string,
-      { expiresIn: "100d" }
-    );
-
-    res.status(201).json({
-      success: true,
-      message: "OTP sent successfully",
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-      },
-    });
-  } catch (error) {
-    console.error("Error in sendOtp:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-};
-
 
 export const verifyOtp = async (req: Request, res: Response) => {
   try {
@@ -800,7 +742,6 @@ export const facebookLogin = async (req: Request, res: Response) => {
   }
 };
 
-
 const deleteImageIfNeeded = (
   newImage: Express.Multer.File | { filename: string } | undefined
 ) => {
@@ -812,99 +753,14 @@ const deleteImageIfNeeded = (
     );
     if (fs.existsSync(imagePath)) {
       fs.unlinkSync(imagePath);
-
-export const adminInfo = async (req: any, res: Response) => {
-  try {
-    const id = req.user?.userId;
-    const { name } = req.body;
-    const newImage = req.file;
-    if (!newImage) {
-      res.status(400).json({ message: "No image uploaded" });
-      return;
-    }
-    const existingUser = await prisma.user.findUnique({
-      where: { id: id },
-    });
-    if (!existingUser) {
-      fs.unlinkSync(path.join(__dirname, "../../uploads", newImage.filename));
-      res.status(404).json({ message: "User not found" });
-      return;
-    }
-    if (existingUser.image) {
-      const oldImagePath = path.join(
-        __dirname,
-        "../../uploads",
-        existingUser.image
-      );
-      if (fs.existsSync(oldImagePath)) {
-        fs.unlinkSync(oldImagePath);
-      }
-    }
-    const user = await prisma.user.update({
-      where: { id: id },
-      data: {
-        name:name || existingUser.name,
-        image:  newImage ? newImage.filename : existingUser.image,
-      },
-    });
-
-    const imageUrl = user.image
-        ? getImageUrl(`/uploads/${user.image}`)
-        : null;
-
-    res.status(200).json({
-      success: true,
-      message: "Image updated successfully",
-      data: { ...user, imageUrl },
-    });
-  } catch (error) {
-    if (req.file) {
-      fs.unlinkSync(path.join(__dirname, "../../uploads", req.file.filename));
-
     }
   }
 };
-
 
 export const updateUser = async (req: any, res: Response) => {
   const userId = req.user?.userId;
   const { name, license, oldPassword, newPassword } = req.body;
   const newImage = req.file;
-
-export const updateAdminPassword = async (req: any, res: Response) => {
-  try {
-    const id = req.user?.userId;
-    const {  oldPassword, newPassword, confirmPassword } = req.body;
-    const existingUser = await prisma.user.findUnique({
-      where: { id: id },
-    });
-
-    if (!existingUser) {
-      res.status(404).json({ message: "User not found" });
-      return;
-    }
-    const isOldPasswordValid = await bcrypt.compare(
-      oldPassword,
-      existingUser.password
-    );
-    if (!isOldPasswordValid) {
-      res.status(400).json({ message: "Old password is incorrect" });
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      res
-        .status(400)
-        .json({ message: "New password and confirm password do not match" });
-      return;
-    }
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    const user = await prisma.user.update({
-      where: { id: id },
-      data: {
-        password: hashedPassword,
-      },
-    });
-
 
   if (!userId) {
     deleteImageIfNeeded(newImage);
