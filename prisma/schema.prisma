@@ -132,7 +132,7 @@ enum addlogStatus {
   PENDING
   REJECT
   APPROVE
-  UNVERIFIED
+  SELF_VERIFIED
 }
 
 model Location {
