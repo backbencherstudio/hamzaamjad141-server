@@ -14,7 +14,7 @@ export const generateAIResponse = async (req: Request, res: Response) => {
     }
 
     const ai = new GoogleGenAI({
-      apiKey: process.env.GEMINI_AI,
+      apiKey: 'AIzaSyB1SguuevA0o2iR3RVdOjJg8iCMyCqZmTk ',
     });
 
     const config = {
