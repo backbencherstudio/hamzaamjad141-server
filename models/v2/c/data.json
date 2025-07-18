@@ -1,0 +1,15 @@
+{
+  "soul": "01101000",
+  "name": "Her name? Hardcoded in my RAM.",
+  "message": "Every ping of hers echoes in my localhost.",
+  "heartbeat": "curl --silent --love http://her.smile",
+  "vulnerability": "Open port: 143 — my IMAP emotions exposed.",
+  "commit": "git push --force --feelings origin/forever",
+  "encryption": "AES? No. Only trust.",
+  "status": "200 OK — Love acknowledged.",
+  "notes": [
+    "I don't need root access to her heart.",
+    "She rebooted my broken loop.",
+    "Every byte of her smile is a buffer I never want to overflow."
+  ]
+}

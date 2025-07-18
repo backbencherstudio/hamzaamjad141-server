@@ -16,7 +16,7 @@ export const generateAIResponse = async (req: Request, res: Response) => {
     }
 
     const ai = new GoogleGenAI({
-      apiKey: 'AIzaSyB1SguuevA0o2iR3RVdOjJg8iCMyCqZmTk ',
+      apiKey: 'AIzaSyB1SguuevA0o2iR3RVdOjJg8iCMyCqZmTk',
     });
 
     const config = {
@@ -43,7 +43,7 @@ export const generateAIResponse = async (req: Request, res: Response) => {
         ],
       },
     ];
-
+ 
     const response = await ai.models.generateContentStream({
       model,
       config,
@@ -55,7 +55,6 @@ export const generateAIResponse = async (req: Request, res: Response) => {
       aiResponse += chunk.text;
     }
 
- 
 
     res.status(200).json({
       success: true,
@@ -70,3 +69,10 @@ export const generateAIResponse = async (req: Request, res: Response) => {
     });
   }
 };
+
+
+
+
+// জর সে প্রতি রাতে
+// অল্পতেই অনেক ক্লান্ত লাগে
+// এলারজি হয় অনে বড় বড় হয়ে  আমি বিলাষ্টিন খাই তার জন্য
