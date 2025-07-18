@@ -53,7 +53,7 @@ router.post("/facebook-login", facebookLogin);
 
 router.get("/me", verifyUser("ANY"), userInfo);
 
-router.post("/delete", verifyUser("ANY"), deleteUser);
+router.delete("/delete", verifyUser("ANY"), deleteUser);
 
 router.patch(
   "/update-user",
