@@ -3,7 +3,7 @@ import express from 'express';
  
 import { verifyUser } from "../../../middleware/verifyUsers";
 import { createPortcusts, deletePortcusts, getAllPortcusts, updatePortcusts } from './portcusts.controllers';
-import upload from '../../../config/multer.congig';
+import upload from '../../../config/multer.config';
 import { premiumGuard } from '../../../middleware/premiumGuard';
 
 

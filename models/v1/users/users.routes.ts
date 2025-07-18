@@ -18,7 +18,7 @@ import {
   sendChangeEmailOtp, verifyChangeEmail
 } from "./users.controllers";
 
-import upload from "../../../config/multer.congig";
+import upload from "../../../config/multer.config";
 
 import { verifyUser } from "../../../middleware/verifyUsers";
 import {
