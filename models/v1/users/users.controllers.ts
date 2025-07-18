@@ -5,13 +5,17 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import fs from "fs";
 import path from "path";
+import { Storage } from '@google-cloud/storage';
 import { baseUrl, getImageUrl } from "../../../utils/base_utl";
 import {
   generateOTP,
   sendForgotPasswordOTP,
 } from "../../../utils/emailService.utils";
 import { v4 as uuidv4 } from "uuid";
-import { deleteImageIfNeeded } from "../../../config/multer.congig";
+import {
+  deleteImageIfNeeded,
+  downloadAndSaveImage,
+} from "../../../config/multer.config";
 
 const prisma = new PrismaClient();
 
@@ -218,7 +222,7 @@ export const resendCode = async (req: Request, res: Response) => {
 };
 
 export const loginUser = async (req: Request, res: Response) => {
-  console.log(req.body)
+  console.log(req.body);
   try {
     const { email, password } = req.body;
     const missingField = ["email", "password"].find(
@@ -237,7 +241,7 @@ export const loginUser = async (req: Request, res: Response) => {
         email,
       },
     });
-    console.log(user)
+    console.log(user);
     if (!user) {
       res.status(404).json({
         message: "User not found",
@@ -590,27 +594,41 @@ export const resetPassword = async (req: Request, res: Response) => {
   }
 };
 
-const downloadAndSaveImage = async (imageUrl: string): Promise<string> => {
-  try {
-    const response = await fetch(imageUrl);
-    if (!response.ok) throw new Error("Failed to download image");
+// const downloadAndSaveImage = async (imageUrl: string): Promise<string> => {
+//   try {
+//     // Clean up malformed URLs (remove storage.googleapis.com prefix if present)
+//     const cleanUrl = imageUrl.includes('storage.googleapis.com/') 
+//       ? imageUrl.split('storage.googleapis.com/')[1]
+//       : imageUrl;
 
-    const buffer = await response.arrayBuffer();
-    const filename = `${uuidv4()}.jpg`;
-    const uploadDir = path.join(__dirname, "../../../uploads");
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+//     const response = await fetch(cleanUrl);
+//     if (!response.ok) throw new Error("Failed to download image");
 
-    const filepath = path.join(uploadDir, filename);
-    fs.writeFileSync(filepath, Buffer.from(buffer));
+//     const buffer = await response.arrayBuffer();
+//     const filename = `${uuidv4()}.jpg`;
+    
+//     // Initialize Google Cloud Storage with absolute path to credentials
+//     const storage = new Storage({
+//       keyFilename: path.resolve(__dirname, "../../../config/gcs-key.json"),
+//       projectId: process.env.GCLOUD_PROJECT
+//     });
+    
+//     const bucket = storage.bucket(process.env.GCS_BUCKET);
+//     const file = bucket.file(filename);
+    
+//     // Upload buffer to Google Cloud Storage
+//     await file.save(Buffer.from(buffer), {
+//       metadata: {
+//         contentType: 'image/jpeg'
+//       }
+//     });
 
-    return filename;
-  } catch (error) {
-    console.error("Error saving image:", error);
-    return imageUrl;
-  }
-};
+//     return filename;
+//   } catch (error) {
+//     console.error("Error saving image to Google Cloud Storage:", error);
+//     throw new Error("Failed to save image to cloud storage");
+//   }
+// };
 
 export const googleLogin = async (req: Request, res: Response) => {
   console.log("Google Auth route hit");
@@ -846,9 +864,7 @@ export const updateUser = async (req: any, res: Response) => {
         id: updatedUser.id,
         name: updatedUser.name,
         email: updatedUser.email,
-        image: updatedUser.image
-          ? getImageUrl(`/${updatedUser.image}`)
-          : null,
+        image: updatedUser.image ? getImageUrl(`/${updatedUser.image}`) : null,
         premium: updatedUser.premium,
         license: updatedUser.license,
       },

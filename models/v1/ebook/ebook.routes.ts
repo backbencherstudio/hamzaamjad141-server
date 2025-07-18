@@ -1,6 +1,6 @@
 import express from "express";
 import { verifyUser } from "../../../middleware/verifyUsers";
-import upload from "../../../config/multer.congig";
+import upload from "../../../config/multer.config";
 import {
   createEbooks,
   getAllebook,

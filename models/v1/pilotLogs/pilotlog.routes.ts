@@ -1,5 +1,5 @@
 import express from "express";
-import upload from "../../../config/multer.congig";
+import upload from "../../../config/multer.config";
 import { verifyUser } from "../../../middleware/verifyUsers";
 import {createLog, getLogbook, instructorApprov, instructorReject, deleteLog, getLogSummary, getAllUserLogSummaries, getUserLogs} from "./pilotlog.controllers";
 import { premiumGuard } from "../../../middleware/premiumGuard";
