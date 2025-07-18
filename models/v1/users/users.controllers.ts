@@ -11,6 +11,7 @@ import {
   sendForgotPasswordOTP,
 } from "../../../utils/emailService.utils";
 import { v4 as uuidv4 } from "uuid";
+import { deleteImageIfNeeded } from "../../../config/multer.congig";
 
 const prisma = new PrismaClient();
 
@@ -58,7 +59,7 @@ export const createUser = async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       message: "Verification OTP sent to your email",
-      userId: UcodeUpsert.email,
+      email: UcodeUpsert.email,
     });
   } catch (error) {
     console.error("Error in createUser:", error);
@@ -269,7 +270,7 @@ export const loginUser = async (req: Request, res: Response) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        image: user.image ? getImageUrl(`/uploads/${user.image}`) : null,
+        image: user.image ? getImageUrl(`/${user.image}`) : null,
         role: user.role,
         license: user.license,
         premium: user.premium,
@@ -666,7 +667,7 @@ export const googleLogin = async (req: Request, res: Response) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        image: user.image ? getImageUrl(`/uploads/${user.image}`) : null,
+        image: user.image ? getImageUrl(`/${user.image}`) : null,
         role: user.role,
         license: user.license,
         premium: user.premium,
@@ -728,7 +729,7 @@ export const facebookLogin = async (req: Request, res: Response) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        image: user.image ? getImageUrl(`/uploads/${user.image}`) : null,
+        image: user.image ? getImageUrl(`/${user.image}`) : null,
         premium: user.premium,
         role: user.role,
       },
@@ -742,20 +743,20 @@ export const facebookLogin = async (req: Request, res: Response) => {
   }
 };
 
-const deleteImageIfNeeded = (
-  newImage: Express.Multer.File | { filename: string } | undefined
-) => {
-  if (newImage && newImage.filename) {
-    const imagePath = path.join(
-      __dirname,
-      "../../../uploads",
-      newImage.filename
-    );
-    if (fs.existsSync(imagePath)) {
-      fs.unlinkSync(imagePath);
-    }
-  }
-};
+// const deleteImageIfNeeded = (
+//   newImage: Express.Multer.File | { filename: string } | undefined
+// ) => {
+//   if (newImage && newImage.filename) {
+//     const imagePath = path.join(
+//       __dirname,
+//       "../../../uploads",
+//       newImage.filename
+//     );
+//     if (fs.existsSync(imagePath)) {
+//       fs.unlinkSync(imagePath);
+//     }
+//   }
+// };
 
 export const updateUser = async (req: any, res: Response) => {
   const userId = req.user?.userId;
@@ -846,7 +847,7 @@ export const updateUser = async (req: any, res: Response) => {
         name: updatedUser.name,
         email: updatedUser.email,
         image: updatedUser.image
-          ? getImageUrl(`/uploads/${updatedUser.image}`)
+          ? getImageUrl(`/${updatedUser.image}`)
           : null,
         premium: updatedUser.premium,
         license: updatedUser.license,
@@ -889,7 +890,7 @@ export const userInfo = async (req: any, res: Response) => {
       res.status(404).json({ message: "User not found" });
       return;
     }
-    const imageUrl = user.image ? getImageUrl(`/uploads/${user.image}`) : null;
+    const imageUrl = user.image ? getImageUrl(`/${user.image}`) : null;
     res.status(200).json({
       success: true,
       message: "User information retrieved successfully",
@@ -922,11 +923,9 @@ export const deleteUser = async (req: any, res: Response) => {
       res.status(404).json({ message: "User not found" });
       return;
     }
+
     if (user.image) {
-      const imagePath = path.join(__dirname, "../../uploads", user.image);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-      }
+      await deleteImageIfNeeded({ filename: user.image });
     }
 
     await prisma.user.delete({
@@ -1042,7 +1041,7 @@ export const verifyChangeEmail = async (req: any, res: Response) => {
         name: updatedUser.name,
         email: updatedUser.email,
         image: updatedUser.image
-          ? getImageUrl(`/uploads/${updatedUser.image}`)
+          ? getImageUrl(`/${updatedUser.image}`)
           : updatedUser.image,
       },
     });
