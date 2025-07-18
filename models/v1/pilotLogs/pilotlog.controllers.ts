@@ -49,7 +49,7 @@ export const createLog = async (req: any, res: Response) => {
       data: {
         ...req.body,
         userId: id,
-        status: instructor ? "PENDING" : "UNVERIFIED",
+        status: instructor ? "PENDING" : "SELF_VERIFIED",
         action: "active"
       },
     });
