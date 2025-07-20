@@ -3,58 +3,158 @@ import { PrismaClient, Prisma } from "@prisma/client";
 import path from "path";
 import { getImageUrl } from "../../../utils/base_utl";
 import fs from "fs";
+import { deleteImageIfNeeded } from "../../../config/multer.config";
 
 const prisma = new PrismaClient();
 
+// export const createEbooks = async (req: Request, res: Response) => {
+//   console.log(req.body);
+//   try {
+//     const { title, date } = req.body;
+
+//     const missingField = ["title", "date"].find((field) => !req.body[field]);
+
+//     if (missingField) {
+//       res.status(400).json({
+//         success: false,
+//         message: `${missingField} is required!`,
+//       });
+//       return;
+//     }
+
+//     const missingFile = ["pdf", "cover"].find(
+//       (fileType) => !req.files[fileType]
+//     );
+
+//     if (missingFile) {
+//       res.status(400).json({
+//         success: false,
+//         message: `${missingFile} file is required!`,
+//       });
+//       return;
+//     }
+
+//     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+//     const pdfFile = files["pdf"][0];
+//     const coverFile = files["cover"][0];
+
+//     if (pdfFile.mimetype !== "application/pdf") {
+//       res.status(400).json({
+//         success: false,
+//         message: "The first file must be a PDF file",
+//       });
+//       return;
+//     }
+
+//     if (!coverFile.mimetype.startsWith("image/")) {
+//       res.status(400).json({
+//         success: false,
+//         message: "The second file must be an image file",
+//       });
+//       return;
+//     }
+
+//     const portcusts = await prisma.ebook.create({
+//       data: {
+//         title,
+//         date: new Date(date),
+//         pdf: pdfFile.filename,
+//         cover: coverFile.filename,
+//       },
+//     });
+
+//     const responseData = {
+//       ...portcusts,
+//       pdf: getImageUrl(`/${pdfFile.filename}`),
+//       cover: getImageUrl(`/${coverFile.filename}`),
+//     };
+
+//     res.status(201).json({
+//       success: true,
+//       message: "Portcusts created successfully",
+//       data: responseData,
+//     });
+//   } catch (error) {
+//     console.error("Error creating Portcusts:", error);
+//     if (req.files) {
+//       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+//       Object.values(files).forEach((fileArray) => {
+//         fileArray.forEach((file) => {
+//           const filePath = path.join(
+//             __dirname,
+//             "../../../uploads",
+//             file.filename
+//           );
+//           if (fs.existsSync(filePath)) {
+//             fs.unlinkSync(filePath);
+//           }
+//         });
+//       });
+//     }
+
+//     res.status(500).json({
+//       success: false,
+//       message: "Failed to create Portcusts",
+//       error: error instanceof Error ? error.message : "Unknown error",
+//     });
+//   }
+// };
+
+
+
 export const createEbooks = async (req: Request, res: Response) => {
-  console.log(req.body);
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+  const cleanupFiles = async () => {
+    const tasks = [];
+    if (files?.pdf) tasks.push(deleteImageIfNeeded(files.pdf[0]));
+    if (files?.cover) tasks.push(deleteImageIfNeeded(files.cover[0]));
+    await Promise.all(tasks);
+  };
+
   try {
     const { title, date } = req.body;
 
-    const missingField = ["title", "date"].find((field) => !req.body[field]);
-
-    if (missingField) {
-      res.status(400).json({
+    // Validate required fields
+    if (!title || !date) {
+      await cleanupFiles();
+      return res.status(400).json({
         success: false,
-        message: `${missingField} is required!`,
+        message: `${!title ? "title" : "date"} is required!`,
       });
-      return;
     }
 
-    const missingFile = ["pdf", "cover"].find(
-      (fileType) => !req.files[fileType]
-    );
+    // Validate uploaded files
+    const pdfFile = files?.pdf?.[0];
+    const coverFile = files?.cover?.[0];
 
-    if (missingFile) {
-      res.status(400).json({
+    if (!pdfFile || !coverFile) {
+      await cleanupFiles();
+      return res.status(400).json({
         success: false,
-        message: `${missingFile} file is required!`,
+        message: `${!pdfFile ? "pdf" : "cover"} file is required!`,
       });
-      return;
     }
-
-    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-
-    const pdfFile = files["pdf"][0];
-    const coverFile = files["cover"][0];
 
     if (pdfFile.mimetype !== "application/pdf") {
-      res.status(400).json({
+      await cleanupFiles();
+      return res.status(400).json({
         success: false,
         message: "The first file must be a PDF file",
       });
-      return;
     }
 
     if (!coverFile.mimetype.startsWith("image/")) {
-      res.status(400).json({
+      await cleanupFiles();
+      return res.status(400).json({
         success: false,
         message: "The second file must be an image file",
       });
-      return;
     }
 
-    const portcusts = await prisma.ebook.create({
+    // Create ebook entry in DB
+    const ebook = await prisma.ebook.create({
       data: {
         title,
         date: new Date(date),
@@ -63,42 +163,26 @@ export const createEbooks = async (req: Request, res: Response) => {
       },
     });
 
-    const responseData = {
-      ...portcusts,
-      pdf: getImageUrl(`/uploads/${pdfFile.filename}`),
-      cover: getImageUrl(`/uploads/${coverFile.filename}`),
-    };
-
     res.status(201).json({
       success: true,
-      message: "Portcusts created successfully",
-      data: responseData,
+      message: "Ebook created successfully",
+      data: {
+        ...ebook,
+        pdf: getImageUrl(`/${pdfFile.filename}`),
+        cover: getImageUrl(`/${coverFile.filename}`),
+      },
     });
   } catch (error) {
-    console.error("Error creating Portcusts:", error);
-    if (req.files) {
-      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-      Object.values(files).forEach((fileArray) => {
-        fileArray.forEach((file) => {
-          const filePath = path.join(
-            __dirname,
-            "../../../uploads",
-            file.filename
-          );
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
-        });
-      });
-    }
-
+    await cleanupFiles();
     res.status(500).json({
       success: false,
-      message: "Failed to create Portcusts",
+      message: "Failed to create ebook",
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 };
+
+
 
 export const getAllebook = async (req: Request, res: Response) => {
   try {
@@ -329,75 +413,157 @@ export const searchEbooks = async (req: Request, res: Response) => {
 //   }
 // };
 
+
+// export const updateEbook = async (req: Request, res: Response) => {
+//   const { id } = req.params;
+//   const { title, date } = req.body;
+//   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+//   try {
+//     const ebook = await prisma.ebook.findUnique({
+//       where: { id },
+//     });
+
+//     if (!ebook) {
+//       // Clean up any uploaded files
+//       if (files?.pdf) await deleteImageIfNeeded(files.pdf[0]);
+//       if (files?.cover) await deleteImageIfNeeded(files.cover[0]);
+      
+//       res.status(404).json({
+//         success: false,
+//         message: "Ebook not found",
+//       });
+//       return;
+//     }
+
+//     const updateData: any = {};
+//     if (title) updateData.title = title;
+//     if (date) updateData.date = new Date(date);
+
+//     // Handle PDF file update
+//     if (files?.pdf) {
+//       const pdfFile = files.pdf[0];
+//       if (!pdfFile.mimetype.startsWith("application/pdf")) {
+//         await deleteImageIfNeeded(pdfFile);
+//         if (files?.cover) await deleteImageIfNeeded(files.cover[0]);
+        
+//         res.status(400).json({
+//           success: false,
+//           message: "The file must be a PDF file",
+//         });
+//         return;
+//       }
+//       // Delete old PDF from cloud storage
+//       await deleteImageIfNeeded({ filename: ebook.pdf });
+//       updateData.pdf = pdfFile.filename;
+//     }
+
+//     // Handle cover image update
+//     if (files?.cover) {
+//       const coverFile = files.cover[0];
+//       if (!coverFile.mimetype.startsWith("image/")) {
+//         await deleteImageIfNeeded(coverFile);
+//         if (files?.pdf) await deleteImageIfNeeded(files.pdf[0]);
+        
+//         res.status(400).json({
+//           success: false,
+//           message: "The file must be an image",
+//         });
+//         return;
+//       }
+//       // Delete old cover from cloud storage
+//       await deleteImageIfNeeded({ filename: ebook.cover });
+//       updateData.cover = coverFile.filename;
+//     }
+
+//     const updatedEbook = await prisma.ebook.update({
+//       where: { id },
+//       data: updateData,
+//     });
+
+//     const responseData = {
+//       ...updatedEbook,
+//       pdf: getImageUrl(`/${updatedEbook.pdf}`),
+//       cover: getImageUrl(`/${updatedEbook.cover}`),
+//     };
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Ebook updated successfully",
+//       data: responseData,
+//     });
+//   } catch (error) {
+//     // Clean up uploaded files in case of error
+//     if (files?.pdf) await deleteImageIfNeeded(files.pdf[0]);
+//     if (files?.cover) await deleteImageIfNeeded(files.cover[0]);
+
+//     res.status(500).json({
+//       success: false,
+//       message: "Failed to update ebook",
+//       error: error instanceof Error ? error.message : "Unknown error",
+//     });
+//   }
+// };
+
+
+// deleteEbook
+
+
 export const updateEbook = async (req: Request, res: Response) => {
-  console.log(req.body); // Log body for debugging (be careful in production)
   const { id } = req.params;
   const { title, date } = req.body;
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+  const cleanupFiles = async () => {
+    const tasks = [];
+    if (files?.pdf) tasks.push(deleteImageIfNeeded(files.pdf[0]));
+    if (files?.cover) tasks.push(deleteImageIfNeeded(files.cover[0]));
+    await Promise.all(tasks);
+  };
 
   try {
-    const ebook = await prisma.ebook.findUnique({
-      where: { id },
-    });
+    const ebook = await prisma.ebook.findUnique({ where: { id } });
 
     if (!ebook) {
-       res.status(404).json({
+      await cleanupFiles();
+      return res.status(404).json({
         success: false,
         message: "Ebook not found",
       });
-      return
     }
 
-    let pdfFileUrl = ebook.pdf;
-    let coverFileUrl = ebook.cover;
+    const updateData: any = {
+      ...(title && { title }),
+      ...(date && { date: new Date(date) }),
+    };
 
-    const updateData: any = {};
+    const pdfFile = files?.pdf?.[0];
+    const coverFile = files?.cover?.[0];
 
-    if (title) {
-      updateData.title = title;
-    }
-
-    if (date) {
-      updateData.date = new Date(date);
-    }
-
-    if (req.files) {
-      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-      const pdfFile = files["pdf"] ? files["pdf"][0] : undefined;
-      const coverFile = files["cover"] ? files["cover"][0] : undefined;
-
-      if (pdfFile && !pdfFile.mimetype.startsWith("application/pdf")) {
-         res.status(400).json({
+    // Validate PDF
+    if (pdfFile) {
+      if (pdfFile.mimetype !== "application/pdf") {
+        await cleanupFiles();
+        return res.status(400).json({
           success: false,
           message: "The file must be a PDF file",
         });
-        return
       }
+      await deleteImageIfNeeded({ filename: ebook.pdf });
+      updateData.pdf = pdfFile.filename;
+    }
 
-      if (coverFile && !coverFile.mimetype.startsWith("image/")) {
-         res.status(400).json({
+    // Validate Cover
+    if (coverFile) {
+      if (!coverFile.mimetype.startsWith("image/")) {
+        await cleanupFiles();
+        return res.status(400).json({
           success: false,
           message: "The file must be an image",
         });
-        return
       }
-
-      if (pdfFile) {
-        const oldPdfFilePath = path.join(__dirname, "../../../uploads", ebook.pdf);
-        if (fs.existsSync(oldPdfFilePath)) {
-          fs.unlinkSync(oldPdfFilePath); // Delete old PDF file
-        }
-        pdfFileUrl = pdfFile.filename;
-        updateData.pdf = pdfFileUrl; // Use the correct field name
-      }
-
-      if (coverFile) {
-        const oldCoverFilePath = path.join(__dirname, "../../../uploads", ebook.cover);
-        if (fs.existsSync(oldCoverFilePath)) {
-          fs.unlinkSync(oldCoverFilePath); // Delete old cover image
-        }
-        coverFileUrl = coverFile.filename;
-        updateData.cover = coverFileUrl; // Use the correct field name
-      }
+      await deleteImageIfNeeded({ filename: ebook.cover });
+      updateData.cover = coverFile.filename;
     }
 
     const updatedEbook = await prisma.ebook.update({
@@ -405,28 +571,29 @@ export const updateEbook = async (req: Request, res: Response) => {
       data: updateData,
     });
 
-    const responseData = {
-      ...updatedEbook,
-      pdf: getImageUrl(`/uploads/${updatedEbook.pdf}`),
-      cover: getImageUrl(`/uploads/${updatedEbook.cover}`),
-    };
-
-     res.status(200).json({
+    res.status(200).json({
       success: true,
       message: "Ebook updated successfully",
-      data: responseData,
+      data: {
+        ...updatedEbook,
+        pdf: getImageUrl(`/${updatedEbook.pdf}`),
+        cover: getImageUrl(`/${updatedEbook.cover}`),
+      },
     });
   } catch (error) {
-    console.error("Error updating Ebook:", error);
-     res.status(500).json({
+    await cleanupFiles();
+    res.status(500).json({
       success: false,
-      message: "Failed to update Ebook",
+      message: "Failed to update ebook",
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 };
 
-// deleteEbook
+
+
+
+
 export const deleteEbook = async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
