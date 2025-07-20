@@ -216,8 +216,8 @@ export const getAllebook = async (req: Request, res: Response) => {
 
     const ebooksWithUrls = ebooks.map((ebook) => ({
       ...ebook,
-      pdf: getImageUrl(`/uploads/${ebook.pdf}`),
-      cover: getImageUrl(`/uploads/${ebook.cover}`),
+      pdf: getImageUrl(`/${ebook.pdf}`),
+      cover: getImageUrl(`/${ebook.cover}`),
     }));
 
     res.status(200).json({
@@ -308,207 +308,6 @@ export const searchEbooks = async (req: Request, res: Response) => {
 };
 
 
-// export const updateEbook = async (req: Request, res: Response) => {
-//   console.log(req.body);
-//   try {
-//     const { id } = req.params;
-//     const { title, date } = req.body;
-
-//     const ebook = await prisma.ebook.findUnique({
-//       where: { id },
-//     });
-
-//     if (!ebook) {
-//       res.status(404).json({
-//         success: false,
-//         message: "Portcust not found",
-//       });
-//       return;
-//     }
-
-//     let pdfFileUrl = ebook.pdf;
-//     let coverFileUrl = ebook.cover;
-
-//     const updateData: any = {};
-
-//     if (title) {
-//       updateData.title = title;
-//     }
-
-//     if (date) {
-//       updateData.date = new Date(date);
-//     }
-
-//     if (req.files) {
-//       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-//       const pdfFile = files["mp3"] ? files["pdf"][0] : undefined;
-//       const coverFile = files["cover"] ? files["cover"][0] : undefined;
-
-//       if (pdfFile && !pdfFile.mimetype.startsWith("audio/")) {
-//         res.status(400).json({
-//           success: false,
-//           message: "The file must be an MP3 audio file",
-//         });
-//         return;
-//       }
-
-//       if (coverFile && !coverFile.mimetype.startsWith("image/")) {
-//         res.status(400).json({
-//           success: false,
-//           message: "The file must be an image",
-//         });
-//         return;
-//       }
-
-//       if (pdfFile) {
-//         const oldPdfFilePath = path.join(
-//           __dirname,
-//           "../../../uploads",
-//           ebook.pdf
-//         );
-//         if (fs.existsSync(oldPdfFilePath)) {
-//           fs.unlinkSync(oldPdfFilePath);
-//         }
-//         pdfFileUrl = pdfFile.filename;
-//         updateData.mp3 = pdfFileUrl;
-//       }
-
-//       if (coverFile) {
-//         const oldCoverFilePath = path.join(
-//           __dirname,
-//           "../../../uploads",
-//           ebook.cover
-//         );
-//         if (fs.existsSync(oldCoverFilePath)) {
-//           fs.unlinkSync(oldCoverFilePath);
-//         }
-//         coverFileUrl = coverFile.filename;
-//         updateData.cover = coverFileUrl;
-//       }
-//     }
-
-//     const updatedPortcusts = await prisma.portcusts.update({
-//       where: { id },
-//       data: updateData,
-//     });
-
-//     const responseData = {
-//       ...updatedPortcusts,
-//       mp3: getImageUrl(`/uploads/${updatedPortcusts.mp3}`),
-//       cover: getImageUrl(`/uploads/${updatedPortcusts.cover}`),
-//     };
-
-//     res.status(200).json({
-//       success: true,
-//       message: "success...",
-//       data: responseData,
-//     });
-//   } catch (error) {
-//     console.error("Error updating Portcusts:", error);
-//     res.status(500).json({
-//       success: false,
-//       message:
-//         error instanceof Error ? error.message : "Failed to update Portcusts",
-//     });
-//   }
-// };
-
-
-// export const updateEbook = async (req: Request, res: Response) => {
-//   const { id } = req.params;
-//   const { title, date } = req.body;
-//   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-
-//   try {
-//     const ebook = await prisma.ebook.findUnique({
-//       where: { id },
-//     });
-
-//     if (!ebook) {
-//       // Clean up any uploaded files
-//       if (files?.pdf) await deleteImageIfNeeded(files.pdf[0]);
-//       if (files?.cover) await deleteImageIfNeeded(files.cover[0]);
-      
-//       res.status(404).json({
-//         success: false,
-//         message: "Ebook not found",
-//       });
-//       return;
-//     }
-
-//     const updateData: any = {};
-//     if (title) updateData.title = title;
-//     if (date) updateData.date = new Date(date);
-
-//     // Handle PDF file update
-//     if (files?.pdf) {
-//       const pdfFile = files.pdf[0];
-//       if (!pdfFile.mimetype.startsWith("application/pdf")) {
-//         await deleteImageIfNeeded(pdfFile);
-//         if (files?.cover) await deleteImageIfNeeded(files.cover[0]);
-        
-//         res.status(400).json({
-//           success: false,
-//           message: "The file must be a PDF file",
-//         });
-//         return;
-//       }
-//       // Delete old PDF from cloud storage
-//       await deleteImageIfNeeded({ filename: ebook.pdf });
-//       updateData.pdf = pdfFile.filename;
-//     }
-
-//     // Handle cover image update
-//     if (files?.cover) {
-//       const coverFile = files.cover[0];
-//       if (!coverFile.mimetype.startsWith("image/")) {
-//         await deleteImageIfNeeded(coverFile);
-//         if (files?.pdf) await deleteImageIfNeeded(files.pdf[0]);
-        
-//         res.status(400).json({
-//           success: false,
-//           message: "The file must be an image",
-//         });
-//         return;
-//       }
-//       // Delete old cover from cloud storage
-//       await deleteImageIfNeeded({ filename: ebook.cover });
-//       updateData.cover = coverFile.filename;
-//     }
-
-//     const updatedEbook = await prisma.ebook.update({
-//       where: { id },
-//       data: updateData,
-//     });
-
-//     const responseData = {
-//       ...updatedEbook,
-//       pdf: getImageUrl(`/${updatedEbook.pdf}`),
-//       cover: getImageUrl(`/${updatedEbook.cover}`),
-//     };
-
-//     res.status(200).json({
-//       success: true,
-//       message: "Ebook updated successfully",
-//       data: responseData,
-//     });
-//   } catch (error) {
-//     // Clean up uploaded files in case of error
-//     if (files?.pdf) await deleteImageIfNeeded(files.pdf[0]);
-//     if (files?.cover) await deleteImageIfNeeded(files.cover[0]);
-
-//     res.status(500).json({
-//       success: false,
-//       message: "Failed to update ebook",
-//       error: error instanceof Error ? error.message : "Unknown error",
-//     });
-//   }
-// };
-
-
-// deleteEbook
-
-
 export const updateEbook = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { title, date } = req.body;
@@ -590,16 +389,13 @@ export const updateEbook = async (req: Request, res: Response) => {
   }
 };
 
-
-
-
-
 export const deleteEbook = async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
     const ebook = await prisma.ebook.findUnique({
       where: { id },
     });
+
     if (!ebook) {
       res.status(404).json({
         success: false,
@@ -607,17 +403,10 @@ export const deleteEbook = async (req: Request, res: Response) => {
       });
       return;
     }
-    const pdfFilePath = path.join(__dirname, "../../../uploads", ebook.pdf);
-    const coverFilePath = path.join(__dirname, "../../../uploads", ebook.cover);
 
-    // Delete PDF file if exists
-    if (fs.existsSync(pdfFilePath)) {
-      fs.unlinkSync(pdfFilePath);
-    }
-    // Delete cover image if exists
-    if (fs.existsSync(coverFilePath)) {
-      fs.unlinkSync(coverFilePath);
-    }
+    // Delete files from cloud storage
+    await deleteImageIfNeeded({ filename: ebook.pdf });
+    await deleteImageIfNeeded({ filename: ebook.cover });
 
     // Delete ebook from database
     await prisma.ebook.delete({
