@@ -1,10 +1,8 @@
-
+config/gcs-key.json
 node_modules
 uploads
 dist
 *.log
 prisma/migrations
-__test__
-worke......txt
 roktalap-backend
- 
+.env
