@@ -189,75 +189,49 @@ export const updatePortcusts = async (req: Request, res: Response) => {
     });
 
     if (!portcust) {
-      res.status(404).json({
+      return res.status(404).json({
         success: false,
         message: "Portcust not found",
       });
-      return;
     }
-
-    let mp3FileUrl = portcust.mp3;
-    let coverFileUrl = portcust.cover;
 
     const updateData: any = {};
 
-    if (title) {
-      updateData.title = title;
-    }
-
-    if (hostName) {
-      updateData.hostName = hostName;
-    }
-
-    if (date) {
-      updateData.date = new Date(date);
-    }
+    if (title) updateData.title = title;
+    if (hostName) updateData.hostName = hostName;
+    if (date) updateData.date = new Date(date);
 
     if (req.files) {
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-      const mp3File = files["mp3"] ? files["mp3"][0] : undefined;
-      const coverFile = files["cover"] ? files["cover"][0] : undefined;
-
-      if (mp3File && !mp3File.mimetype.startsWith("audio/")) {
-        res.status(400).json({
-          success: false,
-          message: "The file must be an MP3 audio file",
-        });
-        return;
-      }
-
-      if (coverFile && !coverFile.mimetype.startsWith("image/")) {
-        res.status(400).json({
-          success: false,
-          message: "The file must be an image",
-        });
-        return;
-      }
+      const mp3File = files["mp3"]?.[0];
+      const coverFile = files["cover"]?.[0];
 
       if (mp3File) {
-        const oldMp3FilePath = path.join(
-          __dirname,
-          "../../../uploads",
-          portcust.mp3
-        );
-        if (fs.existsSync(oldMp3FilePath)) {
-          fs.unlinkSync(oldMp3FilePath);
+        if (!mp3File.mimetype.startsWith("audio/")) {
+          return res.status(400).json({
+            success: false,
+            message: "The file must be an MP3 audio file",
+          });
         }
-        mp3FileUrl = mp3File.filename;
-        updateData.mp3 = mp3FileUrl;
+
+        // Delete old file from GCS
+        await deleteImageIfNeeded({ filename: portcust.mp3 });
+
+        updateData.mp3 = mp3File.filename;
       }
 
       if (coverFile) {
-        const oldCoverFilePath = path.join(
-          __dirname,
-          "../../../uploads",
-          portcust.cover
-        );
-        if (fs.existsSync(oldCoverFilePath)) {
-          fs.unlinkSync(oldCoverFilePath);
+        if (!coverFile.mimetype.startsWith("image/")) {
+          return res.status(400).json({
+            success: false,
+            message: "The file must be an image",
+          });
         }
-        coverFileUrl = coverFile.filename;
-        updateData.cover = coverFileUrl;
+
+        // Delete old file from GCS
+        await deleteImageIfNeeded({ filename: portcust.cover });
+
+        updateData.cover = coverFile.filename;
       }
     }
 
@@ -268,13 +242,13 @@ export const updatePortcusts = async (req: Request, res: Response) => {
 
     const responseData = {
       ...updatedPortcusts,
-      mp3: getImageUrl(`/uploads/${updatedPortcusts.mp3}`),
-      cover: getImageUrl(`/uploads/${updatedPortcusts.cover}`),
+      mp3: getImageUrl(`/${updatedPortcusts.mp3}`),
+      cover: getImageUrl(`/${updatedPortcusts.cover}`),
     };
 
     res.status(200).json({
       success: true,
-      message: "success...",
+      message: "Portcust updated successfully",
       data: responseData,
     });
   } catch (error) {
@@ -287,6 +261,7 @@ export const updatePortcusts = async (req: Request, res: Response) => {
   }
 };
 
+
 export const deletePortcusts = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -296,27 +271,17 @@ export const deletePortcusts = async (req: Request, res: Response) => {
     });
 
     if (!portcust) {
-      res.status(404).json({
+      return res.status(404).json({
         success: false,
         message: "Portcust not found",
       });
-      return;
     }
 
-    const mp3FilePath = path.join(__dirname, "../../../uploads", portcust.mp3);
-    const coverFilePath = path.join(
-      __dirname,
-      "../../../uploads",
-      portcust.cover
-    );
-
-    if (fs.existsSync(mp3FilePath)) {
-      fs.unlinkSync(mp3FilePath);
-    }
-
-    if (fs.existsSync(coverFilePath)) {
-      fs.unlinkSync(coverFilePath);
-    }
+    // Delete files from GCS
+    await Promise.all([
+      deleteImageIfNeeded({ filename: portcust.mp3 }),
+      deleteImageIfNeeded({ filename: portcust.cover }),
+    ]);
 
     await prisma.portcusts.delete({
       where: { id },
