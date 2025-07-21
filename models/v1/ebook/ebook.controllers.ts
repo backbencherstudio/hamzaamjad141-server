@@ -276,8 +276,8 @@ export const searchEbooks = async (req: Request, res: Response) => {
 
     const ebooksWithUrls = ebooks.map(ebook => ({
       ...ebook,
-      pdf: getImageUrl(`/uploads/${ebook.pdf}`),
-      cover: getImageUrl(`/uploads/${ebook.cover}`)
+      pdf: getImageUrl(`/${ebook.pdf}`),
+      cover: getImageUrl(`/${ebook.cover}`)
     }));
 
     res.status(200).json({

@@ -3,72 +3,85 @@ import { PrismaClient } from "@prisma/client";
 import path from "path";
 import { getImageUrl } from "../../../utils/base_utl";
 import fs from "fs";
+import { deleteImageIfNeeded } from "../../../config/multer.config";
 
 const prisma = new PrismaClient();
 
 export const createPortcusts = async (req: Request, res: Response) => {
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+  const cleanupFiles = async () => {
+    const tasks = [];
+    if (files?.mp3) tasks.push(deleteImageIfNeeded(files.mp3[0]));
+    if (files?.cover) tasks.push(deleteImageIfNeeded(files.cover[0]));
+    await Promise.all(tasks);
+  };
+
   try {
     const { title, hostName, date } = req.body;
 
+    // Validate required fields
     const missingField = ["title", "hostName", "date"].find(
       (field) => !req.body[field]
     );
 
     if (missingField) {
-      res.status(400).json({
+      await cleanupFiles();
+      return res.status(400).json({
         success: false,
         message: `${missingField} is required!`,
       });
-      return;
     }
 
+    // Validate uploaded files
     const missingFile = ["mp3", "cover"].find(
-      (fileType) => !req.files[fileType]
+      (fileType) => !files[fileType]
     );
 
     if (missingFile) {
-      res.status(400).json({
+      await cleanupFiles();
+      return res.status(400).json({
         success: false,
         message: `${missingFile} file is required!`,
       });
-      return;
     }
-
-    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
     const mp3File = files["mp3"][0];
     const coverFile = files["cover"][0];
 
+    // Validate file types
     if (!mp3File.mimetype.startsWith("audio/")) {
-      res.status(400).json({
+      await cleanupFiles();
+      return res.status(400).json({
         success: false,
         message: "The first file must be an audio file (MP3)",
       });
-      return;
     }
 
     if (!coverFile.mimetype.startsWith("image/")) {
-      res.status(400).json({
+      await cleanupFiles();
+      return res.status(400).json({
         success: false,
         message: "The second file must be an image file",
       });
-      return;
     }
 
+    // Create record in database
     const portcusts = await prisma.portcusts.create({
       data: {
         title,
         hostName,
         date: new Date(date),
-        mp3: mp3File.filename,
-        cover: coverFile.filename,
+        mp3: mp3File.filename, // This is the GCS filename
+        cover: coverFile.filename, // This is the GCS filename
       },
     });
 
+    // Generate public URLs for the files
     const responseData = {
       ...portcusts,
-      mp3: getImageUrl(`/uploads/${mp3File.filename}`),
-      cover: getImageUrl(`/uploads/${coverFile.filename}`),
+      mp3: getImageUrl(`/${mp3File.filename}`),
+      cover: getImageUrl(`/${coverFile.filename}`),
     };
 
     res.status(201).json({
@@ -77,23 +90,8 @@ export const createPortcusts = async (req: Request, res: Response) => {
       data: responseData,
     });
   } catch (error) {
+    await cleanupFiles();
     console.error("Error creating Portcusts:", error);
-    if (req.files) {
-      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-      Object.values(files).forEach((fileArray) => {
-        fileArray.forEach((file) => {
-          const filePath = path.join(
-            __dirname,
-            "../../../uploads",
-            file.filename
-          );
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
-        });
-      });
-    }
-
     res.status(500).json({
       success: false,
       message: "Failed to create Portcusts",

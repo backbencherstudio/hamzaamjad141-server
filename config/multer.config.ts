@@ -78,6 +78,27 @@ export const downloadAndSaveImage = async (imageUrl: string): Promise<string> =>
     throw new Error("Failed to save image to cloud storage");
   }
 };
+
+
+// Delete file from Google Cloud Storage
+export const deleteFileFromGCS = async (file: Express.Multer.File | { filename: string }) => {
+  try {
+    const storage = new Storage({
+      projectId: process.env.GCLOUD_PROJECT,
+      keyFilename: path.join(__dirname, 'gcs-key.json'),
+    });
+
+    const bucket = storage.bucket(process.env.GCS_BUCKET);
+    const gcsFile = bucket.file(file.filename);
+    
+    await gcsFile.delete();
+  } catch (error) {
+    console.error('Error deleting file from GCS:', error);
+  }
+};
+
+
+
 // import multer from 'multer';
 // import path from 'path';
 // import fs from 'fs';
