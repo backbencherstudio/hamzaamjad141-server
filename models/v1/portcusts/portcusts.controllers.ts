@@ -152,8 +152,8 @@ export const getAllPortcusts = async (req: Request, res: Response) => {
  
     const portcustsWithUrls = portcusts.map((podcast) => ({
       ...podcast,
-      mp3: getImageUrl(`/uploads/${podcast.mp3}`),
-      cover: getImageUrl(`/uploads/${podcast.cover}`),
+      mp3: getImageUrl(`/${podcast.mp3}`),
+      cover: getImageUrl(`/${podcast.cover}`),
     }));
 
     res.status(200).json({
