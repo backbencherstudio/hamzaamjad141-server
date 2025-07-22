@@ -20,7 +20,7 @@ const router = express.Router();
   createPortcusts
 );
 
-router.get("/all", getAllPortcusts);
+router.get("/all",  verifyUser('ANY'), getAllPortcusts);
 router.get("/get-all-portcusts", verifyUser('USER'), premiumGuard, getAllPortcusts);
 
 router.patch(

@@ -1,17 +1,15 @@
 import { Request, Response } from "express";
-import { Licese, Prisma } from "@prisma/client";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import fs from "fs";
-import path from "path";
-import { Storage } from '@google-cloud/storage';
-import { baseUrl, getImageUrl } from "../../../utils/base_utl";
+
+
+import { getImageUrl } from "../../../utils/base_utl";
 import {
   generateOTP,
   sendForgotPasswordOTP,
 } from "../../../utils/emailService.utils";
-import { v4 as uuidv4 } from "uuid";
+
 import {
   deleteImageIfNeeded,
   downloadAndSaveImage,
@@ -777,6 +775,7 @@ export const facebookLogin = async (req: Request, res: Response) => {
 // };
 
 export const updateUser = async (req: any, res: Response) => {
+  console.log(req.body)
   const userId = req.user?.userId;
   const { name, license, oldPassword, newPassword } = req.body;
   const newImage = req.file;
