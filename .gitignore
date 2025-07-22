@@ -4,5 +4,6 @@ uploads
 dist
 *.log
 prisma/migrations
-roktalap-backend
 .env
+__test__
+
