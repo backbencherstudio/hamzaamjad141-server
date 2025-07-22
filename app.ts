@@ -24,14 +24,13 @@ app.use(
       "http://127.0.0.1:16439/a.html",
       "http://127.0.0.1:16439",
       "http://localhost:5173",
-      "https://api.leftseatlessons.com",
-      "http://api.leftseatlessons.com",
-      "https://www.api.leftseatlessons.com",
+      "https://dash.leftseatlessons.com",
+      "http://dash.leftseatlessons.com",
+      "https://www.dash.leftseatlessons.com",
       "http://localhost:3001",
       "http://localhost:3002",
       "http://192.168.4.30:3001",
       "http://192.168.4.30:3002",
-      
       "https://hamzaamjad-dashboard.vercel.app"
 
     ]
