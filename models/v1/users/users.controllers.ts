@@ -8,6 +8,7 @@ import { getImageUrl } from "../../../utils/base_utl";
 import {
   generateOTP,
   otpVerificationEmail,
+  recentOtp,
   sendForgotPasswordOTP,
 } from "../../../utils/emailService.utils";
 
@@ -532,7 +533,7 @@ export const resentOtp = async (req: Request, res: Response) => {
       },
     });
 
-    sendForgotPasswordOTP(email, otp);
+    recentOtp(email, otp);
 
     res.status(200).json({
       success: true,
