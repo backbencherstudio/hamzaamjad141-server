@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import {
   emailForgotPasswordOTP,
   instructorConformationsTamplate,
+  otpVerificationEmailTamplate,
 } from "./email_message";
 
 dotenv.config();
@@ -27,7 +28,7 @@ export const sendEmail = async (
   });
 
   const mailOptions = {
-    from: `"hamzaamjad141" <nasir@gmail.com>`,
+    from: `"LEFT SEAT LESSONS" <nasir@gmail.com>`,
     to,
     subject,
     html: htmlContent,
@@ -35,6 +36,18 @@ export const sendEmail = async (
 
   await mailTransporter.sendMail(mailOptions);
 };
+
+
+export const otpVerificationEmail = async (
+  email: string,
+  otp: string
+): Promise<void> => {
+
+  const htmlContent = otpVerificationEmailTamplate(otp);
+  await sendEmail(email, "OTP Verification Email", htmlContent);
+};
+
+
 
 export const sendForgotPasswordOTP = async (
   email: string,
