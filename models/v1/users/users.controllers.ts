@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import { getImageUrl } from "../../../utils/base_utl";
 import {
   generateOTP,
+  otpVerificationEmail,
   sendForgotPasswordOTP,
 } from "../../../utils/emailService.utils";
 
@@ -56,7 +57,7 @@ export const createUser = async (req: Request, res: Response) => {
       },
     });
 
-    sendForgotPasswordOTP(email, otp);
+    otpVerificationEmail(email, otp);
 
     res.status(200).json({
       success: true,
