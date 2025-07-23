@@ -1,3 +1,7 @@
+import { baseUrl } from "./base_utl";
+
+
+
 export const otpVerificationEmailTamplate = (OTP: string): string => {
   return `
     <!DOCTYPE html>
@@ -697,12 +701,22 @@ export const recentOtpVerificationEmail = (OTP: string): string => {
   `;
 };
 
+ 
 
 export const instructorConformationsTamplate = (
   email: string,
   studentName: string,
-  logDetails: any
+  logDetails: any,
+ 
 ): string => {
+  // Helper function to format values
+  const formatValue = (value: any) => {
+    if (value === null || value === undefined || value === '' || value === 0) {
+      return 'Not specified';
+    }
+    return value.toString();
+  };
+
   return `
     <!DOCTYPE html>
     <html>
@@ -711,93 +725,465 @@ export const instructorConformationsTamplate = (
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>New Flight Log Submission</title>
       <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #2c3e50; color: white; padding: 20px; text-align: center; }
-        .content { padding: 20px; background-color: #f9f9f9; }
-        .footer { margin-top: 20px; padding: 10px; text-align: center; font-size: 12px; color: #777; }
-        .log-details { margin: 20px 0; }
-        .log-item { margin-bottom: 10px; }
-        .log-label { font-weight: bold; display: inline-block; width: 150px; }
+        /* Reset styles */
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+          line-height: 1.6;
+          color: #1f2937;
+          background-color: #f8fafc;
+          margin: 0;
+          padding: 0;
+        }
+        
+        .email-container {
+          max-width: 600px;
+          margin: 0 auto;
+          background-color: #ffffff;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Header */
+        .header {
+          background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+          color: white;
+          padding: 40px 30px;
+          text-align: center;
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .header::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+          opacity: 0.3;
+        }
+        
+        .header-content {
+          position: relative;
+          z-index: 1;
+        }
+        
+        .logo {
+          width: 80px;
+          height: 80px;
+          margin: 0 auto 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .logo img {
+          max-width: 100%;
+          height: auto;
+        }
+        
+        .header h1 {
+          font-size: 28px;
+          font-weight: 700;
+          margin-bottom: 8px;
+          letter-spacing: -0.5px;
+        }
+        
+        .header p {
+          font-size: 16px;
+          opacity: 0.9;
+          margin: 0;
+        }
+        
+        /* Content */
+        .content {
+          padding: 40px 30px;
+        }
+        
+        .greeting {
+          font-size: 18px;
+          color: #1f2937;
+          margin-bottom: 24px;
+        }
+        
+        .notification-card {
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+          border: 1px solid #0ea5e9;
+          border-radius: 12px;
+          padding: 24px;
+          margin: 24px 0;
+          position: relative;
+        }
+        
+        .notification-card::before {
+          content: '✈️';
+          position: absolute;
+          top: -15px;
+          left: 24px;
+          background: #0ea5e9;
+          color: white;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 16px;
+        }
+        
+        .notification-text {
+          font-size: 16px;
+          color: #0c4a6e;
+          font-weight: 600;
+          margin-top: 8px;
+        }
+        
+        .student-name {
+          color: #1e40af;
+          font-weight: 700;
+        }
+        
+        /* Flight Details Section */
+        .details-section {
+          margin: 32px 0;
+        }
+        
+        .section-title {
+          font-size: 20px;
+          font-weight: 700;
+          color: #1f2937;
+          margin-bottom: 20px;
+          padding-bottom: 8px;
+          border-bottom: 2px solid #e5e7eb;
+          position: relative;
+        }
+        
+        .section-title::before {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 0;
+          width: 60px;
+          height: 2px;
+          background: linear-gradient(135deg, #3b82f6, #1e40af);
+        }
+        
+        .details-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          margin-bottom: 20px;
+        }
+        
+        .detail-item {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          padding: 16px;
+          transition: all 0.2s ease;
+        }
+        
+        .detail-item:hover {
+          background: #f1f5f9;
+          border-color: #cbd5e1;
+          transform: translateY(-1px);
+        }
+        
+        .detail-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: #6b7280;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 4px;
+        }
+        
+        .detail-value {
+          font-size: 14px;
+          font-weight: 600;
+          color: #1f2937;
+        }
+        
+        .detail-value.highlight {
+          color: #1e40af;
+        }
+        
+        /* Single column items */
+        .detail-item.full-width {
+          grid-column: 1 / -1;
+        }
+        
+        /* Action Section */
+        .action-section {
+          text-align: center;
+          margin: 40px 0;
+          padding: 32px;
+          background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+          border-radius: 12px;
+          border: 1px solid #f59e0b;
+        }
+        
+        .action-text {
+          font-size: 16px;
+          color: #92400e;
+          margin-bottom: 24px;
+          font-weight: 500;
+        }
+        
+        .review-button {
+          display: inline-block;
+          background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+          color: white !important;
+          text-decoration: none;
+          padding: 16px 32px;
+          border-radius: 12px;
+          font-weight: 700;
+          font-size: 16px;
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+          transition: all 0.3s ease;
+          border: none;
+          cursor: pointer;
+        }
+        
+        .review-button:hover {
+          background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+          box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+          transform: translateY(-2px);
+        }
+        
+        /* Status Badge */
+        .status-badge {
+          display: inline-block;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+          padding: 6px 12px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        
+        /* Best Regards Section */
+        .regards-section {
+          margin-top: 32px;
+          padding-top: 24px;
+          border-top: 1px solid #e5e7eb;
+        }
+        
+        .regards-text {
+          color: #6b7280;
+          font-size: 16px;
+          line-height: 1.5;
+        }
+        
+        .team-name {
+          color: #1f2937;
+          font-weight: 600;
+        }
+        
+        /* Simple Footer */
+        .footer {
+          background: #f8fafc;
+          padding: 24px 30px;
+          text-align: center;
+          border-top: 1px solid #e5e7eb;
+        }
+        
+        .footer-content {
+          max-width: 500px;
+          margin: 0 auto;
+        }
+        
+        .footer-text {
+          font-size: 14px;
+          color: #6b7280;
+          margin-bottom: 8px;
+        }
+        
+        .footer-email {
+          font-weight: 600;
+          color: #1e40af;
+          text-decoration: none;
+        }
+        
+        .footer-email:hover {
+          text-decoration: underline;
+        }
+        
+        .footer-divider {
+          height: 1px;
+          background: #e5e7eb;
+          margin: 16px 0;
+        }
+        
+        .copyright {
+          font-size: 12px;
+          color: #9ca3af;
+        }
+        
+        /* Responsive */
+        @media only screen and (max-width: 600px) {
+          .email-container {
+            margin: 0;
+            box-shadow: none;
+          }
+          
+          .header, .content, .footer {
+            padding-left: 20px;
+            padding-right: 20px;
+          }
+          
+          .details-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+          
+          .header h1 {
+            font-size: 24px;
+          }
+          
+          .review-button {
+            padding: 14px 24px;
+            font-size: 14px;
+          }
+          
+          .action-section {
+            padding: 24px 20px;
+          }
+        }
+        
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+          .detail-item {
+            background: #f1f5f9;
+          }
+        }
       </style>
     </head>
     <body>
-      <div class="container">
+      <div class="email-container">
+        <!-- Header -->
         <div class="header">
-          <h1>New Flight Log Submission</h1>
+          <div class="header-content">
+            <div class="logo">
+              <img src="https://i.ibb.co/PnpnPd5/hamza.png" alt="Flight Training Logo" width="80" height="80">
+            </div>
+            <h1>Flight Log Submission</h1>
+            <p>New entry requires your review</p>
+          </div>
         </div>
         
+        <!-- Content -->
         <div class="content">
-          <p>Dear Instructor,</p>
-          
-          <p>Your student <strong>${studentName}</strong> has submitted a new flight log entry.</p>
-          
-          <div class="log-details">
-            <h3>Flight Details:</h3>
-            <div class="log-item"><span class="log-label">From:</span> ${
-              logDetails.from
-            }</div>
-            <div class="log-item"><span class="log-label">To:</span> ${
-              logDetails.to
-            }</div>
-            <div class="log-item"><span class="log-label">Aircraft Type:</span> ${
-              logDetails.aircrafttype
-            }</div>
-            <div class="log-item"><span class="log-label">Tail Number:</span> ${
-              logDetails.tailNumber
-            }</div>
-            <div class="log-item"><span class="log-label">Flight Time:</span> ${
-              logDetails.flightTime
-            } minutes</div>
-            <div class="log-item"><span class="log-label">Day Time:</span> ${
-              logDetails.daytime
-            }</div>
-            <div class="log-item"><span class="log-label">Night Time:</span> ${
-              logDetails.nightime
-            }</div>
-            <div class="log-item"><span class="log-label">IFR Time:</span> ${
-              logDetails.ifrtime
-            }</div>
-            <div class="log-item"><span class="log-label">Cross Country:</span> ${
-              logDetails.crossCountry
-            }</div>
-            <div class="log-item"><span class="log-label">Takeoffs:</span> ${
-              logDetails.takeoffs
-            }</div>
-            <div class="log-item"><span class="log-label">Landings:</span> ${
-              logDetails.landings
-            }</div>
-            <div class="log-item"><span class="log-label">Date:</span> ${new Date(
-              logDetails.createdAt
-            ).toLocaleString()}</div>
+          <div class="greeting">
+            Dear Instructor,
           </div>
           
-          <p>Please review this log entry at your earliest convenience.</p>
+          <div class="notification-card">
+            <div class="notification-text">
+              Your student <span class="student-name">${studentName}</span> has submitted a new flight log entry that requires your review and approval.
+            </div>
+          </div>
           
-          <!-- Action buttons -->
-          <p>Choose an action:</p>
-          <form action="https://hamzaamjad.signalsmind.com/addlog/addlog-approve/${
-            logDetails.id
-          }" method="POST">
-            <button type="submit" class="btn btn-approve">Approve</button>
-          </form>
-          <form action="https://hamzaamjad.signalsmind.com/addlog/addlog-reject/${
-            logDetails.id
-          }" method="POST">
-            <button type="submit" class="btn btn-reject">Reject</button>
-          </form>
+          <!-- Flight Details -->
+          <div class="details-section">
+            <h3 class="section-title">Flight Details</h3>
+            
+            <div class="details-grid">
+              <div class="detail-item">
+                <div class="detail-label">From</div>
+                <div class="detail-value highlight">${formatValue(logDetails.from)}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">To</div>
+                <div class="detail-value highlight">${formatValue(logDetails.to)}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">Aircraft Type</div>
+                <div class="detail-value">${formatValue(logDetails.aircrafttype)}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">Tail Number</div>
+                <div class="detail-value">${formatValue(logDetails.tailNumber)}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">Flight Time</div>
+                <div class="detail-value">${formatValue(logDetails.flightTime)} ${logDetails.flightTime && logDetails.flightTime > 0 ? 'hours' : ''}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">PIC Time</div>
+                <div class="detail-value">${formatValue(logDetails.pictime)} ${logDetails.pictime && logDetails.pictime > 0 ? 'hours' : ''}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">Day Time</div>
+                <div class="detail-value">${formatValue(logDetails.daytime)} ${logDetails.daytime && logDetails.daytime > 0 ? 'hours' : ''}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">Night Time</div>
+                <div class="detail-value">${formatValue(logDetails.nightime)} ${logDetails.nightime && logDetails.nightime > 0 ? 'hours' : ''}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">IFR Time</div>
+                <div class="detail-value">${formatValue(logDetails.ifrtime)} ${logDetails.ifrtime && logDetails.ifrtime > 0 ? 'hours' : ''}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">Cross Country</div>
+                <div class="detail-value">${formatValue(logDetails.crossCountry)} ${logDetails.crossCountry && logDetails.crossCountry > 0 ? 'nm' : ''}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">Takeoffs</div>
+                <div class="detail-value">${formatValue(logDetails.takeoffs)}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">Landings</div>
+                <div class="detail-value">${formatValue(logDetails.landings)}</div>
+              </div>
+              
+              <div class="detail-item full-width">
+                <div class="detail-label">Submission Date</div>
+                <div class="detail-value">${new Date(logDetails.createdAt).toLocaleString()}</div>
+              </div>
+ 
+            </div>
+          </div>
           
-          <p>Best regards,</p>
-          <p>The Flight Training Team</p>
+          <!-- Action Section -->
+          
+            <a href="${baseUrl}/addlog/review-log/${logDetails.id}" class="review-button">
+              Review Log Entry →
+            </a>
+         
         </div>
         
+        <!-- Simple Footer -->
         <div class="footer">
-          <p>This email was sent to ${email}</p>
-          <p>© ${new Date().getFullYear()} Flight Training System. All rights reserved.</p>
+          <div class="footer-content">
+ 
+            <div class="copyright">
+              © ${new Date().getFullYear()} Flight Training System. All rights reserved.
+            </div>
+          </div>
         </div>
       </div>
     </body>
     </html>
   `;
 };
-

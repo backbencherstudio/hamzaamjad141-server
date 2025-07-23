@@ -1,7 +1,0 @@
-def simulate_typing(file, code_line, delay_range=(0.1, 0.5)):
-
-    # Simulate typing each chadef simulate_typing(file, code_line, delay_range=(0.1, 0.5)):
-
-    # Simulate typing each chdef simulate_typing(file, code_line, delay_range=(0.1, 0.5)):
-
-    # Simulate typing each cha
