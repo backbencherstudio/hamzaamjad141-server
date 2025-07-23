@@ -6,4 +6,4 @@ dist
 prisma/migrations
 .env
 __test__
-
+a.py
