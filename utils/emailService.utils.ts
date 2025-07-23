@@ -83,26 +83,33 @@ export const verifyOTP = (email: string, userOTP: string) => {
   sendEmail(email, "OTP Code for Password Reset", htmlContent);
 };
 
+
+
+
 export const instructorConformations = async (
   instructorEmail: string,
   studentName: string,
   logDetails: any
-) => {
-console.log(instructorEmail)
-console.log(studentName)
-  const htmlContent = instructorConformationsTamplate(
-    instructorEmail,
-    studentName,
-    logDetails
-  );
-
-  console.log(instructorEmail)
-  await sendEmail(
-    instructorEmail,
-    `New Flight Log Submission from ${studentName}`,
-    htmlContent
-  );
-  
+): Promise<void> => {
+  try {    
+    console.log(`Sending flight log notification to instructor: ${instructorEmail}`);
+    const htmlContent = instructorConformationsTamplate(
+      instructorEmail,
+      studentName,
+      logDetails,
+    );
+    
+    await sendEmail(
+      instructorEmail,
+      `New Flight Log Submission from ${studentName}`,
+      htmlContent
+    );
+    
+    console.log(`Email notification successfully sent to ${instructorEmail}`);
+  } catch (error) {
+    console.error(`Failed to send instructor confirmation email to ${instructorEmail}:`, error);
+    throw new Error(`Failed to send instructor confirmation: ${error.message}`);
+  }
 };
 
  
