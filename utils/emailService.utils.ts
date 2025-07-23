@@ -5,6 +5,7 @@ import {
   emailForgotPasswordOTP,
   instructorConformationsTamplate,
   otpVerificationEmailTamplate,
+  recentOtpVerificationEmail,
 } from "./email_message";
 
 dotenv.config();
@@ -37,7 +38,7 @@ export const sendEmail = async (
   await mailTransporter.sendMail(mailOptions);
 };
 
-
+//register 
 export const otpVerificationEmail = async (
   email: string,
   otp: string
@@ -47,20 +48,38 @@ export const otpVerificationEmail = async (
   await sendEmail(email, "OTP Verification Email", htmlContent);
 };
 
-
-
+//foirgot password
 export const sendForgotPasswordOTP = async (
   email: string,
   otp: string
 ): Promise<void> => {
-
-
-  const htmlContent = emailForgotPasswordOTP(email, otp);
-  await sendEmail(email, "OTP Code for Password Reset", htmlContent);
+  const htmlContent = emailForgotPasswordOTP(otp);
+  await sendEmail(email, "OTP for forgot Password", htmlContent);
 };
 
+
+
+//recent otp
+export const recentOtp = async (
+  email: string,
+  otp: string
+): Promise<void> => {
+  const htmlContent = recentOtpVerificationEmail(otp);
+  await sendEmail(email, "OTP for forgot Password", htmlContent);
+};
+
+
+
+
+
+
+
+
+
+
+
 export const verifyOTP = (email: string, userOTP: string) => {
-  const htmlContent = emailForgotPasswordOTP(email, userOTP);
+  const htmlContent = emailForgotPasswordOTP(userOTP);
   sendEmail(email, "OTP Code for Password Reset", htmlContent);
 };
 
