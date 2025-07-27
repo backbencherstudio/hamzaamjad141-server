@@ -1066,3 +1066,19 @@ export const verifyChangeEmail = async (req: any, res: Response) => {
     res.status(500).json({ message: "Something went wrong." });
   }
 };
+
+
+
+export const getalluser = async (req: any, res: Response) => {
+  try {
+    const users = await prisma.user.findMany();
+    res.status(200).json({
+      success: true,
+      message: "Users retrieved successfully.",
+      users,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Something went wrong." });
+  }
+};
