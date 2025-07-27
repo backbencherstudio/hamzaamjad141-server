@@ -142,15 +142,15 @@
         // Configuration
         const API_BASE_URL = 'http://localhost:3000'; // Change to your server URL
         const SUBSCRIPTION_ENDPOINT = `${API_BASE_URL}/subscription`;
-        let authToken = '';
+        let authToken = localStorage.getItem('authToken') || '';
         let stripe;
         let cardElement;
-        let userInfo = null;
+        let userInfo = JSON.parse(localStorage.getItem('userInfo')) || null;
 
         // Initialize Stripe
         function initStripe() {
             // Replace with your Stripe publishable key
-            stripe = Stripe('pk_test_your_publishable_key');
+            stripe = Stripe('pk_test_51QuTWKClJBhr3sfisvZF8NprucrbSftJa16ma4XVStJG04nQ5i4tNL00XkBbfC0UFzY8AvnFhzt8wTk1CbXj57o500ncgA4fQl');
             const elements = stripe.elements();
             cardElement = elements.create('card');
             cardElement.mount('#card-element');
@@ -169,6 +169,22 @@
         document.addEventListener('DOMContentLoaded', function() {
             initStripe();
             setupEventListeners();
+            
+            // Check if user is already logged in
+            if (authToken) {
+                const authStatus = document.getElementById('auth-status');
+                authStatus.textContent = 'Already logged in';
+                authStatus.className = 'success';
+                
+                // Enable buttons
+                document.getElementById('subscribe-btn').disabled = false;
+                document.getElementById('promo-subscribe-btn').disabled = false;
+                document.getElementById('check-status-btn').disabled = false;
+                document.getElementById('cancel-btn').disabled = false;
+                
+                // Check initial subscription status
+                checkSubscriptionStatus();
+            }
         });
 
         // Set up event listeners
@@ -207,6 +223,11 @@
                 if (data.success && data.token) {
                     authToken = data.token;
                     userInfo = data.user;
+                    
+                    // Save to localStorage
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('userInfo', JSON.stringify(userInfo));
+                    
                     authStatus.textContent = 'Logged in successfully';
                     authStatus.className = 'success';
                     
@@ -253,7 +274,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
+                        'Authorization': `${authToken}`
                     },
                     body: JSON.stringify({
                         paymentMethodId: result.paymentMethod.id
@@ -297,7 +318,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
+                        'Authorization': `${authToken}`
                     },
                     body: JSON.stringify({ promoCode })
                 });
@@ -330,7 +351,7 @@
                 const response = await fetch(`${API_BASE_URL}/users/me`, {
                     method: 'GET',
                     headers: {
-                        'Authorization': `Bearer ${authToken}`
+                        'Authorization': `${authToken}`
                     }
                 });
 
@@ -365,7 +386,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
+                        'Authorization': `${authToken}`
                     }
                 });
 
@@ -390,6 +411,23 @@
         // Display API response
         function displayResponse(data) {
             document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+        }
+        // Add this after setupEventListeners function
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userInfo');
+            authToken = '';
+            userInfo = null;
+            
+            const authStatus = document.getElementById('auth-status');
+            authStatus.textContent = 'Logged out';
+            authStatus.className = '';
+            
+            // Disable buttons
+            document.getElementById('subscribe-btn').disabled = true;
+            document.getElementById('promo-subscribe-btn').disabled = true;
+            document.getElementById('check-status-btn').disabled = true;
+            document.getElementById('cancel-btn').disabled = true;
         }
     </script>
 </body>

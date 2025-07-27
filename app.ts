@@ -1,18 +1,54 @@
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import morgan from "morgan";
-
 import path from "path";
- 
+import cron from "node-cron";
 import v1 from "./models/v1/index";
-
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+// Add this function to check expired subscriptions
+// async function checkExpiredSubscriptions() {
+//   try {
+//     console.log("Checking for expired subscriptions...");
+    
+//     // Find all active subscriptions that have expired
+//     const expiredSubscriptions = await prisma.subscription.findMany({
+//       where: {
+//         status: "ACTIVE",
+//         endDate: { lte: new Date() }
+//       }
+//     });
+    
+//     console.log(`Found ${expiredSubscriptions.length} expired subscriptions`);
+    
+//     // Update each subscription and user
+//     for (const subscription of expiredSubscriptions) {
+//       await prisma.subscription.update({
+//         where: { id: subscription.id },
+//         data: { status: "DEACTIVE" }
+//       });
+      
+//       await prisma.user.update({
+//         where: { id: subscription.userId },
+//         data: { premium: false }
+//       });
+      
+//       console.log(`Updated subscription ${subscription.id} for user ${subscription.userId}`);
+//     }
+//   } catch (error) {
+//     console.error("Error checking expired subscriptions:", error);
+//   }
+// }
+
+// // Schedule the task to run daily at midnight
+// cron.schedule("0 0 * * *", checkExpiredSubscriptions);
+
+// // Run once at startup to handle any subscriptions that expired while the server was down
+// checkExpiredSubscriptions();
 
 const app = express();
-
 
 app.use(
   cors({
