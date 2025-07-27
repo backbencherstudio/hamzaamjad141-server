@@ -31,7 +31,8 @@ app.use(
       "http://localhost:3002",
       "http://192.168.4.30:3001",
       "http://192.168.4.30:3002",
-      "https://hamzaamjad-dashboard.vercel.app"
+      "https://hamzaamjad-dashboard.vercel.app",
+      "http://127.0.0.1:58456"
 
     ]
   })
