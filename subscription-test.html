@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Subscription System Test</title>
+    <title>Subscription System - Stripe Checkout</title>
     <script src="https://js.stripe.com/v3/"></script>
     <style>
         body {
@@ -11,6 +11,7 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
+            background-color: #f5f5f5;
         }
         .container {
             display: flex;
@@ -19,195 +20,268 @@
         }
         .card {
             border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background: white;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
         }
         h2 {
             margin-top: 0;
             color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
         }
         button {
-            background-color: #4CAF50;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
             color: white;
             border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
+            padding: 12px 20px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 16px;
+            font-weight: 500;
             margin-top: 10px;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        input, select {
-            padding: 8px;
-            margin: 5px 0;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            transition: all 0.3s ease;
             width: 100%;
         }
+        button:hover:not(:disabled) {
+            background: linear-gradient(135deg, #45a049, #3d8b40);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        input, select {
+            padding: 12px;
+            margin: 8px 0;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            width: 100%;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
         }
         #response {
             background-color: #f9f9f9;
-            padding: 15px;
-            border-radius: 4px;
+            padding: 20px;
+            border-radius: 8px;
             white-space: pre-wrap;
             overflow-x: auto;
-        }
-        .card-element {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin-bottom: 10px;
+            border-left: 4px solid #4CAF50;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
         }
         .error {
-            color: red;
-            margin-top: 5px;
+            color: #e74c3c;
+            margin-top: 8px;
+            font-weight: 500;
         }
         .success {
-            color: green;
-            margin-top: 5px;
+            color: #27ae60;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-active {
+            background-color: #27ae60;
+        }
+        .status-inactive {
+            background-color: #e74c3c;
+        }
+        .pricing-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .pricing-info h3 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+        .pricing-info p {
+            margin: 5px 0;
+            opacity: 0.9;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0;
+        }
+        .feature-list li {
+            padding: 5px 0;
+            position: relative;
+            padding-left: 25px;
+        }
+        .feature-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <h1>Subscription System Test</h1>
-    
-    <div class="container">
+    <h1>🚀 Premium Subscription System</h1>
+        <div class="container">
         <!-- Authentication Section -->
         <div class="card">
-            <h2>Authentication</h2>
+            <h2>🔐 Authentication</h2>
             <div class="form-group">
-                <label for="email">Email:</label>
-                <input type="email" id="email" placeholder="Enter your email">
+                <label for="email">Email Address:</label>
+                <input type="email" id="email" placeholder="Enter your email address">
             </div>
             <div class="form-group">
                 <label for="password">Password:</label>
                 <input type="password" id="password" placeholder="Enter your password">
             </div>
-            <button id="login-btn">Login</button>
+            <button id="login-btn">Sign In</button>
             <div id="auth-status"></div>
         </div>
-
-        <!-- Create Subscription Section -->
+        <!-- Subscription Plans -->
         <div class="card">
-            <h2>Create Subscription</h2>
-            <p>Subscribe with a payment method:</p>
-            <div class="form-group">
-                <label>Card Information:</label>
-                <div id="card-element" class="card-element"></div>
-                <div id="card-errors" class="error"></div>
+            <h2>💎 Premium Subscription</h2>
+            <div class="pricing-info">
+                <h3>$22/month</h3>
+                <p>Get access to all premium features</p>
+                <ul class="feature-list">
+                    <li>Unlimited access to all content</li>
+                    <li>Priority customer support</li>
+                    <li>Advanced analytics</li>
+                    <li>No advertisements</li>
+                </ul>
             </div>
-            <button id="subscribe-btn" disabled>Subscribe ($22/month)</button>
+            <button id="checkout-btn" disabled>
+                <span id="checkout-text">Subscribe with Stripe Checkout</span>
+            </button>
             <div id="subscription-status"></div>
         </div>
-
-        <!-- Promo Code Subscription Section -->
+        <!-- Promo Code Section -->
         <div class="card">
-            <h2>Subscribe with Promo Code</h2>
+            <h2>🎟️ Promo Code</h2>
             <div class="form-group">
-                <label for="promo-code">Promo Code:</label>
-                <input type="text" id="promo-code" placeholder="Enter promo code">
+                <label for="promo-code">Have a promo code?</label>
+                <input type="text" id="promo-code" placeholder="Enter your promo code">
             </div>
             <button id="promo-subscribe-btn" disabled>Apply Promo Code</button>
             <div id="promo-status"></div>
         </div>
-
-        <!-- Check Subscription Status Section -->
+        <!-- Subscription Management -->
         <div class="card">
-            <h2>Check Subscription Status</h2>
-            <button id="check-status-btn" disabled>Check Status</button>
+            <h2>⚙️ Manage Subscription</h2>
+            <p>Check your current subscription status and manage your billing.</p>
+            <button id="check-status-btn" disabled>Check Subscription Status</button>
+            <button id="manage-billing-btn" disabled>Manage Billing (Stripe Portal)</button>
             <div id="current-status"></div>
         </div>
-
-        <!-- Cancel Subscription Section -->
+        <!-- API Response -->
         <div class="card">
-            <h2>Cancel Subscription</h2>
-            <p>Your subscription will remain active until the end of the current billing period.</p>
-            <button id="cancel-btn" disabled>Cancel Subscription</button>
-            <div id="cancel-status"></div>
-        </div>
-
-        <!-- Response Section -->
-        <div class="card">
-            <h2>API Response</h2>
-            <pre id="response">No response yet</pre>
+            <h2>📡 API Response</h2>
+            <pre id="response">Ready to process requests...</pre>
         </div>
     </div>
-
     <script>
         // Configuration
-        const API_BASE_URL = 'http://localhost:3000'; // Change to your server URL
+        const API_BASE_URL = 'http://localhost:3000';
         const SUBSCRIPTION_ENDPOINT = `${API_BASE_URL}/subscription`;
         let authToken = localStorage.getItem('authToken') || '';
-        let stripe;
-        let cardElement;
         let userInfo = JSON.parse(localStorage.getItem('userInfo')) || null;
-
-        // Initialize Stripe
-        function initStripe() {
-            // Replace with your Stripe publishable key
-            stripe = Stripe('pk_test_51QuTWKClJBhr3sfisvZF8NprucrbSftJa16ma4XVStJG04nQ5i4tNL00XkBbfC0UFzY8AvnFhzt8wTk1CbXj57o500ncgA4fQl');
-            const elements = stripe.elements();
-            cardElement = elements.create('card');
-            cardElement.mount('#card-element');
-
-            cardElement.on('change', function(event) {
-                const displayError = document.getElementById('card-errors');
-                if (event.error) {
-                    displayError.textContent = event.error.message;
-                } else {
-                    displayError.textContent = '';
-                }
-            });
-        }
-
+        let stripe; // Stripe instance
         // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
             initStripe();
             setupEventListeners();
             
-            // Check if user is already logged in
             if (authToken) {
-                const authStatus = document.getElementById('auth-status');
-                authStatus.textContent = 'Already logged in';
-                authStatus.className = 'success';
-                
-                // Enable buttons
-                document.getElementById('subscribe-btn').disabled = false;
-                document.getElementById('promo-subscribe-btn').disabled = false;
-                document.getElementById('check-status-btn').disabled = false;
-                document.getElementById('cancel-btn').disabled = false;
-                
-                // Check initial subscription status
-                checkSubscriptionStatus();
+                handleExistingLogin();
             }
         });
-
+        // Initialize Stripe with your publishable key
+        function initStripe() {
+            // Replace with your actual Stripe publishable key
+            stripe = Stripe('pk_test_51QuTWKClJBhr3sfisvZF8NprucrbSftJa16ma4XVStJG04nQ5i4tNL00XkBbfC0UFzY8AvnFhzt8wTk1CbXj57o500ncgA4fQl');
+            // You can add more Stripe initialization code here if needed
+        }
         // Set up event listeners
         function setupEventListeners() {
             document.getElementById('login-btn').addEventListener('click', handleLogin);
-            document.getElementById('subscribe-btn').addEventListener('click', handleSubscribe);
+            document.getElementById('checkout-btn').addEventListener('click', handleStripeCheckout);
             document.getElementById('promo-subscribe-btn').addEventListener('click', handlePromoSubscribe);
             document.getElementById('check-status-btn').addEventListener('click', checkSubscriptionStatus);
-            document.getElementById('cancel-btn').addEventListener('click', cancelSubscription);
+            document.getElementById('manage-billing-btn').addEventListener('click', openBillingPortal);
         }
-
+        // Handle existing login
+        function handleExistingLogin() {
+            const authStatus = document.getElementById('auth-status');
+            authStatus.innerHTML = '<span class="status-indicator status-active"></span>Already logged in';
+            authStatus.className = 'success';
+            
+            enableButtons();
+            checkSubscriptionStatus();
+        }
+        // Enable buttons after login
+        function enableButtons() {
+            document.getElementById('checkout-btn').disabled = false;
+            document.getElementById('promo-subscribe-btn').disabled = false;
+            document.getElementById('check-status-btn').disabled = false;
+            document.getElementById('manage-billing-btn').disabled = false;
+        }
         // Handle login
         async function handleLogin() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const authStatus = document.getElementById('auth-status');
-
+            const loginBtn = document.getElementById('login-btn');
             if (!email || !password) {
-                authStatus.textContent = 'Please enter both email and password';
+                authStatus.innerHTML = '<span class="status-indicator status-inactive"></span>Please enter both email and password';
                 authStatus.className = 'error';
                 return;
             }
-
+            loginBtn.innerHTML = '<span class="loading"></span>Signing in...';
+            loginBtn.disabled = true;
             try {
                 const response = await fetch(`${API_BASE_URL}/users/login`, {
                     method: 'POST',
@@ -216,218 +290,205 @@
                     },
                     body: JSON.stringify({ email, password })
                 });
-
                 const data = await response.json();
                 displayResponse(data);
-
                 if (data.success && data.token) {
                     authToken = data.token;
                     userInfo = data.user;
                     
-                    // Save to localStorage
                     localStorage.setItem('authToken', authToken);
                     localStorage.setItem('userInfo', JSON.stringify(userInfo));
                     
-                    authStatus.textContent = 'Logged in successfully';
+                    authStatus.innerHTML = '<span class="status-indicator status-active"></span>Logged in successfully';
                     authStatus.className = 'success';
                     
-                    // Enable buttons
-                    document.getElementById('subscribe-btn').disabled = false;
-                    document.getElementById('promo-subscribe-btn').disabled = false;
-                    document.getElementById('check-status-btn').disabled = false;
-                    document.getElementById('cancel-btn').disabled = false;
-                    
-                    // Check initial subscription status
+                    enableButtons();
                     checkSubscriptionStatus();
                 } else {
-                    authStatus.textContent = data.message || 'Login failed';
+                    authStatus.innerHTML = `<span class="status-indicator status-inactive"></span>${data.message || 'Login failed'}`;
                     authStatus.className = 'error';
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                authStatus.textContent = 'Error connecting to server';
+                authStatus.innerHTML = '<span class="status-indicator status-inactive"></span>Error connecting to server';
                 authStatus.className = 'error';
+            } finally {
+                loginBtn.innerHTML = 'Sign In';
+                loginBtn.disabled = false;
             }
         }
-
-        // Handle subscription creation
-        async function handleSubscribe() {
+        // Handle Stripe Checkout
+        async function handleStripeCheckout() {
             const subscriptionStatus = document.getElementById('subscription-status');
-            subscriptionStatus.textContent = 'Processing...';
-            subscriptionStatus.className = '';
-
+            const checkoutBtn = document.getElementById('checkout-btn');
+            const checkoutText = document.getElementById('checkout-text');
+            
+            checkoutText.innerHTML = '<span class="loading"></span>Creating checkout session...';
+            checkoutBtn.disabled = true;
             try {
-                // Create payment method
-                const result = await stripe.createPaymentMethod({
-                    type: 'card',
-                    card: cardElement,
-                });
-
-                if (result.error) {
-                    subscriptionStatus.textContent = result.error.message;
-                    subscriptionStatus.className = 'error';
-                    return;
-                }
-
-                // Send payment method ID to server
-                const response = await fetch(`${SUBSCRIPTION_ENDPOINT}/pay`, {
+                const response = await fetch(`${SUBSCRIPTION_ENDPOINT}/create-checkout-session`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `${authToken}`
-                    },
-                    body: JSON.stringify({
-                        paymentMethodId: result.paymentMethod.id
-                    })
+                        'Authorization': authToken
+                    }
                 });
-
                 const data = await response.json();
                 displayResponse(data);
-
-                if (data.success) {
-                    subscriptionStatus.textContent = 'Subscription created successfully!';
+                if (data.success && data.checkoutUrl) {
+                    subscriptionStatus.innerHTML = '<span class="status-indicator status-active"></span>Redirecting to Stripe Checkout...';
                     subscriptionStatus.className = 'success';
-                    checkSubscriptionStatus();
+                    
+                    // Redirect to Stripe Checkout
+                    window.location.href = data.checkoutUrl;
                 } else {
-                    subscriptionStatus.textContent = data.error || 'Failed to create subscription';
+                    subscriptionStatus.innerHTML = `<span class="status-indicator status-inactive"></span>${data.error || 'Failed to create checkout session'}`;
                     subscriptionStatus.className = 'error';
                 }
             } catch (error) {
-                console.error('Subscription error:', error);
-                subscriptionStatus.textContent = 'Error connecting to server';
+                console.error('Checkout error:', error);
+                subscriptionStatus.innerHTML = '<span class="status-indicator status-inactive"></span>Error connecting to server';
                 subscriptionStatus.className = 'error';
+            } finally {
+                checkoutText.innerHTML = 'Subscribe with Stripe Checkout';
+                checkoutBtn.disabled = false;
             }
         }
-
         // Handle promo code subscription
         async function handlePromoSubscribe() {
             const promoCode = document.getElementById('promo-code').value;
             const promoStatus = document.getElementById('promo-status');
+            const promoBtn = document.getElementById('promo-subscribe-btn');
             
             if (!promoCode) {
-                promoStatus.textContent = 'Please enter a promo code';
+                promoStatus.innerHTML = '<span class="status-indicator status-inactive"></span>Please enter a promo code';
                 promoStatus.className = 'error';
                 return;
             }
-
-            promoStatus.textContent = 'Processing...';
-            promoStatus.className = '';
-
+            promoBtn.innerHTML = '<span class="loading"></span>Processing...';
+            promoBtn.disabled = true;
             try {
                 const response = await fetch(`${SUBSCRIPTION_ENDPOINT}/subscribe-with-promo`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `${authToken}`
+                        'Authorization': authToken
                     },
                     body: JSON.stringify({ promoCode })
                 });
-
                 const data = await response.json();
                 displayResponse(data);
-
                 if (data.success) {
-                    promoStatus.textContent = 'Subscription created successfully with promo code!';
+                    promoStatus.innerHTML = '<span class="status-indicator status-active"></span>Subscription activated with promo code!';
                     promoStatus.className = 'success';
                     checkSubscriptionStatus();
                 } else {
-                    promoStatus.textContent = data.message || 'Failed to apply promo code';
+                    promoStatus.innerHTML = `<span class="status-indicator status-inactive"></span>${data.message || 'Failed to apply promo code'}`;
                     promoStatus.className = 'error';
                 }
             } catch (error) {
                 console.error('Promo subscription error:', error);
-                promoStatus.textContent = 'Error connecting to server';
+                promoStatus.innerHTML = '<span class="status-indicator status-inactive"></span>Error connecting to server';
                 promoStatus.className = 'error';
+            } finally {
+                promoBtn.innerHTML = 'Apply Promo Code';
+                promoBtn.disabled = false;
             }
         }
-
         // Check subscription status
         async function checkSubscriptionStatus() {
             const currentStatus = document.getElementById('current-status');
-            currentStatus.textContent = 'Checking status...';
-            currentStatus.className = '';
-
+            const statusBtn = document.getElementById('check-status-btn');
+            
+            statusBtn.innerHTML = '<span class="loading"></span>Checking...';
+            statusBtn.disabled = true;
             try {
                 const response = await fetch(`${API_BASE_URL}/users/me`, {
                     method: 'GET',
                     headers: {
-                        'Authorization': `${authToken}`
+                        'Authorization': authToken
                     }
                 });
-
                 const data = await response.json();
                 displayResponse(data);
-
                 if (data.success && data.user) {
                     const isPremium = data.user.premium;
-                    currentStatus.textContent = isPremium ? 
-                        'You have an active premium subscription.' : 
-                        'You do not have an active subscription.';
+                    currentStatus.innerHTML = isPremium 
+                        ? '<span class="status-indicator status-active"></span>You have an active premium subscription'
+                        : '<span class="status-indicator status-inactive"></span>No active subscription found';
                     currentStatus.className = isPremium ? 'success' : '';
                 } else {
-                    currentStatus.textContent = 'Could not retrieve subscription status';
+                    currentStatus.innerHTML = '<span class="status-indicator status-inactive"></span>Could not retrieve subscription status';
                     currentStatus.className = 'error';
                 }
             } catch (error) {
                 console.error('Status check error:', error);
-                currentStatus.textContent = 'Error connecting to server';
+                currentStatus.innerHTML = '<span class="status-indicator status-inactive"></span>Error connecting to server';
                 currentStatus.className = 'error';
+            } finally {
+                statusBtn.innerHTML = 'Check Subscription Status';
+                statusBtn.disabled = false;
             }
         }
-
-        // Cancel subscription
-        async function cancelSubscription() {
-            const cancelStatus = document.getElementById('cancel-status');
-            cancelStatus.textContent = 'Processing cancellation...';
-            cancelStatus.className = '';
-
+        // Open Stripe Billing Portal
+        async function openBillingPortal() {
+            const manageBtn = document.getElementById('manage-billing-btn');
+            
+            manageBtn.innerHTML = '<span class="loading"></span>Opening portal...';
+            manageBtn.disabled = true;
             try {
-                const response = await fetch(`${SUBSCRIPTION_ENDPOINT}/cancel`, {
+                const response = await fetch(`${SUBSCRIPTION_ENDPOINT}/create-portal-session`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `${authToken}`
+                        'Authorization': authToken
                     }
                 });
-
                 const data = await response.json();
                 displayResponse(data);
-
-                if (data.success) {
-                    cancelStatus.textContent = data.message || 'Subscription will be canceled at the end of the billing period';
-                    cancelStatus.className = 'success';
-                    checkSubscriptionStatus();
+                if (data.success && data.portalUrl) {
+                    // Redirect to Stripe Customer Portal
+                    window.location.href = data.portalUrl;
                 } else {
-                    cancelStatus.textContent = data.message || 'Failed to cancel subscription';
-                    cancelStatus.className = 'error';
+                    alert('Failed to open billing portal: ' + (data.error || 'Unknown error'));
                 }
             } catch (error) {
-                console.error('Cancellation error:', error);
-                cancelStatus.textContent = 'Error connecting to server';
-                cancelStatus.className = 'error';
+                console.error('Portal error:', error);
+                alert('Error connecting to server');
+            } finally {
+                manageBtn.innerHTML = 'Manage Billing (Stripe Portal)';
+                manageBtn.disabled = false;
             }
         }
-
         // Display API response
         function displayResponse(data) {
             document.getElementById('response').textContent = JSON.stringify(data, null, 2);
         }
-        // Add this after setupEventListeners function
-        function logout() {
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('userInfo');
-            authToken = '';
-            userInfo = null;
-            
-            const authStatus = document.getElementById('auth-status');
-            authStatus.textContent = 'Logged out';
-            authStatus.className = '';
-            
-            // Disable buttons
-            document.getElementById('subscribe-btn').disabled = true;
-            document.getElementById('promo-subscribe-btn').disabled = true;
-            document.getElementById('check-status-btn').disabled = true;
-            document.getElementById('cancel-btn').disabled = true;
+        // Handle URL parameters (for success/cancel pages)
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('session_id');
+        
+        if (sessionId && authToken) {
+            // Verify the checkout session
+            fetch(`${SUBSCRIPTION_ENDPOINT}/verify-checkout-session`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authToken
+                },
+                body: JSON.stringify({ sessionId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                displayResponse(data);
+                if (data.success) {
+                    alert('Subscription activated successfully!');
+                    checkSubscriptionStatus();
+                }
+            })
+            .catch(error => {
+                console.error('Session verification error:', error);
+            });
         }
     </script>
 </body>
