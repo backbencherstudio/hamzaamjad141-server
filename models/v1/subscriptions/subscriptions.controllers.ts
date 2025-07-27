@@ -99,6 +99,7 @@ export const subscribe = async (req: any, res: Response) => {
 };
 
 export const handleWebhook = async (req: Request, res: Response) => {
+  console.log("click hook");
   const sig = req.headers["stripe-signature"] as string;
 
   try {
@@ -122,11 +123,11 @@ export const handleWebhook = async (req: Request, res: Response) => {
       case "customer.subscription.deleted":
         await handleSubscriptionCancelled(event.data.object);
         break;
-        
+
       case "customer.subscription.updated":
         await handleSubscriptionUpdated(event.data.object);
         break;
-        
+
       case "customer.subscription.created":
         await handleSubscriptionCreated(event.data.object);
         break;
@@ -147,7 +148,7 @@ const handleSuccessfulPayment = async (invoice: Stripe.Invoice) => {
   try {
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     const endDate = new Date((subscription as any).current_period_end * 1000);
-    
+
     // Update the subscription in our database
     await prisma.subscription.updateMany({
       where: { stripeSubscriptionId: subscriptionId },
@@ -156,12 +157,12 @@ const handleSuccessfulPayment = async (invoice: Stripe.Invoice) => {
         endDate: endDate, // Use the actual end date from Stripe
       },
     });
-    
+
     // Find the subscription to get the user ID
     const dbSubscription = await prisma.subscription.findFirst({
       where: { stripeSubscriptionId: subscriptionId },
     });
-    
+
     if (dbSubscription) {
       // Update user premium status
       await prisma.user.update({
@@ -193,13 +194,24 @@ const handleSubscriptionCancelled = async (
 
   if (!dbSubscription) return;
 
+  const endDate = new Date((subscription as any).current_period_end * 1000);
+  const isExpired = endDate <= new Date();
+
   await prisma.subscription.update({
     where: { id: dbSubscription.id },
     data: {
       status: "DEACTIVE",
-      endDate: new Date((subscription as any).current_period_end * 1000),
+      endDate: endDate,
     },
   });
+
+  // Update user premium status to false if the subscription has already expired
+  if (isExpired) {
+    await prisma.user.update({
+      where: { id: dbSubscription.userId },
+      data: { premium: false },
+    });
+  }
 };
 
 const handleSubscriptionUpdated = async (subscription: Stripe.Subscription) => {
@@ -211,7 +223,7 @@ const handleSubscriptionUpdated = async (subscription: Stripe.Subscription) => {
 
   // Get the end date from the subscription
   const endDate = new Date((subscription as any).current_period_end * 1000);
-  
+
   await prisma.subscription.update({
     where: { id: dbSubscription.id },
     data: {
@@ -219,7 +231,7 @@ const handleSubscriptionUpdated = async (subscription: Stripe.Subscription) => {
       endDate: endDate,
     },
   });
-  
+
   // Update user premium status
   await prisma.user.update({
     where: { id: dbSubscription.userId },
@@ -245,7 +257,7 @@ const handleSubscriptionCreated = async (subscription: Stripe.Subscription) => {
 
   // Get the end date from the subscription
   const endDate = new Date((subscription as any).current_period_end * 1000);
-  
+
   // Create subscription record
   const dbSubscription = await prisma.subscription.create({
     data: {
@@ -261,9 +273,9 @@ const handleSubscriptionCreated = async (subscription: Stripe.Subscription) => {
   // Update user
   await prisma.user.update({
     where: { id: user.id },
-    data: { 
-      currentSubscriptionId: dbSubscription.id, 
-      premium: subscription.status === "active" 
+    data: {
+      currentSubscriptionId: dbSubscription.id,
+      premium: subscription.status === "active",
     },
   });
 };
@@ -451,7 +463,6 @@ export const subscribeWithPromoCode = async (req: any, res: Response) => {
 };
 
 export const cancelSubscription = async (req: any, res: Response) => {
- 
   try {
     const { userId } = req.user;
 
@@ -478,6 +489,11 @@ export const cancelSubscription = async (req: any, res: Response) => {
       data: {
         status: "DEACTIVE",
       },
+    });
+
+    await prisma.user.update({
+      where: { id: subscription.userId },
+      data: { premium: false },
     });
 
     return res.json({
