@@ -70,6 +70,3 @@ export const generateAIResponse = async (req: Request, res: Response) => {
 
 
 
-// জর সে প্রতি রাতে
-// অল্পতেই অনেক ক্লান্ত লাগে
-// এলারজি হয় অনে বড় বড় হয়ে  আমি বিলাষ্টিন খাই তার জন্য
