@@ -451,6 +451,7 @@ export const subscribeWithPromoCode = async (req: any, res: Response) => {
 };
 
 export const cancelSubscription = async (req: any, res: Response) => {
+ 
   try {
     const { userId } = req.user;
 

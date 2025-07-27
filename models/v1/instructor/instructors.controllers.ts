@@ -7,6 +7,7 @@ export const createInstructor = async (req: any, res: Response) => {
   try {
     const { name, email, phone } = req.body;
 
+    // Check for missing fields
     const missingField = ["name", "email", "phone"].find(
       (field) => !req.body[field]
     );
@@ -18,22 +19,49 @@ export const createInstructor = async (req: any, res: Response) => {
       return;
     }
 
-    const existingInstructor = await prisma.instructor.findMany({
+    // Check if instructor already exists
+    const existingInstructor = await prisma.instructor.findFirst({
       where: { email: email },
     });
+
     if (existingInstructor) {
-      res.status(400).json({
-        success: false,
-        message: "Instructor already exists.",
-      });
-      return;
+      if (existingInstructor.verify === false) {
+        // If verify is false, update the instructor
+        const updatedInstructor = await prisma.instructor.update({
+          where: { id: existingInstructor.id },
+          data: {
+            name,
+            email,
+            phone,
+            status: 'ACTIVE', // Optionally, you can set the status to ACTIVE when updated
+            verify: true, // You can set verify to true or leave it based on your requirement
+          },
+        });
+
+        res.status(200).json({
+          success: true,
+          message: "Instructor updated successfully",
+          data: updatedInstructor,
+        });
+        return;
+      } else {
+        // Instructor already exists and is verified
+        res.status(400).json({
+          success: false,
+          message: "Instructor already exists and is verified.",
+        });
+        return;
+      }
     }
 
+    // Create a new instructor if none exists
     const newInstructor = await prisma.instructor.create({
       data: {
         name,
         email,
         phone,
+        status: 'ACTIVE',
+        verify: true, // Set verify to true for new instructors
       },
     });
 
@@ -46,11 +74,12 @@ export const createInstructor = async (req: any, res: Response) => {
     console.error("Error in createInstructor:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to create instructor",
+      message: "Failed to create or update instructor",
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 };
+
 
 export const createInstructorByUser = async (req: any, res: Response) => {
 

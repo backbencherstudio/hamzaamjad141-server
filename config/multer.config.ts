@@ -9,7 +9,7 @@ const uploadHandler = multer({
   storage: new MulterGoogleCloudStorage({
     bucket: process.env.GCS_BUCKET,
     projectId: process.env.GCLOUD_PROJECT,
-    keyFilename: path.join(__dirname, "gcs-key.json"),
+    keyFilename: path.join(__dirname, "../../config/gcs-key.json"),
     filename: (req, file, cb) => {
       const uniqueSuffix = uuidv4();
       const ext = path.extname(file.originalname);
@@ -26,7 +26,7 @@ export const deleteImageIfNeeded = async (
   if (newImage && newImage.filename) {
     try {
       const storage = new Storage({
-        keyFilename: path.join(__dirname, "gcs-key.json"),
+        keyFilename: path.join(__dirname, "../../config/gcs-key.json"),
         projectId: process.env.GCLOUD_PROJECT,
       });
 
@@ -58,7 +58,7 @@ export const downloadAndSaveImage = async (imageUrl: string): Promise<string> =>
     
     // Initialize Google Cloud Storage with absolute path to credentials
     const storage = new Storage({
-      keyFilename: path.resolve(__dirname, "gcs-key.json"),
+      keyFilename: path.resolve(__dirname, "../../config/gcs-key.json"),
       projectId: process.env.GCLOUD_PROJECT
     });
     
@@ -78,6 +78,13 @@ export const downloadAndSaveImage = async (imageUrl: string): Promise<string> =>
     throw new Error("Failed to save image to cloud storage");
   }
 };
+
+
+
+
+
+
+
 // import multer from 'multer';
 // import path from 'path';
 // import fs from 'fs';
@@ -102,3 +109,5 @@ export const downloadAndSaveImage = async (imageUrl: string): Promise<string> =>
 
 // const upload = multer({ storage: storage });
 // export default upload
+
+

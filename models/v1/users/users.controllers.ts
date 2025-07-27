@@ -1,17 +1,17 @@
 import { Request, Response } from "express";
-import { Licese, Prisma } from "@prisma/client";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import fs from "fs";
-import path from "path";
-import { Storage } from '@google-cloud/storage';
-import { baseUrl, getImageUrl } from "../../../utils/base_utl";
+
+
+import { getImageUrl } from "../../../utils/base_utl";
 import {
   generateOTP,
+  otpVerificationEmail,
+  recentOtp,
   sendForgotPasswordOTP,
 } from "../../../utils/emailService.utils";
-import { v4 as uuidv4 } from "uuid";
+
 import {
   deleteImageIfNeeded,
   downloadAndSaveImage,
@@ -58,7 +58,7 @@ export const createUser = async (req: Request, res: Response) => {
       },
     });
 
-    sendForgotPasswordOTP(email, otp);
+    otpVerificationEmail(email, otp);
 
     res.status(200).json({
       success: true,
@@ -533,7 +533,7 @@ export const resentOtp = async (req: Request, res: Response) => {
       },
     });
 
-    sendForgotPasswordOTP(email, otp);
+    recentOtp(email, otp);
 
     res.status(200).json({
       success: true,
@@ -777,6 +777,7 @@ export const facebookLogin = async (req: Request, res: Response) => {
 // };
 
 export const updateUser = async (req: any, res: Response) => {
+  console.log(req.body)
   const userId = req.user?.userId;
   const { name, license, oldPassword, newPassword } = req.body;
   const newImage = req.file;

@@ -1,144 +1,714 @@
-export const emailForgotPasswordOTP = (email: string, OTP: string): string => {
+import { baseUrl } from "./base_utl";
+
+export const otpVerificationEmailTamplate = (OTP: string): string => {
   return `
     <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Password Reset Verification</title>
-    </head>
-    <body style="margin: 0; padding: 0; background-color: #f9f9f9; font-family: 'Arial', 'Helvetica', sans-serif;">
-      <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="max-width: 600px; margin: auto; background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 4px; overflow: hidden; margin-top: 40px; margin-bottom: 40px;">
-        <tr>
-          <td style="padding: 0;">
-            <!-- Header -->
-            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-              <tr>
-                <td style="background-color: #2c3e50; padding: 30px 40px;">
-                  <h1 style="color: #ffffff; font-family: 'Arial', 'Helvetica', sans-serif; font-size: 24px; font-weight: 600; margin: 0; letter-spacing: 0.3px;">TDHaemoi Security</h1>
-                </td>
-              </tr>
-            </table>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Account Verification | Left Seat Lessons</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
 
-            <!-- Document Title -->
-            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-              <tr>
-                <td style="padding: 40px 40px 20px;">
-                  <h2 style="color: #2c3e50; font-family: 'Arial', 'Helvetica', sans-serif; font-size: 20px; font-weight: 600; margin: 0; border-bottom: 1px solid #e0e0e0; padding-bottom: 15px;">PASSWORD RESET VERIFICATION</h2>
-                </td>
-              </tr>
-            </table>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #ffffff;
+            color: #1a1a1a;
+            line-height: 1.5;
+            padding: 60px 20px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+          }
 
-            <!-- Introduction -->
-            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-              <tr>
-                <td style="padding: 0 40px 30px;">
-                  <p style="color: #2c3e50; font-size: 15px; line-height: 24px; margin: 0 0 15px;">
-                    Dear User,
-                  </p>
-                  <p style="color: #2c3e50; font-size: 15px; line-height: 24px; margin: 0 0 15px;">
-                    We have received a request to reset the password for your TDHaemoi account. To verify your identity and proceed with this request, please use the following One-Time Password (OTP):
-                  </p>
-                </td>
-              </tr>
-            </table>
-            
-            <!-- OTP Box -->
-            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-              <tr>
-                <td style="padding: 0 40px 30px; text-align: center;">
-                  <div style="background-color: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 4px; padding: 20px; display: inline-block; min-width: 200px;">
-                    <p style="margin: 0 0 10px; font-size: 14px; font-weight: 600; color: #2c3e50; text-transform: uppercase; letter-spacing: 1px;">
-                      Verification Code
-                    </p>
-                    <p style="margin: 0; font-family: monospace; font-size: 28px; font-weight: 700; color: #2c3e50; letter-spacing: 4px;">
-                      ${OTP}
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            </table>
+          .email-container {
+            max-width: 480px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            text-align: center;
+          }
 
-            <!-- Security Notice -->
-            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-              <tr>
-                <td style="padding: 0 40px 30px;">
-                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #fff9e6; border-left: 4px solid #f1c40f; padding: 15px;">
-                    <tr>
-                      <td style="padding: 10px 15px;">
-                        <p style="color: #7d6608; font-size: 14px; line-height: 21px; margin: 0; font-weight: 500;">
-                          <strong>IMPORTANT:</strong> This verification code will expire in 10 minutes. If you did not request a password reset, please disregard this message and consider reviewing your account security.
-                        </p>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-            </table>
+          .logo-section {
+            margin-bottom: 48px;
+          }
 
-            <!-- Instructions -->
-            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-              <tr>
-                <td style="padding: 0 40px 30px;">
-                  <h3 style="color: #2c3e50; font-size: 16px; font-weight: 600; margin: 0 0 15px; text-transform: uppercase;">Next Steps</h3>
-                  <ol style="color: #2c3e50; font-size: 15px; line-height: 24px; margin: 0 0 15px; padding-left: 20px;">
-                    <li style="margin-bottom: 10px;">Enter the verification code on the password reset page</li>
-                    <li style="margin-bottom: 10px;">Create a new, secure password</li>
-                    <li>Log in with your new password</li>
-                  </ol>
-                </td>
-              </tr>
-            </table>
+          .logo img {
+            width: 96px;
+            height: 96px;
+            margin-top: 50px;
+          }
 
-            <!-- Closing -->
-            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-              <tr>
-                <td style="padding: 0 40px 40px;">
-                  <p style="color: #2c3e50; font-size: 15px; line-height: 24px; margin: 0 0 15px;">
-                    If you need any assistance, please contact our support team.
-                  </p>
-                  <p style="color: #2c3e50; font-size: 15px; line-height: 24px; margin: 0 0 5px;">
-                    Regards,
-                  </p>
-                  <p style="color: #2c3e50; font-size: 15px; line-height: 24px; margin: 0 0 5px;">
-                    <strong>TDHaemoi Security Team</strong>
-                  </p>
-                  <p style="color: #2c3e50; font-size: 15px; line-height: 24px; margin: 0;">
-                    TDHaemoi Corporation
-                  </p>
-                </td>
-              </tr>
-            </table>
+          .logo {
+            margin: 0 auto 24px;
+          }
 
-            <!-- Footer -->
-            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-              <tr>
-                <td style="background-color: #f5f5f5; padding: 20px 40px; text-align: center; border-top: 1px solid #e0e0e0;">
-                  <p style="color: #7f8c8d; font-size: 13px; line-height: 20px; margin: 0 0 10px;">
-                    This email was sent to ${email}
-                  </p>
-                  <p style="color: #7f8c8d; font-size: 13px; line-height: 20px; margin: 0;">
-                    This is a system-generated email. Please do not reply directly to this message.<br>
-                    © 2024 TDHaemoi Corporation. All rights reserved.
-                  </p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </body>
+          .brand-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+          }
+
+          .title {
+            font-size: 36px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 56px;
+            letter-spacing: -0.75px;
+          }
+
+          .message {
+            font-size: 18px;
+            color: #374151;
+            margin-bottom: 48px;
+            line-height: 1.6;
+            font-weight: 400;
+          }
+
+          .message strong {
+            color: #111827;
+            font-weight: 600;
+          }
+
+          .otp-section {
+            margin: 20px 0;
+            padding: 48px 32px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 20px;
+            border: 1px solid #e5e7eb;
+            position: relative;
+          }
+
+          .otp-section::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4);
+            border-radius: 20px 20px 0 0;
+          }
+
+          .otp-label {
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+            margin-bottom: 24px;
+          }
+
+          .otp-code {
+            font-size: 48px;
+            font-weight: 800;
+            color: #1e40af;
+            letter-spacing: 12px;
+            font-family: "SF Mono", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace;
+            margin: 20px 0;
+            text-shadow: 0 2px 4px rgba(30, 64, 175, 0.1);
+          }
+
+          .otp-validity {
+            font-size: 14px;
+            color: #9ca3af;
+            font-weight: 500;
+            margin-top: 16px;
+          }
+
+          .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
+            margin: 48px 0;
+          }
+
+          .footer {
+            margin-top: 10px;
+          }
+
+          .company-info {
+            font-size: 16px;
+            color: #374151;
+            font-weight: 600;
+            margin-bottom: 5px;
+          }
+
+          .support-section {
+            font-size: 14px;
+            color: #6b7280;
+          }
+
+          .support-link {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s ease;
+          }
+
+          .support-link:hover {
+            color: #1e40af;
+            text-decoration: underline;
+          }
+
+          .copyright {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 10px;
+            font-weight: 400;
+          }
+
+          @media (max-width: 600px) {
+            body {
+              padding: 40px 16px;
+            }
+
+            .title {
+              font-size: 26px;
+            }
+
+            .message {
+              font-size: 15px;
+            }
+
+            .otp-code {
+              font-size: 36px;
+              letter-spacing: 8px;
+            }
+
+            .otp-section {
+              padding: 36px 24px;
+              margin: 40px 0;
+            }
+
+            .logo {
+              width: 80px;
+              height: 80px;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="email-container">
+          <div class="logo-section">
+            <div class="logo">
+              <img
+                src="https://i.ibb.co/PnpnPd5/hamza.png"
+                alt="Left Seat Lessons"
+              />
+            </div>
+            <div class="brand-name">Left Seat Lessons</div>
+          </div>
+
+          <h1 class="title">Account Verification</h1>
+
+          <p class="message">
+            Please use the verification code below to verify your account and complete the registration process.
+          </p>
+
+          <div class="otp-section">
+            <div class="otp-label">Verification Code</div>
+            <div class="otp-code">${OTP}</div>
+            <div class="otp-validity">Expires in 10 minutes</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="footer">
+            <div class="company-info">Left Seat Lessons</div>
+            <div class="copyright">
+              © ${new Date().getFullYear()} Left Seat Lessons. All rights reserved.
+            </div>
+          </div>
+        </div>
+      </body>
     </html>
   `;
 };
 
+export const emailForgotPasswordOTP = (OTP: string): string => { 
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Password Reset Verification</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
 
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #ffffff;
+            color: #1a1a1a;
+            line-height: 1.5;
+            padding: 60px 20px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+          }
+
+          .email-container {
+            max-width: 480px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            text-align: center;
+          }
+
+          .logo-section {
+            margin-bottom: 48px;
+          }
+
+          .logo img {
+            width: 96px;
+            height: 96px;
+            margin-top: 50px;
+          }
+
+          .logo {
+            margin: 0 auto 24px;
+          }
+
+          .brand-name {
+            font-size: 18px; /* Increased font size */
+            font-weight: 700; /* Bolded text */
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px; /* Increased margin */
+          }
+
+          .title {
+            font-size: 36px; /* Increased font size */
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 56px;
+            letter-spacing: -0.75px;
+          }
+
+          .message {
+            font-size: 18px; /* Increased font size */
+            color: #374151;
+            margin-bottom: 48px;
+            line-height: 1.6;
+            font-weight: 400;
+          }
+
+          .message strong {
+            color: #111827;
+            font-weight: 600;
+          }
+
+          .otp-section {
+            margin: 20px 0;
+            padding: 48px 32px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 20px;
+            border: 1px solid #e5e7eb;
+            position: relative;
+          }
+
+          .otp-section::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4);
+            border-radius: 20px 20px 0 0;
+          }
+
+          .otp-label {
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+            margin-bottom: 24px;
+          }
+
+          .otp-code {
+            font-size: 48px; /* Increased OTP font size */
+            font-weight: 800;
+            color: #1e40af;
+            letter-spacing: 12px;
+            font-family: "SF Mono", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace;
+            margin: 20px 0;
+            text-shadow: 0 2px 4px rgba(30, 64, 175, 0.1);
+          }
+
+          .otp-validity {
+            font-size: 14px; /* Slightly increased font size */
+            color: #9ca3af;
+            font-weight: 500;
+            margin-top: 16px;
+          }
+
+          .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
+            margin: 48px 0;
+          }
+
+          .footer {
+            margin-top: 10px;
+          }
+
+          .company-info {
+            font-size: 16px; /* Increased font size */
+            color: #374151;
+            font-weight: 600;
+            margin-bottom: 5px;
+          }
+
+          .support-section {
+            font-size: 14px;
+            color: #6b7280;
+          }
+
+          .support-link {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s ease;
+          }
+
+          .support-link:hover {
+            color: #1e40af;
+            text-decoration: underline;
+          }
+
+          .copyright {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 10px;
+            font-weight: 400;
+          }
+
+          @media (max-width: 600px) {
+            body {
+              padding: 40px 16px;
+            }
+
+            .title {
+              font-size: 26px;
+            }
+
+            .message {
+              font-size: 15px;
+            }
+
+            .otp-code {
+              font-size: 36px;
+              letter-spacing: 8px;
+            }
+
+            .otp-section {
+              padding: 36px 24px;
+              margin: 40px 0;
+            }
+
+            .logo {
+              width: 80px;
+              height: 80px;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="email-container">
+          <div class="logo-section">
+            <div class="logo">
+              <img
+                src="https://i.ibb.co/PnpnPd5/hamza.png"
+                alt="Left Seat Lessons"
+              />
+            </div>
+            <div class="brand-name">Left Seat Lessons</div>
+          </div>
+
+          <h1 class="title">Password Reset Verification</h1>
+
+          <p class="message">
+            Please use the verification code below to complete your account setup.
+          </p>
+
+          <div class="otp-section">
+            <div class="otp-label">Verification Code</div>
+            <div class="otp-code">${OTP}</div>
+            <div class="otp-validity">Expires in 10 minutes</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="footer">
+            <div class="company-info">Left Seat Lessons</div>
+
+            <div class="copyright">
+              © 2025 Left Seat Lessons. All rights reserved.
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+};
+
+export const recentOtpVerificationEmail = (OTP: string): string => { 
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Recent OTP Verification</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #ffffff;
+            color: #1a1a1a;
+            line-height: 1.5;
+            padding: 60px 20px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+          }
+
+          .email-container {
+            max-width: 480px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            text-align: center;
+          }
+
+          .logo-section {
+            margin-bottom: 48px;
+          }
+
+          .logo img {
+            width: 96px;
+            height: 96px;
+            margin-top: 50px;
+          }
+
+          .logo {
+            margin: 0 auto 24px;
+          }
+
+          .brand-name {
+            font-size: 18px; /* Increased font size */
+            font-weight: 700; /* Bolded text */
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px; /* Increased margin */
+          }
+
+          .title {
+            font-size: 36px; /* Increased font size */
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 56px;
+            letter-spacing: -0.75px;
+          }
+
+          .message {
+            font-size: 18px; /* Increased font size */
+            color: #374151;
+            margin-bottom: 48px;
+            line-height: 1.6;
+            font-weight: 400;
+          }
+
+          .message strong {
+            color: #111827;
+            font-weight: 600;
+          }
+
+          .otp-section {
+            margin: 20px 0;
+            padding: 48px 32px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 20px;
+            border: 1px solid #e5e7eb;
+            position: relative;
+          }
+
+          .otp-section::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4);
+            border-radius: 20px 20px 0 0;
+          }
+
+          .otp-label {
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+            margin-bottom: 24px;
+          }
+
+          .otp-code {
+            font-size: 48px; /* Increased OTP font size */
+            font-weight: 800;
+            color: #1e40af;
+            letter-spacing: 12px;
+            font-family: "SF Mono", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace;
+            margin: 20px 0;
+            text-shadow: 0 2px 4px rgba(30, 64, 175, 0.1);
+          }
+
+          .otp-validity {
+            font-size: 14px; /* Slightly increased font size */
+            color: #9ca3af;
+            font-weight: 500;
+            margin-top: 16px;
+          }
+
+          .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
+            margin: 48px 0;
+          }
+
+          .footer {
+            margin-top: 10px;
+          }
+
+          .company-info {
+            font-size: 16px; /* Increased font size */
+            color: #374151;
+            font-weight: 600;
+            margin-bottom: 5px;
+          }
+
+          .support-section {
+            font-size: 14px;
+            color: #6b7280;
+          }
+
+          .support-link {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s ease;
+          }
+
+          .support-link:hover {
+            color: #1e40af;
+            text-decoration: underline;
+          }
+
+          .copyright {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 10px;
+            font-weight: 400;
+          }
+
+          @media (max-width: 600px) {
+            body {
+              padding: 40px 16px;
+            }
+
+            .title {
+              font-size: 26px;
+            }
+
+            .message {
+              font-size: 15px;
+            }
+
+            .otp-code {
+              font-size: 36px;
+              letter-spacing: 8px;
+            }
+
+            .otp-section {
+              padding: 36px 24px;
+              margin: 40px 0;
+            }
+
+            .logo {
+              width: 80px;
+              height: 80px;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="email-container">
+          <div class="logo-section">
+            <div class="logo">
+              <img
+                src="https://i.ibb.co/PnpnPd5/hamza.png"
+                alt="Left Seat Lessons"
+              />
+            </div>
+            <div class="brand-name">Left Seat Lessons</div>
+          </div>
+
+          <h1 class="title">Recent OTP Verification</h1>
+
+          <p class="message">
+            A recent request was made to verify your account. Please use the verification code below to confirm the request.
+          </p>
+
+          <div class="otp-section">
+            <div class="otp-label">Verification Code</div>
+            <div class="otp-code">${OTP}</div>
+            <div class="otp-validity">Expires in 10 minutes</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="footer">
+            <div class="company-info">Left Seat Lessons</div>
+
+            <div class="copyright">
+              © 2025 Left Seat Lessons. All rights reserved.
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+};
 
 export const instructorConformationsTamplate = (
-  email: string, 
+  email: string,
   studentName: string,
-  logDetails: any
+  logDetails: any,
+ 
 ): string => {
+  // Helper function to format values
+  const formatValue = (value: any) => {
+    if (value === null || value === undefined || value === '' || value === 0) {
+      return 'Not specified';
+    }
+    return value.toString();
+  };
+
   return `
     <!DOCTYPE html>
     <html>
@@ -147,64 +717,466 @@ export const instructorConformationsTamplate = (
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>New Flight Log Submission</title>
       <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #2c3e50; color: white; padding: 20px; text-align: center; }
-        .content { padding: 20px; background-color: #f9f9f9; }
-        .footer { margin-top: 20px; padding: 10px; text-align: center; font-size: 12px; color: #777; }
-        .log-details { margin: 20px 0; }
-        .log-item { margin-bottom: 10px; }
-        .log-label { font-weight: bold; display: inline-block; width: 150px; }
+        /* Reset styles */
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+          line-height: 1.6;
+          color: #1f2937;
+          background-color: #f8fafc;
+          margin: 0;
+          padding: 0;
+        }
+        
+        .email-container {
+          max-width: 600px;
+          margin: 0 auto;
+          background-color: #ffffff;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Header */
+        .header {
+          background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+          color: white;
+          padding: 40px 30px;
+          text-align: center;
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .header::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+          opacity: 0.3;
+        }
+        
+        .header-content {
+          position: relative;
+          z-index: 1;
+        }
+        
+        .logo {
+          width: 80px;
+          height: 80px;
+          margin: 0 auto 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .logo img {
+          max-width: 100%;
+          height: auto;
+        }
+        
+        .header h1 {
+          font-size: 28px;
+          font-weight: 700;
+          margin-bottom: 8px;
+          letter-spacing: -0.5px;
+        }
+        
+        .header p {
+          font-size: 16px;
+          opacity: 0.9;
+          margin: 0;
+        }
+        
+        /* Content */
+        .content {
+          padding: 40px 30px;
+        }
+        
+        .greeting {
+          font-size: 18px;
+          color: #1f2937;
+          margin-bottom: 24px;
+        }
+        
+        .notification-card {
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+          border: 1px solid #0ea5e9;
+          border-radius: 12px;
+          padding: 24px;
+          margin: 24px 0;
+          position: relative;
+        }
+        
+        .notification-card::before {
+          content: '✈️';
+          position: absolute;
+          top: -15px;
+          left: 24px;
+          background: #0ea5e9;
+          color: white;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 16px;
+        }
+        
+        .notification-text {
+          font-size: 16px;
+          color: #0c4a6e;
+          font-weight: 600;
+          margin-top: 8px;
+        }
+        
+        .student-name {
+          color: #1e40af;
+          font-weight: 700;
+        }
+        
+        /* Flight Details Section */
+        .details-section {
+          margin: 32px 0;
+        }
+        
+        .section-title {
+          font-size: 20px;
+          font-weight: 700;
+          color: #1f2937;
+          margin-bottom: 20px;
+          padding-bottom: 8px;
+          border-bottom: 2px solid #e5e7eb;
+          position: relative;
+        }
+        
+        .section-title::before {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 0;
+          width: 60px;
+          height: 2px;
+          background: linear-gradient(135deg, #3b82f6, #1e40af);
+        }
+        
+        .details-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          margin-bottom: 20px;
+        }
+        
+        .detail-item {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          padding: 16px;
+          transition: all 0.2s ease;
+        }
+        
+        .detail-item:hover {
+          background: #f1f5f9;
+          border-color: #cbd5e1;
+          transform: translateY(-1px);
+        }
+        
+        .detail-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: #6b7280;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 4px;
+        }
+        
+        .detail-value {
+          font-size: 14px;
+          font-weight: 600;
+          color: #1f2937;
+        }
+        
+        .detail-value.highlight {
+          color: #1e40af;
+        }
+        
+        /* Single column items */
+        .detail-item.full-width {
+          grid-column: 1 / -1;
+        }
+        
+        /* Action Section */
+        .action-section {
+          text-align: center;
+          margin: 40px 0;
+          padding: 32px;
+          background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+          border-radius: 12px;
+          border: 1px solid #f59e0b;
+        }
+        
+        .action-text {
+          font-size: 16px;
+          color: #92400e;
+          margin-bottom: 24px;
+          font-weight: 500;
+        }
+        
+        .review-button {
+          display: inline-block;
+          background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+          color: white !important;
+          text-decoration: none;
+          padding: 16px 32px;
+          border-radius: 12px;
+          font-weight: 700;
+          font-size: 16px;
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+          transition: all 0.3s ease;
+          border: none;
+          cursor: pointer;
+        }
+        
+        .review-button:hover {
+          background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+          box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+          transform: translateY(-2px);
+        }
+        
+        /* Status Badge */
+        .status-badge {
+          display: inline-block;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+          padding: 6px 12px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        
+        /* Best Regards Section */
+        .regards-section {
+          margin-top: 32px;
+          padding-top: 24px;
+          border-top: 1px solid #e5e7eb;
+        }
+        
+        .regards-text {
+          color: #6b7280;
+          font-size: 16px;
+          line-height: 1.5;
+        }
+        
+        .team-name {
+          color: #1f2937;
+          font-weight: 600;
+        }
+        
+        /* Simple Footer */
+        .footer {
+          background: #f8fafc;
+          padding: 24px 30px;
+          text-align: center;
+          border-top: 1px solid #e5e7eb;
+        }
+        
+        .footer-content {
+          max-width: 500px;
+          margin: 0 auto;
+        }
+        
+        .footer-text {
+          font-size: 14px;
+          color: #6b7280;
+          margin-bottom: 8px;
+        }
+        
+        .footer-email {
+          font-weight: 600;
+          color: #1e40af;
+          text-decoration: none;
+        }
+        
+        .footer-email:hover {
+          text-decoration: underline;
+        }
+        
+        .footer-divider {
+          height: 1px;
+          background: #e5e7eb;
+          margin: 16px 0;
+        }
+        
+        .copyright {
+          font-size: 12px;
+          color: #9ca3af;
+        }
+        
+        /* Responsive */
+        @media only screen and (max-width: 600px) {
+          .email-container {
+            margin: 0;
+            box-shadow: none;
+          }
+          
+          .header, .content, .footer {
+            padding-left: 20px;
+            padding-right: 20px;
+          }
+          
+          .details-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+          
+          .header h1 {
+            font-size: 24px;
+          }
+          
+          .review-button {
+            padding: 14px 24px;
+            font-size: 14px;
+          }
+          
+          .action-section {
+            padding: 24px 20px;
+          }
+        }
+        
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+          .detail-item {
+            background: #f1f5f9;
+          }
+        }
       </style>
     </head>
     <body>
-      <div class="container">
+      <div class="email-container">
+        <!-- Header -->
         <div class="header">
-          <h1>New Flight Log Submission</h1>
+          <div class="header-content">
+            <div class="logo">
+              <img src="https://i.ibb.co/PnpnPd5/hamza.png" alt="Flight Training Logo" width="80" height="80">
+            </div>
+            <h1>Flight Log Submission</h1>
+            <p>New entry requires your review</p>
+          </div>
         </div>
         
+        <!-- Content -->
         <div class="content">
-          <p>Dear Instructor,</p>
-          
-          <p>Your student <strong>${studentName}</strong> has submitted a new flight log entry.</p>
-          
-          <div class="log-details">
-            <h3>Flight Details:</h3>
-            <div class="log-item"><span class="log-label">From:</span> ${logDetails.from}</div>
-            <div class="log-item"><span class="log-label">To:</span> ${logDetails.to}</div>
-            <div class="log-item"><span class="log-label">Aircraft Type:</span> ${logDetails.aircrafttype}</div>
-            <div class="log-item"><span class="log-label">Tail Number:</span> ${logDetails.tailNumber}</div>
-            <div class="log-item"><span class="log-label">Flight Time:</span> ${logDetails.flightTime} minutes</div>
-            <div class="log-item"><span class="log-label">Day Time:</span> ${logDetails.daytime}</div>
-            <div class="log-item"><span class="log-label">Night Time:</span> ${logDetails.nightime}</div>
-            <div class="log-item"><span class="log-label">IFR Time:</span> ${logDetails.ifrtime}</div>
-            <div class="log-item"><span class="log-label">Cross Country:</span> ${logDetails.crossCountry}</div>
-            <div class="log-item"><span class="log-label">Takeoffs:</span> ${logDetails.takeoffs}</div>
-            <div class="log-item"><span class="log-label">Landings:</span> ${logDetails.landings}</div>
-            <div class="log-item"><span class="log-label">Date:</span> ${new Date(logDetails.createdAt).toLocaleString()}</div>
+          <div class="greeting">
+            Dear Instructor,
           </div>
           
-          <p>Please review this log entry at your earliest convenience.</p>
+          <div class="notification-card">
+            <div class="notification-text">
+              Your student <span class="student-name">${studentName}</span> has submitted a new flight log entry that requires your review and approval.
+            </div>
+          </div>
           
-          <!-- Action buttons -->
-          <p>Choose an action:</p>
-          <form action="https://hamzaamjad.signalsmind.com/addlog/addlog-approve/${logDetails.id}" method="POST">
-            <button type="submit" class="btn btn-approve">Approve</button>
-          </form>
-          <form action="https://hamzaamjad.signalsmind.com/addlog/addlog-reject/${logDetails.id}" method="POST">
-            <button type="submit" class="btn btn-reject">Reject</button>
-          </form>
+          <!-- Flight Details -->
+          <div class="details-section">
+            <h3 class="section-title">Flight Details</h3>
+            
+            <div class="details-grid">
+              <div class="detail-item">
+                <div class="detail-label">From</div>
+                <div class="detail-value highlight">${formatValue(logDetails.from)}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">To</div>
+                <div class="detail-value highlight">${formatValue(logDetails.to)}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">Aircraft Type</div>
+                <div class="detail-value">${formatValue(logDetails.aircrafttype)}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">Tail Number</div>
+                <div class="detail-value">${formatValue(logDetails.tailNumber)}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">Flight Time</div>
+                <div class="detail-value">${formatValue(logDetails.flightTime)} ${logDetails.flightTime && logDetails.flightTime > 0 ? 'hours' : ''}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">PIC Time</div>
+                <div class="detail-value">${formatValue(logDetails.pictime)} ${logDetails.pictime && logDetails.pictime > 0 ? 'hours' : ''}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">Day Time</div>
+                <div class="detail-value">${formatValue(logDetails.daytime)} ${logDetails.daytime && logDetails.daytime > 0 ? 'hours' : ''}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">Night Time</div>
+                <div class="detail-value">${formatValue(logDetails.nightime)} ${logDetails.nightime && logDetails.nightime > 0 ? 'hours' : ''}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">IFR Time</div>
+                <div class="detail-value">${formatValue(logDetails.ifrtime)} ${logDetails.ifrtime && logDetails.ifrtime > 0 ? 'hours' : ''}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">Cross Country</div>
+                <div class="detail-value">${formatValue(logDetails.crossCountry)} ${logDetails.crossCountry && logDetails.crossCountry > 0 ? 'nm' : ''}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">Takeoffs</div>
+                <div class="detail-value">${formatValue(logDetails.takeoffs)}</div>
+              </div>
+              
+              <div class="detail-item">
+                <div class="detail-label">Landings</div>
+                <div class="detail-value">${formatValue(logDetails.landings)}</div>
+              </div>
+              
+              <div class="detail-item full-width">
+                <div class="detail-label">Submission Date</div>
+                <div class="detail-value">${new Date(logDetails.createdAt).toLocaleString()}</div>
+              </div>
+ 
+            </div>
+          </div>
           
-          <p>Best regards,</p>
-          <p>The Flight Training Team</p>
+          <!-- Action Section -->
+          
+            <a href="${baseUrl}/addlog/review-log/${logDetails.id}" class="review-button">
+              Review Log Entry →
+            </a>
+         
         </div>
         
+        <!-- Simple Footer -->
         <div class="footer">
-          <p>This email was sent to ${email}</p>
-          <p>© ${new Date().getFullYear()} Flight Training System. All rights reserved.</p>
+          <div class="footer-content">
+ 
+            <div class="copyright">
+              © ${new Date().getFullYear()} Flight Training System. All rights reserved.
+            </div>
+          </div>
         </div>
       </div>
     </body>
     </html>
   `;
 };
+
