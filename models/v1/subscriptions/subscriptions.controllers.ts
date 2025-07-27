@@ -59,7 +59,6 @@ export const createCheckoutSession = async (req: any, res: Response) => {
       success_url:
         "myflutterapp://payment-success?session_id={CHECKOUT_SESSION_ID}",
       cancel_url: "myflutterapp://payment-cancel",
-
       metadata: {
         userId: userId,
         email: user?.email,
