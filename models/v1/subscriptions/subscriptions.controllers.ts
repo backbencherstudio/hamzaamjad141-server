@@ -24,7 +24,7 @@ export const createCheckoutSession = async (req: any, res: Response) => {
     if (existingSubscription) {
       res.status(400).json({
         success: false,
-        error: "User already has an active subscription",
+        message: "User already has an active subscription",
       });
       return;
     }
@@ -113,7 +113,7 @@ export const createPortalSession = async (req: any, res: Response) => {
     console.error("Portal session error:", error);
     res.status(400).json({
       success: false,
-      error: error.message,
+      message: error.message,
     });
   }
 };
