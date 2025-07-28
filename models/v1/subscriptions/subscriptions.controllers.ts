@@ -79,7 +79,7 @@ export const createCheckoutSession = async (req: any, res: Response) => {
     console.error("Checkout session error:", error);
     res.status(400).json({
       success: false,
-      error: error.message,
+      message: error.message,
     });
   }
 };
