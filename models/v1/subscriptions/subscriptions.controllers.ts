@@ -1,6 +1,11 @@
 import type { Request, Response } from "express";
 import Stripe from "stripe";
 import { PrismaClient } from "@prisma/client";
+import { 
+  sendPaymentSuccessEmail, 
+  sendPaymentFailedEmail, 
+  sendSubscriptionCancelledEmail 
+} from "../../../utils/emailService.utils";
 
 const prisma = new PrismaClient();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -183,6 +188,30 @@ export const verifyCheckoutSession = async (req: any, res: Response) => {
         },
       });
 
+      // Send success email if subscription is active
+      if (stripeSubscription.status === "active") {
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: userId },
+          });
+
+          if (user?.email) {
+            await sendPaymentSuccessEmail(
+              user.email,
+              user.name || "Valued Customer",
+              {
+                price: dbSubscription.price,
+                endDate: dbSubscription.endDate,
+                status: "ACTIVE"
+              }
+            );
+          }
+        } catch (emailError) {
+          console.error("Failed to send verification success email:", emailError);
+          // Don't throw error - email failure shouldn't break the response
+        }
+      }
+
       res.json({
         success: true,
         message: "Subscription activated successfully!",
@@ -314,6 +343,30 @@ const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) => {
         premium: stripeSubscription.status === "active", // Set premium based on Stripe's status
       },
     });
+
+    // Send success email if subscription is active
+    if (stripeSubscription.status === "active") {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+        });
+
+        if (user?.email) {
+          await sendPaymentSuccessEmail(
+            user.email,
+            user.name || "Valued Customer",
+            {
+              price: dbSubscription.price,
+              endDate: dbSubscription.endDate,
+              status: "ACTIVE"
+            }
+          );
+        }
+      } catch (emailError) {
+        console.error("Failed to send checkout success email:", emailError);
+        // Don't throw error - email failure shouldn't break webhook processing
+      }
+    }
   } catch (error) {
     console.error("Error handling checkout completed:", error);
   }
@@ -349,6 +402,28 @@ const handleSuccessfulPayment = async (invoice: Stripe.Invoice) => {
         where: { id: dbSubscription.userId },
         data: { premium: true },
       });
+
+      // Send success email to user
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: dbSubscription.userId },
+        });
+
+        if (user?.email) {
+          await sendPaymentSuccessEmail(
+            user.email,
+            user.name || "Valued Customer",
+            {
+              price: dbSubscription.price,
+              endDate: dbSubscription.endDate,
+              status: "ACTIVE"
+            }
+          );
+        }
+      } catch (emailError) {
+        console.error("Failed to send payment success email:", emailError);
+        // Don't throw error - email failure shouldn't break webhook processing
+      }
     }
   } catch (error) {
     console.error("Error processing successful payment:", error);
@@ -373,6 +448,28 @@ const handleFailedPayment = async (invoice: Stripe.Invoice) => {
       where: { id: dbSubscription.userId },
       data: { premium: false },
     });
+
+    // Send failed payment email to user
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: dbSubscription.userId },
+      });
+
+      if (user?.email) {
+        await sendPaymentFailedEmail(
+          user.email,
+          user.name || "Valued Customer",
+          {
+            price: dbSubscription.price,
+            endDate: dbSubscription.endDate,
+            status: "DEACTIVE"
+          }
+        );
+      }
+    } catch (emailError) {
+      console.error("Failed to send payment failed email:", emailError);
+      // Don't throw error - email failure shouldn't break webhook processing
+    }
   }
 };
 
@@ -402,6 +499,28 @@ const handleSubscriptionCancelled = async (
       where: { id: dbSubscription.userId },
       data: { premium: false },
     });
+  }
+
+  // Send subscription cancelled email to user
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: dbSubscription.userId },
+    });
+
+    if (user?.email) {
+      await sendSubscriptionCancelledEmail(
+        user.email,
+        user.name || "Valued Customer",
+        {
+          price: dbSubscription.price,
+          endDate: dbSubscription.endDate,
+          status: "DEACTIVE"
+        }
+      );
+    }
+  } catch (emailError) {
+    console.error("Failed to send subscription cancelled email:", emailError);
+    // Don't throw error - email failure shouldn't break webhook processing
   }
 };
 
@@ -683,6 +802,28 @@ export const cancelSubscription = async (req: any, res: Response) => {
       where: { id: subscription.userId },
       data: { premium: false },
     });
+
+    // Send subscription cancelled email to user
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: subscription.userId },
+      });
+
+      if (user?.email) {
+        await sendSubscriptionCancelledEmail(
+          user.email,
+          user.name || "Valued Customer",
+          {
+            price: subscription.price,
+            endDate: subscription.endDate,
+            status: "DEACTIVE"
+          }
+        );
+      }
+    } catch (emailError) {
+      console.error("Failed to send manual cancellation email:", emailError);
+      // Don't throw error - email failure shouldn't break the response
+    }
 
     return res.json({
       success: true,
