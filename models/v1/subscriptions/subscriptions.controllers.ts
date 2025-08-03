@@ -11,6 +11,36 @@ import {
 const prisma = new PrismaClient();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
+// Clean up invalid stripeCustomerId values
+export const cleanupInvalidStripeCustomerIds = async (req: any, res: Response) => {
+  try {
+    const result = await prisma.user.updateMany({
+      where: {
+        OR: [
+          { stripeCustomerId: 'null' },
+          { stripeCustomerId: '' },
+          { stripeCustomerId: ' ' },
+        ],
+      },
+      data: {
+        stripeCustomerId: null,
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: `Cleaned up ${result.count} invalid Stripe customer IDs`,
+      updatedUsers: result.count,
+    });
+  } catch (error: any) {
+    console.error("Cleanup error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
 // Create Stripe Checkout Session
 export const createCheckoutSession = async (req: any, res: Response) => {
   try {
@@ -37,8 +67,22 @@ export const createCheckoutSession = async (req: any, res: Response) => {
 
     // Create or retrieve Stripe customer
     let customer;
-    if (user.stripeCustomerId) {
-      customer = await stripe.customers.retrieve(user.stripeCustomerId);
+    if (user.stripeCustomerId && user.stripeCustomerId !== 'null' && user.stripeCustomerId.trim() !== '') {
+      try {
+        customer = await stripe.customers.retrieve(user.stripeCustomerId);
+      } catch (stripeError: any) {
+        console.error(`Invalid Stripe customer ID ${user.stripeCustomerId}:`, stripeError);
+        // If customer doesn't exist in Stripe, create a new one
+        customer = await stripe.customers.create({
+          email: user.email,
+          name: user.name,
+          metadata: { userId },
+        });
+        await prisma.user.update({
+          where: { id: userId },
+          data: { stripeCustomerId: customer.id },
+        });
+      }
     } else {
       customer = await stripe.customers.create({
         email: user.email,
@@ -96,10 +140,10 @@ export const createPortalSession = async (req: any, res: Response) => {
     const { userId } = req.user;
     const user = await prisma.user.findFirst({ where: { id: userId } });
 
-    if (!user || !user.stripeCustomerId) {
+    if (!user || !user.stripeCustomerId || user.stripeCustomerId === 'null' || user.stripeCustomerId.trim() === '') {
       res.status(400).json({
         success: false,
-        message: "User not found or no Stripe customer ID",
+        message: "User not found or no valid Stripe customer ID",
       });
       return;
     }
@@ -234,8 +278,21 @@ export const subscribe = async (req: any, res: Response) => {
     }
 
     let customer;
-    if (user.stripeCustomerId) {
-      customer = await stripe.customers.retrieve(user.stripeCustomerId);
+    if (user.stripeCustomerId && user.stripeCustomerId !== 'null' && user.stripeCustomerId.trim() !== '') {
+      try {
+        customer = await stripe.customers.retrieve(user.stripeCustomerId);
+      } catch (stripeError: any) {
+        console.error(`Invalid Stripe customer ID ${user.stripeCustomerId}:`, stripeError);
+        // If customer doesn't exist in Stripe, create a new one
+        customer = await stripe.customers.create({
+          email: user.email,
+          metadata: { userId },
+        });
+        await prisma.user.update({
+          where: { id: userId },
+          data: { stripeCustomerId: customer.id },
+        });
+      }
     } else {
       customer = await stripe.customers.create({
         email: user.email,
@@ -843,10 +900,10 @@ export const getSubscriptionInfo = async (req: any, res: Response) => {
       });
     }
 
-    if (!user.stripeCustomerId) {
+    if (!user.stripeCustomerId || user.stripeCustomerId === 'null' || user.stripeCustomerId.trim() === '') {
       return res.status(404).json({
         success: false,
-        message: "User does not have a Stripe customer ID",
+        message: "User does not have a valid Stripe customer ID",
       });
     }
 
