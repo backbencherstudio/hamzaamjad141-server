@@ -1,45 +1,9 @@
 import type { Request, Response } from "express";
 import Stripe from "stripe";
 import { PrismaClient } from "@prisma/client";
-import {
-  sendPaymentSuccessEmail,
-  sendPaymentFailedEmail,
-  sendSubscriptionCancelledEmail,
-  sendAutoRenewalUpcomingEmail,
-} from "../../../utils/emailService.utils";
 
 const prisma = new PrismaClient();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
-// Clean up invalid stripeCustomerId values
-export const cleanupInvalidStripeCustomerIds = async (req: any, res: Response) => {
-  try {
-    const result = await prisma.user.updateMany({
-      where: {
-        OR: [
-          { stripeCustomerId: 'null' },
-          { stripeCustomerId: '' },
-          { stripeCustomerId: ' ' },
-        ],
-      },
-      data: {
-        stripeCustomerId: null,
-      },
-    });
-
-    return res.json({
-      success: true,
-      message: `Cleaned up ${result.count} invalid Stripe customer IDs`,
-      updatedUsers: result.count,
-    });
-  } catch (error: any) {
-    console.error("Cleanup error:", error);
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-};
 
 // Create Stripe Checkout Session
 export const createCheckoutSession = async (req: any, res: Response) => {
@@ -67,22 +31,8 @@ export const createCheckoutSession = async (req: any, res: Response) => {
 
     // Create or retrieve Stripe customer
     let customer;
-    if (user.stripeCustomerId && user.stripeCustomerId !== 'null' && user.stripeCustomerId.trim() !== '') {
-      try {
-        customer = await stripe.customers.retrieve(user.stripeCustomerId);
-      } catch (stripeError: any) {
-        console.error(`Invalid Stripe customer ID ${user.stripeCustomerId}:`, stripeError);
-        // If customer doesn't exist in Stripe, create a new one
-        customer = await stripe.customers.create({
-          email: user.email,
-          name: user.name,
-          metadata: { userId },
-        });
-        await prisma.user.update({
-          where: { id: userId },
-          data: { stripeCustomerId: customer.id },
-        });
-      }
+    if (user.stripeCustomerId) {
+      customer = await stripe.customers.retrieve(user.stripeCustomerId);
     } else {
       customer = await stripe.customers.create({
         email: user.email,
@@ -140,10 +90,10 @@ export const createPortalSession = async (req: any, res: Response) => {
     const { userId } = req.user;
     const user = await prisma.user.findFirst({ where: { id: userId } });
 
-    if (!user || !user.stripeCustomerId || user.stripeCustomerId === 'null' || user.stripeCustomerId.trim() === '') {
+    if (!user || !user.stripeCustomerId) {
       res.status(400).json({
         success: false,
-        message: "User not found or no valid Stripe customer ID",
+        message: "User not found or no Stripe customer ID",
       });
       return;
     }
@@ -278,21 +228,8 @@ export const subscribe = async (req: any, res: Response) => {
     }
 
     let customer;
-    if (user.stripeCustomerId && user.stripeCustomerId !== 'null' && user.stripeCustomerId.trim() !== '') {
-      try {
-        customer = await stripe.customers.retrieve(user.stripeCustomerId);
-      } catch (stripeError: any) {
-        console.error(`Invalid Stripe customer ID ${user.stripeCustomerId}:`, stripeError);
-        // If customer doesn't exist in Stripe, create a new one
-        customer = await stripe.customers.create({
-          email: user.email,
-          metadata: { userId },
-        });
-        await prisma.user.update({
-          where: { id: userId },
-          data: { stripeCustomerId: customer.id },
-        });
-      }
+    if (user.stripeCustomerId) {
+      customer = await stripe.customers.retrieve(user.stripeCustomerId);
     } else {
       customer = await stripe.customers.create({
         email: user.email,
@@ -499,21 +436,6 @@ const handleSuccessfulPayment = async (invoice: Stripe.Invoice) => {
         where: { id: dbSubscription.userId },
         data: { premium: true },
       });
-
-      // Send payment success email
-      try {
-        const user = await prisma.user.findFirst({
-          where: { id: dbSubscription.userId },
-        });
-        if (user) {
-          await sendPaymentSuccessEmail(user.email, user.name, {
-            price: dbSubscription.price,
-            endDate: dbSubscription.endDate,
-          });
-        }
-      } catch (emailError) {
-        console.error("Failed to send payment success email:", emailError);
-      }
     }
   } catch (error) {
     console.error("Error processing successful payment:", error);
@@ -538,21 +460,6 @@ const handleFailedPayment = async (invoice: Stripe.Invoice) => {
       where: { id: dbSubscription.userId },
       data: { premium: false },
     });
-
-    // Send payment failed email
-    try {
-      const user = await prisma.user.findFirst({
-        where: { id: dbSubscription.userId },
-      });
-      if (user) {
-        await sendPaymentFailedEmail(user.email, user.name, {
-          price: dbSubscription.price,
-          endDate: dbSubscription.endDate,
-        });
-      }
-    } catch (emailError) {
-      console.error("Failed to send payment failed email:", emailError);
-    }
   }
 };
 
@@ -580,21 +487,6 @@ const handleSubscriptionCancelled = async (
       where: { id: dbSubscription.userId },
       data: { premium: false },
     });
-  }
-
-  // Send subscription cancelled email
-  try {
-    const user = await prisma.user.findFirst({
-      where: { id: dbSubscription.userId },
-    });
-    if (user) {
-      await sendSubscriptionCancelledEmail(user.email, user.name, {
-        price: dbSubscription.price,
-        endDate: dbSubscription.endDate,
-      });
-    }
-  } catch (emailError) {
-    console.error("Failed to send subscription cancelled email:", emailError);
   }
 };
 
@@ -883,147 +775,3 @@ export const cancelSubscription = async (req: any, res: Response) => {
     });
   }
 };
-
-
-export const getSubscriptionInfo = async (req: any, res: Response) => {
-  try {
-    const { userId } = req.user;
-
-    const user = await prisma.user.findFirst({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    if (!user.stripeCustomerId || user.stripeCustomerId === 'null' || user.stripeCustomerId.trim() === '') {
-      return res.status(404).json({
-        success: false,
-        message: "User does not have a valid Stripe customer ID",
-      });
-    }
-
-
-    const stripeSubscriptions = await stripe.subscriptions.list({
-      customer: user.stripeCustomerId,
-      status: 'all',
-      expand: ['data.items'],
-    });
-
-    console.log("stripeSubscriptions", stripeSubscriptions)
-
-    const activeSubscription = stripeSubscriptions.data.find(
-      (subscription) => subscription.status === 'active'
-    );
-
-    if (!activeSubscription) {
-      return res.status(404).json({
-        success: false,
-        message: "No active subscription found",
-      });
-    }
-
-     const sub = activeSubscription as any;
-     const subscriptionInfo = {
-       hasActiveSubscription: true,
-       isPremium: true,
-       subscriptionStatus: {
-         id: sub.id,
-         status: sub.status,
-         startDate: sub.start_date ? new Date(sub.start_date * 1000) : null,
-         endDate: sub.current_period_end ? new Date(sub.current_period_end * 1000) : null,
-         price: sub.items?.data?.[0]?.price?.unit_amount ? sub.items.data[0].price.unit_amount / 100 : 0,
-         subscribedBy: user.email,
-       },
-       currentPeriodEnd: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
-       cancelAtPeriodEnd: sub.cancel_at_period_end || false,
-       autoRenewal: !sub.cancel_at_period_end,
-     };
-
-    return res.json({
-      success: true,
-      subscriptionInfo,
-    });
-  } catch (error: any) {
-    console.error("Get subscription info error:", error);
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-};
-
-// Auto-renewal reminder function (to be called by cron job)
-// export const sendAutoRenewalReminders = async (req: any, res: Response) => {
-//   try {
-//     // Find subscriptions that will renew in 3 days
-//     const threeDaysFromNow = new Date();
-//     threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
-    
-//     const upcomingRenewals = await prisma.subscription.findMany({
-//       where: {
-//         status: "ACTIVE",
-//         endDate: {
-//           gte: new Date(),
-//           lte: threeDaysFromNow,
-//         },
-//         stripeSubscriptionId: {
-//           not: null,
-//         },
-//       },
-//       include: {
-//         user: true,
-//       },
-//     });
-
-//     let emailsSent = 0;
-//     let errors = 0;
-
-//     for (const subscription of upcomingRenewals) {
-//       try {
-//         // Check if subscription is set to auto-renew in Stripe
-//         if (subscription.stripeSubscriptionId) {
-//           const stripeSubscription = await stripe.subscriptions.retrieve(
-//             subscription.stripeSubscriptionId
-//           );
-          
-//           // Only send reminder if auto-renewal is enabled
-//           if (!stripeSubscription.cancel_at_period_end && subscription.user) {
-//             await sendAutoRenewalUpcomingEmail(
-//               subscription.user.email,
-//               subscription.user.name,
-//               {
-//                 price: subscription.price,
-//                 endDate: subscription.endDate,
-//               }
-//             );
-//             emailsSent++;
-//           }
-//         }
-//       } catch (emailError) {
-//         console.error(`Failed to send auto-renewal reminder to ${subscription.user?.email}:`, emailError);
-//         errors++;
-//       }
-//     }
-
-//     return res.json({
-//       success: true,
-//       message: `Auto-renewal reminders processed`,
-//       stats: {
-//         totalSubscriptions: upcomingRenewals.length,
-//         emailsSent,
-//         errors,
-//       },
-//     });
-//   } catch (error: any) {
-//     console.error("Auto-renewal reminder error:", error);
-//     return res.status(500).json({
-//       success: false,
-//       error: error.message,
-//     });
-//   }
-// };
