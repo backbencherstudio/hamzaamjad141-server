@@ -12,6 +12,7 @@ import {
   createPortalSession,
   verifyCheckoutSession,
   getSubscriptionInfo,
+  cleanupInvalidStripeCustomerIds,
 } from "./subscriptions.controllers"
 import { verifyUser } from "../../../middleware/verifyUsers"
 
@@ -28,6 +29,9 @@ router.post("/subscribe-with-promo", verifyUser("ANY"), subscribeWithPromoCode)
 router.post("/cancel", verifyUser("ANY"), cancelSubscription)
 
 router.get("/info", verifyUser("ANY"), getSubscriptionInfo)
+
+// Cleanup invalid Stripe customer IDs (one-time fix)
+router.post("/cleanup-invalid-customers", verifyUser("ADMIN"), cleanupInvalidStripeCustomerIds)
 
 // Auto-renewal reminders (for cron job)
 // router.post("/send-renewal-reminders", sendAutoRenewalReminders)
