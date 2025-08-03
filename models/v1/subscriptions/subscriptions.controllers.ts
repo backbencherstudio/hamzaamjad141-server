@@ -410,6 +410,7 @@ const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) => {
 };
 
 const handleSuccessfulPayment = async (invoice: Stripe.Invoice) => {
+  console.log("111111111111111111")
   const subscriptionId = (invoice as any).subscription as string;
   if (!subscriptionId) return;
 
