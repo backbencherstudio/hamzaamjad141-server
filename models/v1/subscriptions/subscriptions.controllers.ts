@@ -149,12 +149,12 @@ export const verifyCheckoutSession = async (req: any, res: Response) => {
             userId,
             price:
               (stripeSubscription.items.data[0].price.unit_amount || 0) / 100,
-            startDate: new Date(
-              (stripeSubscription as any).current_period_start * 1000
-            ),
-            endDate: new Date(
-              (stripeSubscription as any).current_period_end * 1000
-            ),
+            startDate: (stripeSubscription as any).current_period_start
+              ? new Date((stripeSubscription as any).current_period_start * 1000)
+              : new Date(),
+            endDate: (stripeSubscription as any).current_period_end
+              ? new Date((stripeSubscription as any).current_period_end * 1000)
+              : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days fallback
             status:
               stripeSubscription.status === "active" ? "ACTIVE" : "DEACTIVE", // Use Stripe's status
             stripeSubscriptionId: stripeSubscription.id,
@@ -167,9 +167,9 @@ export const verifyCheckoutSession = async (req: any, res: Response) => {
           data: {
             status:
               stripeSubscription.status === "active" ? "ACTIVE" : "DEACTIVE",
-            endDate: new Date(
-              (stripeSubscription as any).current_period_end * 1000
-            ),
+            endDate: (stripeSubscription as any).current_period_end
+              ? new Date((stripeSubscription as any).current_period_end * 1000)
+              : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days fallback
           },
         });
       }
@@ -281,12 +281,12 @@ const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) => {
           userId,
           price:
             (stripeSubscription.items.data[0].price.unit_amount || 0) / 100,
-          startDate: new Date(
-            (stripeSubscription as any).current_period_start * 1000
-          ),
-          endDate: new Date(
-            (stripeSubscription as any).current_period_end * 1000
-          ),
+          startDate: (stripeSubscription as any).current_period_start
+            ? new Date((stripeSubscription as any).current_period_start * 1000)
+            : new Date(),
+          endDate: (stripeSubscription as any).current_period_end
+            ? new Date((stripeSubscription as any).current_period_end * 1000)
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days fallback
           status:
             stripeSubscription.status === "active" ? "ACTIVE" : "DEACTIVE", // Use Stripe's status
           stripeSubscriptionId: stripeSubscription.id,
@@ -299,9 +299,9 @@ const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) => {
         data: {
           status:
             stripeSubscription.status === "active" ? "ACTIVE" : "DEACTIVE",
-          endDate: new Date(
-            (stripeSubscription as any).current_period_end * 1000
-          ),
+          endDate: (stripeSubscription as any).current_period_end
+            ? new Date((stripeSubscription as any).current_period_end * 1000)
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days fallback
         },
       });
     }
@@ -328,7 +328,9 @@ const handleSuccessfulPayment = async (invoice: Stripe.Invoice) => {
     const subscription = (await stripe.subscriptions.retrieve(
       subscriptionId
     )) as Stripe.Subscription;
-    const endDate = new Date((subscription as any).current_period_end * 1000);
+    const endDate = (subscription as any).current_period_end
+      ? new Date((subscription as any).current_period_end * 1000)
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days fallback
 
     await prisma.subscription.updateMany({
       where: { stripeSubscriptionId: subscriptionId },
@@ -382,7 +384,9 @@ const handleSubscriptionCancelled = async (
   });
   if (!dbSubscription) return;
 
-  const endDate = new Date((subscription as any).current_period_end * 1000);
+  const endDate = (subscription as any).current_period_end
+    ? new Date((subscription as any).current_period_end * 1000)
+    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days fallback
   const isExpired = endDate <= new Date();
 
   await prisma.subscription.update({
@@ -407,7 +411,9 @@ const handleSubscriptionUpdated = async (subscription: Stripe.Subscription) => {
   });
   if (!dbSubscription) return;
 
-  const endDate = new Date((subscription as any).current_period_end * 1000);
+  const endDate = (subscription as any).current_period_end
+    ? new Date((subscription as any).current_period_end * 1000)
+    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days fallback
 
   await prisma.subscription.update({
     where: { id: dbSubscription.id },
@@ -435,13 +441,17 @@ const handleSubscriptionCreated = async (subscription: Stripe.Subscription) => {
   });
   if (!user) return;
 
-  const endDate = new Date((subscription as any).current_period_end * 1000);
+  const endDate = (subscription as any).current_period_end
+    ? new Date((subscription as any).current_period_end * 1000)
+    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days fallback
 
   const dbSubscription = await prisma.subscription.create({
     data: {
       userId: user.id,
       price: (subscription.items.data[0].price.unit_amount || 0) / 100,
-      startDate: new Date(subscription.start_date * 1000),
+      startDate: (subscription as any).start_date 
+        ? new Date((subscription as any).start_date * 1000)
+        : new Date(),
       endDate: endDate,
       status: subscription.status === "active" ? "ACTIVE" : "DEACTIVE",
       stripeSubscriptionId: subscription.id,
