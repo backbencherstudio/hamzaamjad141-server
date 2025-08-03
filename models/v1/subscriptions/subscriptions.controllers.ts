@@ -298,44 +298,86 @@ export const subscribe = async (req: any, res: Response) => {
 
 export const handleWebhook = async (req: Request, res: Response) => {
   console.log("Webhook received");
-  console.log(284, process.env.STRIPE_WEBHOOK_SECRET);
-
+  console.log("Request body type:", typeof req.body);
+  console.log("Request body is Buffer:", Buffer.isBuffer(req.body));
+  console.log("Request body length:", req.body?.length);
+  
   const sig = req.headers["stripe-signature"] as string;
+  
+  if (!sig) {
+    console.error("Missing stripe-signature header");
+    return res.status(400).json({ error: "Missing stripe-signature header" });
+  }
+
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    console.error("Missing STRIPE_WEBHOOK_SECRET environment variable");
+    return res.status(500).json({ error: "Webhook configuration error" });
+  }
+
+  console.log("Stripe signature:", sig);
+  console.log("Webhook secret exists:", !!process.env.STRIPE_WEBHOOK_SECRET);
 
   try {
     const event = stripe.webhooks.constructEvent(
       req.body,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      process.env.STRIPE_WEBHOOK_SECRET
     );
     console.log(`Webhook event received: ${event.type}`);
 
     switch (event.type) {
       case "checkout.session.completed":
-        await handleCheckoutCompleted(
-          event.data.object as Stripe.Checkout.Session
-        );
+        try {
+          await handleCheckoutCompleted(
+            event.data.object as Stripe.Checkout.Session
+          );
+        } catch (error) {
+          console.error("Error handling checkout.session.completed:", error);
+        }
         break;
       case "invoice.paid":
-        await handleSuccessfulPayment(event.data.object as Stripe.Invoice);
+        try {
+          await handleSuccessfulPayment(event.data.object as Stripe.Invoice);
+        } catch (error) {
+          console.error("Error handling invoice.paid:", error);
+        }
         break;
       case "invoice.payment_failed":
-        await handleFailedPayment(event.data.object as Stripe.Invoice);
+        try {
+          await handleFailedPayment(event.data.object as Stripe.Invoice);
+        } catch (error) {
+          console.error("Error handling invoice.payment_failed:", error);
+        }
         break;
       case "customer.subscription.deleted":
-        await handleSubscriptionCancelled(
-          event.data.object as Stripe.Subscription
-        );
+        try {
+          await handleSubscriptionCancelled(
+            event.data.object as Stripe.Subscription
+          );
+        } catch (error) {
+          console.error("Error handling customer.subscription.deleted:", error);
+        }
         break;
       case "customer.subscription.updated":
-        await handleSubscriptionUpdated(
-          event.data.object as Stripe.Subscription
-        );
+        try {
+          await handleSubscriptionUpdated(
+            event.data.object as Stripe.Subscription
+          );
+        } catch (error) {
+          console.error("Error handling customer.subscription.updated:", error);
+        }
         break;
       case "customer.subscription.created":
-        await handleSubscriptionCreated(
-          event.data.object as Stripe.Subscription
-        );
+        try {
+          await handleSubscriptionCreated(
+            event.data.object as Stripe.Subscription
+          );
+        } catch (error) {
+          console.error("Error handling customer.subscription.created:", error);
+        }
+        break;
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
         break;
     }
 
