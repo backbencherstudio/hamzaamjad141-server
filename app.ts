@@ -9,20 +9,13 @@ import bodyParser from "body-parser";
 
 const app = express();
 
+// IMPORTANT: Webhook raw body parsing MUST come before any other body parsing or CORS
+app.use("/subscription/webhook", bodyParser.raw({ 
+  type: "application/json",
+  limit: "10mb" // Increase limit if needed
+}));
 
-app.use("/subscription/webhook", bodyParser.raw({ type: "application/json" }));
-
-// General body parsing for all other routes
-app.use((req, res, next) => {
-  if (req.originalUrl === "/subscription/webhook") {
-    // Skip JSON parsing for webhook
-    next();
-  } else {
-    express.json()(req, res, next);
-  }
-});
-
-// Apply CORS first
+// Apply CORS after webhook setup
 app.use(
   cors({
     origin: [
@@ -45,6 +38,16 @@ app.use(
     ],
   })
 );
+
+// General body parsing for all other routes (skip webhook)
+app.use((req, res, next) => {
+  if (req.originalUrl === "/subscription/webhook") {
+    // Skip JSON parsing for webhook - it already has raw body
+    next();
+  } else {
+    express.json()(req, res, next);
+  }
+});
 
 app.use(express.urlencoded({ extended: true }));
 

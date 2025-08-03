@@ -297,10 +297,18 @@ export const subscribe = async (req: any, res: Response) => {
 };
 
 export const handleWebhook = async (req: Request, res: Response) => {
+  console.log("=== WEBHOOK DEBUG START ===");
   console.log("Webhook received");
+  console.log("Request method:", req.method);
+  console.log("Request URL:", req.originalUrl);
   console.log("Request body type:", typeof req.body);
   console.log("Request body is Buffer:", Buffer.isBuffer(req.body));
   console.log("Request body length:", req.body?.length);
+  console.log("Request headers:", JSON.stringify(req.headers, null, 2));
+  
+  if (req.body) {
+    console.log("Body preview (first 100 chars):", req.body.toString().substring(0, 100));
+  }
   
   const sig = req.headers["stripe-signature"] as string;
   
@@ -314,12 +322,29 @@ export const handleWebhook = async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Webhook configuration error" });
   }
 
-  console.log("Stripe signature:", sig);
+  console.log("Stripe signature header:", sig);
   console.log("Webhook secret exists:", !!process.env.STRIPE_WEBHOOK_SECRET);
+  console.log("=== WEBHOOK DEBUG END ===");
 
   try {
+    // Ensure body is in the correct format for Stripe
+    let webhookBody = req.body;
+    
+    // Try different body formats for Stripe webhook verification
+    if (typeof webhookBody === 'string') {
+      console.log("Body is string, converting to Buffer...");
+      webhookBody = Buffer.from(webhookBody, 'utf8');
+    } else if (!Buffer.isBuffer(webhookBody)) {
+      console.log("Body is not Buffer, converting...");
+      webhookBody = Buffer.from(JSON.stringify(webhookBody), 'utf8');
+    }
+    
+    console.log("Final body type for Stripe:", typeof webhookBody);
+    console.log("Final body is Buffer:", Buffer.isBuffer(webhookBody));
+    console.log("Final body length:", webhookBody.length);
+    
     const event = stripe.webhooks.constructEvent(
-      req.body,
+      webhookBody,
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
