@@ -2,7 +2,10 @@ config/gcs-key.json
 node_modules
 uploads
 dist
+temp_auto_push.bat
 *.log
 prisma/migrations
 .env
 a.py
+.gitignore
+branch_structure.json
