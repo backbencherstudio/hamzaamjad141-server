@@ -116,7 +116,7 @@ export const paymentSuccessTemplate = (userName: string, subscriptionDetails: an
             
             <p>Your premium features are now active and you can enjoy unlimited access to all our services.</p>
             
-            <a href="${baseUrl}" class="cta-button">Access Your Account</a>
+            
           </div>
           <div class="footer">
             <p>Thank you for choosing Left Seat Lessons!</p>
@@ -229,7 +229,7 @@ export const paymentFailedTemplate = (userName: string, subscriptionDetails: any
               <li>Bank declined the transaction</li>
             </ul>
             
-            <a href="${baseUrl}/subscription" class="cta-button">Update Payment Method</a>
+     
           </div>
           <div class="footer">
             <p>Need help? Contact our support team immediately.</p>
@@ -355,7 +355,7 @@ export const subscriptionCancelledTemplate = (userName: string, subscriptionDeta
             
             <p>We're sorry to see you go! If you change your mind, you can reactivate your subscription anytime.</p>
             
-            <a href="${baseUrl}/subscription" class="cta-button">Reactivate Subscription</a>
+
           </div>
           <div class="footer">
             <p>We'd love to have you back!</p>
@@ -487,13 +487,6 @@ export const autoRenewalUpcomingTemplate = (userName: string, subscriptionDetail
             
             <p>Your subscription will automatically renew and continue your premium access without interruption.</p>
             
-            <p>No action is required unless you want to make changes to your subscription.</p>
-            
-            <div style="text-align: center;">
-              <a href="${baseUrl}/subscription" class="cta-button">Manage Subscription</a>
-              <a href="${baseUrl}/subscription/cancel" class="cta-button cancel-button">Cancel Auto-Renewal</a>
-            </div>
-          </div>
           <div class="footer">
             <p>Questions? Contact our support team anytime.</p>
             <p>Thank you for being a valued member!</p>
