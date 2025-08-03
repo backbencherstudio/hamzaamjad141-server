@@ -11,7 +11,7 @@ import {
   createCheckoutSession,
   createPortalSession,
   verifyCheckoutSession,
-  getSubscriptionInfo
+  getSubscriptionInfo,
 } from "./subscriptions.controllers"
 import { verifyUser } from "../../../middleware/verifyUsers"
 
@@ -28,6 +28,9 @@ router.post("/subscribe-with-promo", verifyUser("ANY"), subscribeWithPromoCode)
 router.post("/cancel", verifyUser("ANY"), cancelSubscription)
 
 router.get("/info", verifyUser("ANY"), getSubscriptionInfo)
+
+// Auto-renewal reminders (for cron job)
+// router.post("/send-renewal-reminders", sendAutoRenewalReminders)
 
 // Webhook endpoint
 router.post("/webhook", handleWebhook)

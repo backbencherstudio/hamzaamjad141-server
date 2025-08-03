@@ -6,6 +6,10 @@ import {
   instructorConformationsTamplate,
   otpVerificationEmailTamplate,
   recentOtpVerificationEmail,
+  paymentSuccessTemplate,
+  paymentFailedTemplate,
+  subscriptionCancelledTemplate,
+  autoRenewalUpcomingTemplate,
 } from "./email_message";
 
 dotenv.config();
@@ -109,6 +113,70 @@ export const instructorConformations = async (
   } catch (error) {
     console.error(`Failed to send instructor confirmation email to ${instructorEmail}:`, error);
     throw new Error(`Failed to send instructor confirmation: ${error.message}`);
+  }
+};
+
+// Payment Success Email
+export const sendPaymentSuccessEmail = async (
+  email: string,
+  userName: string,
+  subscriptionDetails: any
+): Promise<void> => {
+  try {
+    const htmlContent = paymentSuccessTemplate(userName, subscriptionDetails);
+    await sendEmail(email, "Payment Successful - Left Seat Lessons", htmlContent);
+    console.log(`Payment success email sent to ${email}`);
+  } catch (error: any) {
+    console.error(`Failed to send payment success email to ${email}:`, error);
+    throw new Error(`Failed to send payment success email: ${error.message}`);
+  }
+};
+
+// Payment Failed Email
+export const sendPaymentFailedEmail = async (
+  email: string,
+  userName: string,
+  subscriptionDetails: any
+): Promise<void> => {
+  try {
+    const htmlContent = paymentFailedTemplate(userName, subscriptionDetails);
+    await sendEmail(email, "Payment Failed - Action Required", htmlContent);
+    console.log(`Payment failed email sent to ${email}`);
+  } catch (error: any) {
+    console.error(`Failed to send payment failed email to ${email}:`, error);
+    throw new Error(`Failed to send payment failed email: ${error.message}`);
+  }
+};
+
+// Subscription Cancelled Email
+export const sendSubscriptionCancelledEmail = async (
+  email: string,
+  userName: string,
+  subscriptionDetails: any
+): Promise<void> => {
+  try {
+    const htmlContent = subscriptionCancelledTemplate(userName, subscriptionDetails);
+    await sendEmail(email, "Subscription Cancelled - Left Seat Lessons", htmlContent);
+    console.log(`Subscription cancelled email sent to ${email}`);
+  } catch (error: any) {
+    console.error(`Failed to send subscription cancelled email to ${email}:`, error);
+    throw new Error(`Failed to send subscription cancelled email: ${error.message}`);
+  }
+};
+
+// Auto-Renewal Upcoming Email
+export const sendAutoRenewalUpcomingEmail = async (
+  email: string,
+  userName: string,
+  subscriptionDetails: any
+): Promise<void> => {
+  try {
+    const htmlContent = autoRenewalUpcomingTemplate(userName, subscriptionDetails);
+    await sendEmail(email, "Auto-Renewal Reminder - Left Seat Lessons", htmlContent);
+    console.log(`Auto-renewal upcoming email sent to ${email}`);
+  } catch (error: any) {
+    console.error(`Failed to send auto-renewal upcoming email to ${email}:`, error);
+    throw new Error(`Failed to send auto-renewal upcoming email: ${error.message}`);
   }
 };
 

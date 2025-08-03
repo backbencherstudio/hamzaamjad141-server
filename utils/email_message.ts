@@ -1,5 +1,509 @@
 import { baseUrl } from "./base_utl";
 
+// Payment Success Email Template
+export const paymentSuccessTemplate = (userName: string, subscriptionDetails: any): string => {
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Payment Successful | Left Seat Lessons</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #1a1a1a;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+          }
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+          }
+          .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+          }
+          .content {
+            padding: 40px 30px;
+          }
+          .success-icon {
+            font-size: 48px;
+            color: #28a745;
+            margin-bottom: 20px;
+          }
+          .title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #1a1a1a;
+          }
+          .subtitle {
+            font-size: 16px;
+            color: #6c757d;
+            margin-bottom: 30px;
+          }
+          .details-box {
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+          }
+          .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+          }
+          .detail-label {
+            font-weight: 500;
+            color: #495057;
+          }
+          .detail-value {
+            color: #1a1a1a;
+            font-weight: 600;
+          }
+          .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            margin: 20px 0;
+          }
+          .footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Left Seat Lessons</h1>
+          </div>
+          <div class="content">
+            <div class="success-icon">✅</div>
+            <h2 class="title">Payment Successful!</h2>
+            <p class="subtitle">Hi ${userName}, your subscription payment has been processed successfully.</p>
+            
+            <div class="details-box">
+              <div class="detail-row">
+                <span class="detail-label">Subscription Status:</span>
+                <span class="detail-value">Active</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Amount Paid:</span>
+                <span class="detail-value">$${subscriptionDetails.price}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Next Billing Date:</span>
+                <span class="detail-value">${new Date(subscriptionDetails.endDate).toLocaleDateString()}</span>
+              </div>
+            </div>
+            
+            <p>Your premium features are now active and you can enjoy unlimited access to all our services.</p>
+            
+            <a href="${baseUrl}" class="cta-button">Access Your Account</a>
+          </div>
+          <div class="footer">
+            <p>Thank you for choosing Left Seat Lessons!</p>
+            <p>If you have any questions, contact our support team.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+};
+
+// Payment Failed Email Template
+export const paymentFailedTemplate = (userName: string, subscriptionDetails: any): string => {
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Payment Failed | Left Seat Lessons</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #1a1a1a;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+          }
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+          }
+          .header {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+          }
+          .content {
+            padding: 40px 30px;
+          }
+          .warning-icon {
+            font-size: 48px;
+            color: #dc3545;
+            margin-bottom: 20px;
+          }
+          .title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #1a1a1a;
+          }
+          .subtitle {
+            font-size: 16px;
+            color: #6c757d;
+            margin-bottom: 30px;
+          }
+          .alert-box {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #721c24;
+          }
+          .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            margin: 20px 0;
+          }
+          .footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Left Seat Lessons</h1>
+          </div>
+          <div class="content">
+            <div class="warning-icon">⚠️</div>
+            <h2 class="title">Payment Failed</h2>
+            <p class="subtitle">Hi ${userName}, we were unable to process your subscription payment.</p>
+            
+            <div class="alert-box">
+              <strong>Action Required:</strong> Your subscription payment of $${subscriptionDetails.price} failed. 
+              Please update your payment method to continue enjoying our premium services.
+            </div>
+            
+            <p>Common reasons for payment failure:</p>
+            <ul>
+              <li>Insufficient funds</li>
+              <li>Expired credit card</li>
+              <li>Incorrect billing information</li>
+              <li>Bank declined the transaction</li>
+            </ul>
+            
+            <a href="${baseUrl}/subscription" class="cta-button">Update Payment Method</a>
+          </div>
+          <div class="footer">
+            <p>Need help? Contact our support team immediately.</p>
+            <p>We're here to help you get back on track!</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+};
+
+// Subscription Cancelled Email Template
+export const subscriptionCancelledTemplate = (userName: string, subscriptionDetails: any): string => {
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Subscription Cancelled | Left Seat Lessons</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #1a1a1a;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+          }
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+          }
+          .header {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+          }
+          .content {
+            padding: 40px 30px;
+          }
+          .info-icon {
+            font-size: 48px;
+            color: #6c757d;
+            margin-bottom: 20px;
+          }
+          .title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #1a1a1a;
+          }
+          .subtitle {
+            font-size: 16px;
+            color: #6c757d;
+            margin-bottom: 30px;
+          }
+          .details-box {
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+          }
+          .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+          }
+          .detail-label {
+            font-weight: 500;
+            color: #495057;
+          }
+          .detail-value {
+            color: #1a1a1a;
+            font-weight: 600;
+          }
+          .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            margin: 20px 0;
+          }
+          .footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Left Seat Lessons</h1>
+          </div>
+          <div class="content">
+            <div class="info-icon">📋</div>
+            <h2 class="title">Subscription Cancelled</h2>
+            <p class="subtitle">Hi ${userName}, your subscription has been cancelled as requested.</p>
+            
+            <div class="details-box">
+              <div class="detail-row">
+                <span class="detail-label">Cancellation Date:</span>
+                <span class="detail-value">${new Date().toLocaleDateString()}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Access Until:</span>
+                <span class="detail-value">${new Date(subscriptionDetails.endDate).toLocaleDateString()}</span>
+              </div>
+            </div>
+            
+            <p>Your premium access will continue until ${new Date(subscriptionDetails.endDate).toLocaleDateString()}. After this date, your account will revert to the free plan.</p>
+            
+            <p>We're sorry to see you go! If you change your mind, you can reactivate your subscription anytime.</p>
+            
+            <a href="${baseUrl}/subscription" class="cta-button">Reactivate Subscription</a>
+          </div>
+          <div class="footer">
+            <p>We'd love to have you back!</p>
+            <p>Thank you for being part of the Left Seat Lessons community.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+};
+
+// Auto-Renewal Upcoming Email Template
+export const autoRenewalUpcomingTemplate = (userName: string, subscriptionDetails: any): string => {
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Auto-Renewal Reminder | Left Seat Lessons</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #1a1a1a;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+          }
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+          }
+          .header {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+          }
+          .content {
+            padding: 40px 30px;
+          }
+          .reminder-icon {
+            font-size: 48px;
+            color: #17a2b8;
+            margin-bottom: 20px;
+          }
+          .title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #1a1a1a;
+          }
+          .subtitle {
+            font-size: 16px;
+            color: #6c757d;
+            margin-bottom: 30px;
+          }
+          .details-box {
+            background-color: #e7f3ff;
+            border: 1px solid #b8daff;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+          }
+          .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+          }
+          .detail-label {
+            font-weight: 500;
+            color: #495057;
+          }
+          .detail-value {
+            color: #1a1a1a;
+            font-weight: 600;
+          }
+          .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            margin: 10px 5px;
+          }
+          .cancel-button {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+          }
+          .footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Left Seat Lessons</h1>
+          </div>
+          <div class="content">
+            <div class="reminder-icon">🔄</div>
+            <h2 class="title">Auto-Renewal Reminder</h2>
+            <p class="subtitle">Hi ${userName}, your subscription will auto-renew in 3 days.</p>
+            
+            <div class="details-box">
+              <div class="detail-row">
+                <span class="detail-label">Renewal Date:</span>
+                <span class="detail-value">${new Date(subscriptionDetails.endDate).toLocaleDateString()}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Amount to be charged:</span>
+                <span class="detail-value">$${subscriptionDetails.price}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Payment Method:</span>
+                <span class="detail-value">Card ending in ****</span>
+              </div>
+            </div>
+            
+            <p>Your subscription will automatically renew and continue your premium access without interruption.</p>
+            
+            <p>No action is required unless you want to make changes to your subscription.</p>
+            
+            <div style="text-align: center;">
+              <a href="${baseUrl}/subscription" class="cta-button">Manage Subscription</a>
+              <a href="${baseUrl}/subscription/cancel" class="cta-button cancel-button">Cancel Auto-Renewal</a>
+            </div>
+          </div>
+          <div class="footer">
+            <p>Questions? Contact our support team anytime.</p>
+            <p>Thank you for being a valued member!</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+};
+
 export const otpVerificationEmailTamplate = (OTP: string): string => {
   return `
     <!DOCTYPE html>

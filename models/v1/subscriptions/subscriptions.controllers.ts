@@ -1,6 +1,12 @@
 import type { Request, Response } from "express";
 import Stripe from "stripe";
 import { PrismaClient } from "@prisma/client";
+import {
+  sendPaymentSuccessEmail,
+  sendPaymentFailedEmail,
+  sendSubscriptionCancelledEmail,
+  sendAutoRenewalUpcomingEmail,
+} from "../../../utils/emailService.utils";
 
 const prisma = new PrismaClient();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -436,6 +442,21 @@ const handleSuccessfulPayment = async (invoice: Stripe.Invoice) => {
         where: { id: dbSubscription.userId },
         data: { premium: true },
       });
+
+      // Send payment success email
+      try {
+        const user = await prisma.user.findFirst({
+          where: { id: dbSubscription.userId },
+        });
+        if (user) {
+          await sendPaymentSuccessEmail(user.email, user.name, {
+            price: dbSubscription.price,
+            endDate: dbSubscription.endDate,
+          });
+        }
+      } catch (emailError) {
+        console.error("Failed to send payment success email:", emailError);
+      }
     }
   } catch (error) {
     console.error("Error processing successful payment:", error);
@@ -460,6 +481,21 @@ const handleFailedPayment = async (invoice: Stripe.Invoice) => {
       where: { id: dbSubscription.userId },
       data: { premium: false },
     });
+
+    // Send payment failed email
+    try {
+      const user = await prisma.user.findFirst({
+        where: { id: dbSubscription.userId },
+      });
+      if (user) {
+        await sendPaymentFailedEmail(user.email, user.name, {
+          price: dbSubscription.price,
+          endDate: dbSubscription.endDate,
+        });
+      }
+    } catch (emailError) {
+      console.error("Failed to send payment failed email:", emailError);
+    }
   }
 };
 
@@ -487,6 +523,21 @@ const handleSubscriptionCancelled = async (
       where: { id: dbSubscription.userId },
       data: { premium: false },
     });
+  }
+
+  // Send subscription cancelled email
+  try {
+    const user = await prisma.user.findFirst({
+      where: { id: dbSubscription.userId },
+    });
+    if (user) {
+      await sendSubscriptionCancelledEmail(user.email, user.name, {
+        price: dbSubscription.price,
+        endDate: dbSubscription.endDate,
+      });
+    }
+  } catch (emailError) {
+    console.error("Failed to send subscription cancelled email:", emailError);
   }
 };
 
@@ -848,3 +899,74 @@ export const getSubscriptionInfo = async (req: any, res: Response) => {
     });
   }
 };
+
+// Auto-renewal reminder function (to be called by cron job)
+// export const sendAutoRenewalReminders = async (req: any, res: Response) => {
+//   try {
+//     // Find subscriptions that will renew in 3 days
+//     const threeDaysFromNow = new Date();
+//     threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+    
+//     const upcomingRenewals = await prisma.subscription.findMany({
+//       where: {
+//         status: "ACTIVE",
+//         endDate: {
+//           gte: new Date(),
+//           lte: threeDaysFromNow,
+//         },
+//         stripeSubscriptionId: {
+//           not: null,
+//         },
+//       },
+//       include: {
+//         user: true,
+//       },
+//     });
+
+//     let emailsSent = 0;
+//     let errors = 0;
+
+//     for (const subscription of upcomingRenewals) {
+//       try {
+//         // Check if subscription is set to auto-renew in Stripe
+//         if (subscription.stripeSubscriptionId) {
+//           const stripeSubscription = await stripe.subscriptions.retrieve(
+//             subscription.stripeSubscriptionId
+//           );
+          
+//           // Only send reminder if auto-renewal is enabled
+//           if (!stripeSubscription.cancel_at_period_end && subscription.user) {
+//             await sendAutoRenewalUpcomingEmail(
+//               subscription.user.email,
+//               subscription.user.name,
+//               {
+//                 price: subscription.price,
+//                 endDate: subscription.endDate,
+//               }
+//             );
+//             emailsSent++;
+//           }
+//         }
+//       } catch (emailError) {
+//         console.error(`Failed to send auto-renewal reminder to ${subscription.user?.email}:`, emailError);
+//         errors++;
+//       }
+//     }
+
+//     return res.json({
+//       success: true,
+//       message: `Auto-renewal reminders processed`,
+//       stats: {
+//         totalSubscriptions: upcomingRenewals.length,
+//         emailsSent,
+//         errors,
+//       },
+//     });
+//   } catch (error: any) {
+//     console.error("Auto-renewal reminder error:", error);
+//     return res.status(500).json({
+//       success: false,
+//       error: error.message,
+//     });
+//   }
+// };
