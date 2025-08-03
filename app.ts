@@ -7,7 +7,6 @@ import v1 from "./models/v1/index";
 import { PrismaClient } from "@prisma/client";
 import bodyParser from "body-parser"
 
-
 const app = express();
 
 
@@ -20,7 +19,6 @@ app.use((req, res, next) => {
     express.json()(req, res, next);
   }
 });
-
 
 
 app.use(
