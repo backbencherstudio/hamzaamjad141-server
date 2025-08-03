@@ -204,205 +204,48 @@ export const verifyCheckoutSession = async (req: any, res: Response) => {
 };
 
 export const subscribe = async (req: any, res: Response) => {
-  console.log(req.body);
-  try {
-    const { paymentMethodId } = req.body;
-    const { userId } = req.user;
-
-    const user = await prisma.user.findFirst({ where: { id: userId } });
-
-    if (!user) {
-      res.status(400).json({ success: false, message: "User not found" });
-      return;
-    }
-
-    const existingSubscription = await prisma.subscription.findFirst({
-      where: { userId, status: "ACTIVE" },
-    });
-
-    if (existingSubscription) {
-      res
-        .status(400)
-        .json({ error: "User already has an active subscription" });
-      return;
-    }
-
-    let customer;
-    if (user.stripeCustomerId) {
-      customer = await stripe.customers.retrieve(user.stripeCustomerId);
-    } else {
-      customer = await stripe.customers.create({
-        email: user.email,
-        metadata: { userId },
-      });
-      await prisma.user.update({
-        where: { id: userId },
-        data: { stripeCustomerId: customer.id },
-      });
-    }
-
-    await stripe.paymentMethods.attach(paymentMethodId, {
-      customer: customer.id,
-    });
-
-    await stripe.customers.update(customer.id, {
-      invoice_settings: {
-        default_payment_method: paymentMethodId,
-      },
-    });
-
-    const subscription = await stripe.subscriptions.create({
-      customer: customer.id,
-      items: [{ price: process.env.STRIPE_MONTHLY_PRICE_ID }],
-      expand: ["latest_invoice.payment_intent"],
-      payment_behavior: "default_incomplete",
-      payment_settings: {
-        save_default_payment_method: "on_subscription",
-        payment_method_types: ["card"],
-      },
-      metadata: {
-        userId: userId,
-      },
-    });
-
-    const dbSubscription = await prisma.subscription.create({
-      data: {
-        userId,
-        price: 22,
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        status: "ACTIVE",
-        stripeSubscriptionId: subscription.id,
-      },
-    });
-
-    await prisma.user.update({
-      where: { id: userId },
-      data: { currentSubscriptionId: dbSubscription.id, premium: true },
-    });
-
-    res.json({
-      success: true,
-      message: "Subscription created successfully!",
-      subscriptionId: subscription.id,
-    });
-  } catch (error: any) {
-    console.error("Subscription error:", error);
-    res.status(400).json({
-      success: false,
-      error: error.message,
-      type: error.type,
-    });
-  }
 };
 
 export const handleWebhook = async (req: Request, res: Response) => {
-  console.log("=== WEBHOOK DEBUG START ===");
   console.log("Webhook received");
-  console.log("Request method:", req.method);
-  console.log("Request URL:", req.originalUrl);
-  console.log("Request body type:", typeof req.body);
-  console.log("Request body is Buffer:", Buffer.isBuffer(req.body));
-  console.log("Request body length:", req.body?.length);
-  console.log("Request headers:", JSON.stringify(req.headers, null, 2));
-  
-  if (req.body) {
-    console.log("Body preview (first 100 chars):", req.body.toString().substring(0, 100));
-  }
-  
+  console.log(284, process.env.STRIPE_WEBHOOK_SECRET);
+
   const sig = req.headers["stripe-signature"] as string;
-  
-  if (!sig) {
-    console.error("Missing stripe-signature header");
-    return res.status(400).json({ error: "Missing stripe-signature header" });
-  }
-
-  if (!process.env.STRIPE_WEBHOOK_SECRET) {
-    console.error("Missing STRIPE_WEBHOOK_SECRET environment variable");
-    return res.status(500).json({ error: "Webhook configuration error" });
-  }
-
-  console.log("Stripe signature header:", sig);
-  console.log("Webhook secret exists:", !!process.env.STRIPE_WEBHOOK_SECRET);
-  console.log("=== WEBHOOK DEBUG END ===");
 
   try {
-    // Ensure body is in the correct format for Stripe
-    let webhookBody = req.body;
-    
-    // Try different body formats for Stripe webhook verification
-    if (typeof webhookBody === 'string') {
-      console.log("Body is string, converting to Buffer...");
-      webhookBody = Buffer.from(webhookBody, 'utf8');
-    } else if (!Buffer.isBuffer(webhookBody)) {
-      console.log("Body is not Buffer, converting...");
-      webhookBody = Buffer.from(JSON.stringify(webhookBody), 'utf8');
-    }
-    
-    console.log("Final body type for Stripe:", typeof webhookBody);
-    console.log("Final body is Buffer:", Buffer.isBuffer(webhookBody));
-    console.log("Final body length:", webhookBody.length);
-    
     const event = stripe.webhooks.constructEvent(
-      webhookBody,
+      req.body,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET
+      process.env.STRIPE_WEBHOOK_SECRET!
     );
     console.log(`Webhook event received: ${event.type}`);
 
     switch (event.type) {
       case "checkout.session.completed":
-        try {
-          await handleCheckoutCompleted(
-            event.data.object as Stripe.Checkout.Session
-          );
-        } catch (error) {
-          console.error("Error handling checkout.session.completed:", error);
-        }
+        await handleCheckoutCompleted(
+          event.data.object as Stripe.Checkout.Session
+        );
         break;
       case "invoice.paid":
-        try {
-          await handleSuccessfulPayment(event.data.object as Stripe.Invoice);
-        } catch (error) {
-          console.error("Error handling invoice.paid:", error);
-        }
+        await handleSuccessfulPayment(event.data.object as Stripe.Invoice);
         break;
       case "invoice.payment_failed":
-        try {
-          await handleFailedPayment(event.data.object as Stripe.Invoice);
-        } catch (error) {
-          console.error("Error handling invoice.payment_failed:", error);
-        }
+        await handleFailedPayment(event.data.object as Stripe.Invoice);
         break;
       case "customer.subscription.deleted":
-        try {
-          await handleSubscriptionCancelled(
-            event.data.object as Stripe.Subscription
-          );
-        } catch (error) {
-          console.error("Error handling customer.subscription.deleted:", error);
-        }
+        await handleSubscriptionCancelled(
+          event.data.object as Stripe.Subscription
+        );
         break;
       case "customer.subscription.updated":
-        try {
-          await handleSubscriptionUpdated(
-            event.data.object as Stripe.Subscription
-          );
-        } catch (error) {
-          console.error("Error handling customer.subscription.updated:", error);
-        }
+        await handleSubscriptionUpdated(
+          event.data.object as Stripe.Subscription
+        );
         break;
       case "customer.subscription.created":
-        try {
-          await handleSubscriptionCreated(
-            event.data.object as Stripe.Subscription
-          );
-        } catch (error) {
-          console.error("Error handling customer.subscription.created:", error);
-        }
-        break;
-      default:
-        console.log(`Unhandled event type: ${event.type}`);
+        await handleSubscriptionCreated(
+          event.data.object as Stripe.Subscription
+        );
         break;
     }
 
@@ -477,6 +320,7 @@ const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) => {
 };
 
 const handleSuccessfulPayment = async (invoice: Stripe.Invoice) => {
+  console.log("111111111111111111")
   const subscriptionId = (invoice as any).subscription as string;
   if (!subscriptionId) return;
 
