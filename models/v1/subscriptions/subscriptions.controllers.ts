@@ -775,3 +775,76 @@ export const cancelSubscription = async (req: any, res: Response) => {
     });
   }
 };
+
+
+export const getSubscriptionInfo = async (req: any, res: Response) => {
+  try {
+    const { userId } = req.user;
+
+    const user = await prisma.user.findFirst({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (!user.stripeCustomerId) {
+      return res.status(404).json({
+        success: false,
+        message: "User does not have a Stripe customer ID",
+      });
+    }
+
+
+    const stripeSubscriptions = await stripe.subscriptions.list({
+      customer: user.stripeCustomerId,
+      status: 'all',
+      expand: ['data.items'],
+    });
+
+    console.log("stripeSubscriptions", stripeSubscriptions)
+
+    const activeSubscription = stripeSubscriptions.data.find(
+      (subscription) => subscription.status === 'active'
+    );
+
+    if (!activeSubscription) {
+      return res.status(404).json({
+        success: false,
+        message: "No active subscription found",
+      });
+    }
+
+     const sub = activeSubscription as any;
+     const subscriptionInfo = {
+       hasActiveSubscription: true,
+       isPremium: true,
+       subscriptionStatus: {
+         id: sub.id,
+         status: sub.status,
+         startDate: sub.start_date ? new Date(sub.start_date * 1000) : null,
+         endDate: sub.current_period_end ? new Date(sub.current_period_end * 1000) : null,
+         price: sub.items?.data?.[0]?.price?.unit_amount ? sub.items.data[0].price.unit_amount / 100 : 0,
+         subscribedBy: user.email,
+       },
+       currentPeriodEnd: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
+       cancelAtPeriodEnd: sub.cancel_at_period_end || false,
+       autoRenewal: !sub.cancel_at_period_end,
+     };
+
+    return res.json({
+      success: true,
+      subscriptionInfo,
+    });
+  } catch (error: any) {
+    console.error("Get subscription info error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};

@@ -178,7 +178,6 @@ export const getAllPortcusts = async (req: Request, res: Response) => {
   }
 };
 
-
 export const updatePortcusts = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -260,7 +259,6 @@ export const updatePortcusts = async (req: Request, res: Response) => {
     });
   }
 };
-
 
 export const deletePortcusts = async (req: Request, res: Response) => {
   try {

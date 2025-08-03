@@ -27,9 +27,10 @@ model User {
   addLog  AddLog[]
   Weather Weather[]
 
-  promoCode PromoCode?
+  promoCode    PromoCode?
   // premiumUser Boolean    @default(true)
-  premium   Boolean    @default(true)
+  premium      Boolean    @default(true)
+  // auto_renewal Boolean    @default(false)
 
   subscription          Subscription[]
   currentSubscriptionId String?

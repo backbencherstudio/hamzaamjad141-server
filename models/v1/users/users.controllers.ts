@@ -882,8 +882,10 @@ export const updateUser = async (req: any, res: Response) => {
 };
 
 export const userInfo = async (req: any, res: Response) => {
+ 
   try {
     const userId = req.user?.userId;
+    console.log(userId)
     if (!userId) {
       res.status(400).json({ message: "User ID is required" });
       return;
