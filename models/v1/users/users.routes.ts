@@ -61,6 +61,8 @@ router.patch(
   upload.single("image"),
   updateUser
 );
+ 
+
 
 
 router.get("/all-pilot-user", verifyUser("ADMIN"), getAllPilotUser);
