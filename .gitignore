@@ -6,3 +6,4 @@ dist
 prisma/migrations
 .env
 a.py
+env.example
