@@ -8,6 +8,7 @@ import ai from "./ai/ai.routes";
 import portcusts from "./portcusts/portcusts.routes";
 import ebook from "./ebook/ebook.routes";
 import subscriptions from "./subscriptions/subscriptions.routes";
+import system from "./system/system.routes";
 
 
 const router = express.Router();
@@ -21,6 +22,7 @@ const moduleRoutes = [
   { path: "/portcusts", route: portcusts  },
   { path: "/ebook", route: ebook },
   { path: "/subscription", route: subscriptions},
+  { path: "/system", route: system},
 
 ];
 

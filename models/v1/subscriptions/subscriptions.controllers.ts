@@ -13,11 +13,20 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 // Create Stripe Checkout Session
 export const createCheckoutSession = async (req: any, res: Response) => {
   try {
-    const { userId } = req.user;
+    const { userId, role } = req.user;
     const user = await prisma.user.findFirst({ where: { id: userId } });
 
     if (!user) {
       res.status(400).json({ success: false, message: "User not found" });
+      return;
+    }
+
+    // ADMIN users have free access - no need to create subscriptions
+    if (role === "ADMIN") {
+      res.status(400).json({
+        success: false,
+        message: "Admin users have free access to all features",
+      });
       return;
     }
 
@@ -92,13 +101,30 @@ export const createCheckoutSession = async (req: any, res: Response) => {
 // Create Customer Portal Session
 export const createPortalSession = async (req: any, res: Response) => {
   try {
-    const { userId } = req.user;
+    const { userId, role } = req.user;
     const user = await prisma.user.findFirst({ where: { id: userId } });
 
-    if (!user || !user.stripeCustomerId) {
+    if (!user) {
       res.status(400).json({
         success: false,
-        message: "User not found or no Stripe customer ID",
+        message: "User not found",
+      });
+      return;
+    }
+
+    // ADMIN users have free access - no need for billing portal
+    if (role === "ADMIN") {
+      res.status(400).json({
+        success: false,
+        message: "Admin users have free access to all features",
+      });
+      return;
+    }
+
+    if (!user.stripeCustomerId) {
+      res.status(400).json({
+        success: false,
+        message: "No Stripe customer ID found",
       });
       return;
     }
@@ -179,12 +205,19 @@ export const verifyCheckoutSession = async (req: any, res: Response) => {
         });
       }
 
+      // Get user role before updating
+      const userForUpdate = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true }
+      });
+
       // Always update user's premium status and current subscription link
+      // ADMIN users should always remain premium regardless of subscription status
       await prisma.user.update({
         where: { id: userId },
         data: {
           currentSubscriptionId: dbSubscription.id,
-          premium: stripeSubscription.status === "active", // Set premium based on Stripe's status
+          premium: userForUpdate?.role === "ADMIN" ? true : stripeSubscription.status === "active", // Set premium based on Stripe's status or ADMIN role
         },
       });
 
@@ -335,12 +368,19 @@ const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) => {
       });
     }
 
+    // Get user role before updating
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
     // Always update the user's premium status and current subscription link
+    // ADMIN users should always remain premium regardless of subscription status
     await prisma.user.update({
       where: { id: userId },
       data: {
         currentSubscriptionId: dbSubscription.id,
-        premium: stripeSubscription.status === "active", // Set premium based on Stripe's status
+        premium: user?.role === "ADMIN" ? true : stripeSubscription.status === "active", // Set premium based on Stripe's status or ADMIN role
       },
     });
 
@@ -398,9 +438,16 @@ const handleSuccessfulPayment = async (invoice: Stripe.Invoice) => {
     });
 
     if (dbSubscription) {
+      // Get user role before updating
+      const user = await prisma.user.findUnique({
+        where: { id: dbSubscription.userId },
+        select: { role: true }
+      });
+
+      // ADMIN users should always remain premium regardless of subscription status
       await prisma.user.update({
         where: { id: dbSubscription.userId },
-        data: { premium: true },
+        data: { premium: user?.role === "ADMIN" ? true : true }, // Always true for successful payment, ADMIN always true
       });
 
       // Send success email to user
@@ -444,9 +491,16 @@ const handleFailedPayment = async (invoice: Stripe.Invoice) => {
   });
 
   if (dbSubscription) {
+    // Get user role before updating
+    const user = await prisma.user.findUnique({
+      where: { id: dbSubscription.userId },
+      select: { role: true }
+    });
+
+    // ADMIN users should always remain premium even on failed payments
     await prisma.user.update({
       where: { id: dbSubscription.userId },
-      data: { premium: false },
+      data: { premium: user?.role === "ADMIN" ? true : false }, // ADMIN always true, others false on failed payment
     });
 
     // Send failed payment email to user
@@ -495,9 +549,16 @@ const handleSubscriptionCancelled = async (
   });
 
   if (isExpired) {
+    // Get user role before updating
+    const user = await prisma.user.findUnique({
+      where: { id: dbSubscription.userId },
+      select: { role: true }
+    });
+
+    // ADMIN users should always remain premium even when subscription is cancelled
     await prisma.user.update({
       where: { id: dbSubscription.userId },
-      data: { premium: false },
+      data: { premium: user?.role === "ADMIN" ? true : false }, // ADMIN always true, others false when expired
     });
   }
 
@@ -542,9 +603,16 @@ const handleSubscriptionUpdated = async (subscription: Stripe.Subscription) => {
     },
   });
 
+  // Get user role before updating
+  const user = await prisma.user.findUnique({
+    where: { id: dbSubscription.userId },
+    select: { role: true }
+  });
+
+  // ADMIN users should always remain premium regardless of subscription status
   await prisma.user.update({
     where: { id: dbSubscription.userId },
-    data: { premium: subscription.status === "active" },
+    data: { premium: user?.role === "ADMIN" ? true : subscription.status === "active" }, // ADMIN always true, others based on subscription status
   });
 };
 
@@ -577,11 +645,12 @@ const handleSubscriptionCreated = async (subscription: Stripe.Subscription) => {
     },
   });
 
+  // ADMIN users should always remain premium regardless of subscription status
   await prisma.user.update({
     where: { id: user.id },
     data: {
       currentSubscriptionId: dbSubscription.id,
-      premium: subscription.status === "active",
+      premium: user.role === "ADMIN" ? true : subscription.status === "active", // ADMIN always true, others based on subscription status
     },
   });
 };
@@ -706,12 +775,21 @@ export const deletePromoCode = async (req: any, res: Response) => {
 export const subscribeWithPromoCode = async (req: any, res: Response) => {
   try {
     const { promoCode } = req.body;
-    const { userId } = req.user;
+    const { userId, role } = req.user;
 
     const user = await prisma.user.findFirst({ where: { id: userId } });
 
     if (!user) {
       res.status(400).json({ success: false, message: "User not found" });
+      return;
+    }
+
+    // ADMIN users have free access - no need for promo codes
+    if (role === "ADMIN") {
+      res.status(400).json({
+        success: false,
+        message: "Admin users have free access to all features",
+      });
       return;
     }
 
@@ -774,7 +852,15 @@ export const subscribeWithPromoCode = async (req: any, res: Response) => {
 
 export const cancelSubscription = async (req: any, res: Response) => {
   try {
-    const { userId } = req.user;
+    const { userId, role } = req.user;
+
+    // ADMIN users have free access - no subscriptions to cancel
+    if (role === "ADMIN") {
+      return res.status(400).json({
+        success: false,
+        message: "Admin users have free access to all features",
+      });
+    }
 
     const subscription = await prisma.subscription.findFirst({
       where: { userId, status: "ACTIVE" },
@@ -798,9 +884,16 @@ export const cancelSubscription = async (req: any, res: Response) => {
       },
     });
 
+    // Get user role before updating
+    const user = await prisma.user.findUnique({
+      where: { id: subscription.userId },
+      select: { role: true }
+    });
+
+    // ADMIN users should always remain premium even when cancelling subscription
     await prisma.user.update({
       where: { id: subscription.userId },
-      data: { premium: false },
+      data: { premium: user?.role === "ADMIN" ? true : false }, // ADMIN always true, others false when cancelled
     });
 
     // Send subscription cancelled email to user
