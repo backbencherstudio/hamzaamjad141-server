@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { PrismaClient } from "@prisma/client";
 import { AuthenticatedRequest } from "./verifyUsers";
+import { calculateTrialEndDate } from "../utils/subscription.utils";
 
 const prisma = new PrismaClient();
 
@@ -21,8 +22,7 @@ export const premiumGuard = async (
     }
 
     const userCreationDate = new Date(req.user.createdAt);
-    const trialEndDate = new Date(userCreationDate);
-    trialEndDate.setDate(userCreationDate.getDate() + 3);
+    const trialEndDate = calculateTrialEndDate(userCreationDate);
 
     if (new Date() < trialEndDate) {
       return next();

@@ -6,6 +6,7 @@ import {
   sendPaymentFailedEmail, 
   sendSubscriptionCancelledEmail 
 } from "../../../utils/emailService.utils";
+import { SUBSCRIPTION_DURATION_MS, calculateSubscriptionEndDate } from "../../../utils/subscription.utils";
 
 const prisma = new PrismaClient();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -185,7 +186,7 @@ export const verifyCheckoutSession = async (req: any, res: Response) => {
               : new Date(),
             endDate: (stripeSubscription as any).current_period_end
               ? new Date((stripeSubscription as any).current_period_end * 1000)
-              : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days fallback
+              : calculateSubscriptionEndDate(), // 30 days fallback
             status:
               stripeSubscription.status === "active" ? "ACTIVE" : "DEACTIVE", // Use Stripe's status
             stripeSubscriptionId: stripeSubscription.id,
@@ -200,7 +201,7 @@ export const verifyCheckoutSession = async (req: any, res: Response) => {
               stripeSubscription.status === "active" ? "ACTIVE" : "DEACTIVE",
             endDate: (stripeSubscription as any).current_period_end
               ? new Date((stripeSubscription as any).current_period_end * 1000)
-              : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days fallback
+              : calculateSubscriptionEndDate(), // 30 days fallback
           },
         });
       }
@@ -348,7 +349,7 @@ const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) => {
             : new Date(),
           endDate: (stripeSubscription as any).current_period_end
             ? new Date((stripeSubscription as any).current_period_end * 1000)
-            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days fallback
+            : calculateSubscriptionEndDate(), // 30 days fallback
           status:
             stripeSubscription.status === "active" ? "ACTIVE" : "DEACTIVE", // Use Stripe's status
           stripeSubscriptionId: stripeSubscription.id,
@@ -363,7 +364,7 @@ const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) => {
             stripeSubscription.status === "active" ? "ACTIVE" : "DEACTIVE",
           endDate: (stripeSubscription as any).current_period_end
             ? new Date((stripeSubscription as any).current_period_end * 1000)
-            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days fallback
+            : calculateSubscriptionEndDate(), // 30 days fallback
         },
       });
     }
@@ -423,7 +424,7 @@ const handleSuccessfulPayment = async (invoice: Stripe.Invoice) => {
     )) as Stripe.Subscription;
     const endDate = (subscription as any).current_period_end
       ? new Date((subscription as any).current_period_end * 1000)
-      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days fallback
+      : calculateSubscriptionEndDate(); // 30 days fallback
 
     await prisma.subscription.updateMany({
       where: { stripeSubscriptionId: subscriptionId },
@@ -537,7 +538,7 @@ const handleSubscriptionCancelled = async (
 
   const endDate = (subscription as any).current_period_end
     ? new Date((subscription as any).current_period_end * 1000)
-    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days fallback
+    : calculateSubscriptionEndDate(); // 30 days fallback
   const isExpired = endDate <= new Date();
 
   await prisma.subscription.update({
@@ -593,7 +594,7 @@ const handleSubscriptionUpdated = async (subscription: Stripe.Subscription) => {
 
   const endDate = (subscription as any).current_period_end
     ? new Date((subscription as any).current_period_end * 1000)
-    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days fallback
+    : calculateSubscriptionEndDate(); // 30 days fallback
 
   await prisma.subscription.update({
     where: { id: dbSubscription.id },
@@ -630,7 +631,7 @@ const handleSubscriptionCreated = async (subscription: Stripe.Subscription) => {
 
   const endDate = (subscription as any).current_period_end
     ? new Date((subscription as any).current_period_end * 1000)
-    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days fallback
+    : calculateSubscriptionEndDate(); // 30 days fallback
 
   const dbSubscription = await prisma.subscription.create({
     data: {
@@ -826,7 +827,7 @@ export const subscribeWithPromoCode = async (req: any, res: Response) => {
         userId,
         price: 0,
         startDate: new Date(),
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        endDate: calculateSubscriptionEndDate(),
         status: "ACTIVE",
       },
     });
