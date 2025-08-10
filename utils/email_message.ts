@@ -695,7 +695,7 @@ export const otpVerificationEmailTamplate = (OTP: string): string => {
           <div class="logo-section">
             <div class="logo">
               <img
-                src="https://i.ibb.co/PnpnPd5/hamza.png"
+                src="https://storage.googleapis.com/left_seat_lessons/unnamed.png"
                 alt="Left Seat Lessons"
               />
             </div>
@@ -926,7 +926,7 @@ export const emailForgotPasswordOTP = (OTP: string): string => {
           <div class="logo-section">
             <div class="logo">
               <img
-                src="https://i.ibb.co/PnpnPd5/hamza.png"
+                src="https://storage.googleapis.com/left_seat_lessons/unnamed.png"
                 alt="Left Seat Lessons"
               />
             </div>
@@ -1158,7 +1158,7 @@ export const recentOtpVerificationEmail = (OTP: string): string => {
           <div class="logo-section">
             <div class="logo">
               <img
-                src="https://i.ibb.co/PnpnPd5/hamza.png"
+                src="https://storage.googleapis.com/left_seat_lessons/unnamed.png"
                 alt="Left Seat Lessons"
               />
             </div>
@@ -1562,7 +1562,7 @@ export const instructorConformationsTamplate = (
         <div class="header">
           <div class="header-content">
             <div class="logo">
-              <img src="https://i.ibb.co/PnpnPd5/hamza.png" alt="Flight Training Logo" width="80" height="80">
+              <img src="https://storage.googleapis.com/left_seat_lessons/unnamed.png" alt="Flight Training Logo" width="80" height="80">
             </div>
             <h1>Flight Log Submission</h1>
             <p>New entry requires your review</p>
