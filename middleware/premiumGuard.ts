@@ -15,11 +15,6 @@ export const premiumGuard = async (
       return;
     }
 
-    // ADMIN users have free access to all premium features
-    if (req.user.role === "ADMIN") {
-      return next();
-    }
-
     const userCreationDate = new Date(req.user.createdAt);
     const trialEndDate = new Date(userCreationDate);
     trialEndDate.setDate(userCreationDate.getDate() + 3);
