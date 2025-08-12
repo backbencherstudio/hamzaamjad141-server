@@ -3,7 +3,6 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-
 import { getImageUrl } from "../../../utils/base_utl";
 import {
   generateOTP,
@@ -597,7 +596,7 @@ export const resetPassword = async (req: Request, res: Response) => {
 // const downloadAndSaveImage = async (imageUrl: string): Promise<string> => {
 //   try {
 //     // Clean up malformed URLs (remove storage.googleapis.com prefix if present)
-//     const cleanUrl = imageUrl.includes('storage.googleapis.com/') 
+//     const cleanUrl = imageUrl.includes('storage.googleapis.com/')
 //       ? imageUrl.split('storage.googleapis.com/')[1]
 //       : imageUrl;
 
@@ -606,16 +605,16 @@ export const resetPassword = async (req: Request, res: Response) => {
 
 //     const buffer = await response.arrayBuffer();
 //     const filename = `${uuidv4()}.jpg`;
-    
+
 //     // Initialize Google Cloud Storage with absolute path to credentials
 //     const storage = new Storage({
 //       keyFilename: path.resolve(__dirname, "../../../config/gcs-key.json"),
 //       projectId: process.env.GCLOUD_PROJECT
 //     });
-    
+
 //     const bucket = storage.bucket(process.env.GCS_BUCKET);
 //     const file = bucket.file(filename);
-    
+
 //     // Upload buffer to Google Cloud Storage
 //     await file.save(Buffer.from(buffer), {
 //       metadata: {
@@ -777,7 +776,7 @@ export const facebookLogin = async (req: Request, res: Response) => {
 // };
 
 export const updateUser = async (req: any, res: Response) => {
-  console.log(req.body)
+  console.log(req.body);
   const userId = req.user?.userId;
   const { name, license, oldPassword, newPassword } = req.body;
   const newImage = req.file;
@@ -882,10 +881,9 @@ export const updateUser = async (req: any, res: Response) => {
 };
 
 export const userInfo = async (req: any, res: Response) => {
- 
   try {
     const userId = req.user?.userId;
-    console.log(userId)
+    console.log(userId);
     if (!userId) {
       res.status(400).json({ message: "User ID is required" });
       return;
@@ -930,6 +928,7 @@ export const userInfo = async (req: any, res: Response) => {
 export const deleteUser = async (req: any, res: Response) => {
   try {
     const userId = req.user?.userId;
+    console.log(userId);
     if (!userId) {
       res.status(400).json({ message: "User ID is required" });
       return;
@@ -947,9 +946,11 @@ export const deleteUser = async (req: any, res: Response) => {
       await deleteImageIfNeeded({ filename: user.image });
     }
 
-    await prisma.user.delete({
-      where: { id: userId },
-    });
+    await prisma.addLog.deleteMany({ where: { userId } });
+    await prisma.weather.deleteMany({ where: { userId } });
+    await prisma.subscription.deleteMany({ where: { userId } });
+    await prisma.user.delete({ where: { id: userId } });
+
     res.status(200).json({
       success: true,
       message: "successfully deleted",
@@ -1069,8 +1070,6 @@ export const verifyChangeEmail = async (req: any, res: Response) => {
     res.status(500).json({ message: "Something went wrong." });
   }
 };
-
-
 
 export const getalluser = async (req: any, res: Response) => {
   try {
