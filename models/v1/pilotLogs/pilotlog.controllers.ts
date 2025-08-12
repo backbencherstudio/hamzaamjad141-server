@@ -5,6 +5,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export const createLog = async (req: any, res: Response) => {
+  console.log("hello")
   try {
     const id = req.user?.userId;
 

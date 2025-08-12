@@ -587,6 +587,83 @@ const handleSubscriptionCreated = async (subscription: Stripe.Subscription) => {
   });
 };
 
+// Get subscription status for a user
+export const getSubscriptionStatus = async (req: any, res: Response) => {
+  try {
+    const { userId } = req.user;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        premium: true,
+        createdAt: true,
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Calculate trial info
+    const userCreationDate = new Date(user.createdAt);
+    const trialEndDate = calculateSubscriptionEndDate(userCreationDate);
+    const isInTrial = new Date() < trialEndDate;
+
+    // Get active subscription
+    const activeSubscription = await prisma.subscription.findFirst({
+      where: {
+        userId,
+        status: "ACTIVE",
+        endDate: { gt: new Date() },
+      },
+      orderBy: { endDate: "desc" },
+    });
+
+    // Get Stripe subscription status if exists
+    let stripeStatus = null;
+    if (activeSubscription?.stripeSubscriptionId) {
+      try {
+        const stripeSubscription = await stripe.subscriptions.retrieve(
+          activeSubscription.stripeSubscriptionId
+        );
+        stripeStatus = {
+          status: stripeSubscription.status,
+          cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
+          currentPeriodEnd: new Date((stripeSubscription as any).current_period_end * 1000),
+        };
+      } catch (error) {
+        console.error("Error fetching Stripe subscription:", error);
+      }
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        premium: user.premium,
+        isInTrial,
+        trialEndDate: trialEndDate.toISOString(),
+        activeSubscription: activeSubscription ? {
+          id: activeSubscription.id,
+          price: activeSubscription.price,
+          startDate: activeSubscription.startDate,
+          endDate: activeSubscription.endDate,
+          status: activeSubscription.status,
+        } : null,
+        stripe: stripeStatus,
+      }
+    });
+  } catch (error: any) {
+    console.error("Get subscription status error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
 export const generateOTP = (): string => {
   return Math.floor(1000 + Math.random() * 900000).toString();
 };
@@ -788,23 +865,20 @@ export const cancelSubscription = async (req: any, res: Response) => {
       });
     }
 
+    // Set cancel_at_period_end to true in Stripe - user keeps access until period ends
     await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
       cancel_at_period_end: true,
     });
 
-    await prisma.subscription.update({
-      where: { id: subscription.id },
-      data: {
-        status: "DEACTIVE",
-      },
-    });
+    // ✅ DO NOT change subscription status or premium status immediately
+    // The subscription remains ACTIVE until the end date
+    // Stripe webhook will handle the actual deactivation when period ends
 
-    await prisma.user.update({
-      where: { id: subscription.userId },
-      data: { premium: false },
-    });
+    // Get the current period end from Stripe to inform user
+    const stripeSubscription = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
+    const periodEndDate = new Date((stripeSubscription as any).current_period_end * 1000);
 
-    // Send subscription cancelled email to user
+    // Send subscription cancellation scheduled email to user
     try {
       const user = await prisma.user.findUnique({
         where: { id: subscription.userId },
@@ -816,8 +890,9 @@ export const cancelSubscription = async (req: any, res: Response) => {
           user.name || "Valued Customer",
           {
             price: subscription.price,
-            endDate: subscription.endDate,
-            status: "DEACTIVE"
+            endDate: periodEndDate,
+            status: "ACTIVE", // Still active until period end
+            willEndOn: periodEndDate.toISOString()
           }
         );
       }
@@ -829,6 +904,8 @@ export const cancelSubscription = async (req: any, res: Response) => {
     return res.json({
       success: true,
       message: "Subscription will be canceled at the end of the billing period",
+      currentPeriodEnd: periodEndDate.toISOString(),
+      accessUntil: periodEndDate.toISOString()
     });
   } catch (error: any) {
     console.error("Cancel subscription error:", error);
