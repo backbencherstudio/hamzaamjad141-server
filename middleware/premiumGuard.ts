@@ -22,10 +22,11 @@ export const premiumGuard = async (
 
     // Check if user is still in trial period
     if (now < trialEndDate) {
+      // If in trial period, grant access regardless of subscription status
       return next();
     }
 
-    // Find active subscription that hasn't expired
+    // If trial period has ended, check for active subscription
     const validSubscription = await prisma.subscription.findFirst({
       where: {
         userId: req.user.userId,
@@ -36,49 +37,46 @@ export const premiumGuard = async (
       take: 1,
     });
 
-    if (!validSubscription) {
-      // Clean up any expired subscriptions
-      const expiredSubscriptions = await prisma.subscription.updateMany({
-        where: {
-          userId: req.user.userId,
-          status: "ACTIVE",
-          endDate: { lte: now },
-        },
-        data: { status: "DEACTIVE" },
+    if (validSubscription) {
+      // User has valid subscription - ensure premium status is correct
+      const user = await prisma.user.findUnique({
+        where: { id: req.user.userId },
+        select: { premium: true }
       });
 
-      // Only update user premium status if we actually found expired subscriptions
-      if (expiredSubscriptions.count > 0) {
+      if (!user?.premium) {
+        // Fix inconsistency - user has valid subscription but premium is false
         await prisma.user.update({
           where: { id: req.user.userId },
-          data: { premium: false },
+          data: { premium: true },
         });
       }
-
-      res.status(403).json({
-        message: "Premium subscription required",
-        trialEnded: true,
-        trialEndDate: trialEndDate.toISOString(),
-        upgradeUrl: "/subscribe",
-      });
-      return;
+      return next();
     }
 
-    // ✅ User has valid subscription - ensure premium status is correct
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.userId },
-      select: { premium: true }
+    // No valid subscription found - clean up expired subscriptions
+    await prisma.subscription.updateMany({
+      where: {
+        userId: req.user.userId,
+        status: "ACTIVE",
+        endDate: { lte: now },
+      },
+      data: { status: "DEACTIVE" }, // Use the correct enum value as defined in your Prisma schema
     });
 
-    if (!user?.premium) {
-      // Fix inconsistency - user has valid subscription but premium is false
-      await prisma.user.update({
-        where: { id: req.user.userId },
-        data: { premium: true },
-      });
-    }
+    // Update user premium status to false
+    await prisma.user.update({
+      where: { id: req.user.userId },
+      data: { premium: false },
+    });
 
-    return next();
+    res.status(403).json({
+      message: "Premium subscription required",
+      trialEnded: true,
+      trialEndDate: trialEndDate.toISOString(),
+      upgradeUrl: "/subscribe",
+    });
+    
   } catch (error) {
     console.error("Premium guard error:", error);
     res.status(500).json({ message: "Internal server error" });
