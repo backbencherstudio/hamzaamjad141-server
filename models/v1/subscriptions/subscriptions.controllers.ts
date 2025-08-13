@@ -859,6 +859,7 @@ export const deletePromoCode = async (req: any, res: Response) => {
   }
 };
 
+
 export const subscribeWithPromoCode = async (req: any, res: Response) => {
   try {
     const { promoCode } = req.body;
@@ -937,6 +938,7 @@ export const cancelSubscription = async (req: any, res: Response) => {
   try {
     const { userId } = req.user;
 
+    // Find active subscription
     const subscription = await prisma.subscription.findFirst({
       where: { userId, status: "ACTIVE" },
     });
@@ -948,20 +950,37 @@ export const cancelSubscription = async (req: any, res: Response) => {
       });
     }
 
-    // Set cancel_at_period_end to true in Stripe - user keeps access until period ends
+    // Request Stripe to cancel at period end
     await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
       cancel_at_period_end: true,
     });
 
-    // ✅ DO NOT change subscription status or premium status immediately
-    // The subscription remains ACTIVE until the end date
-    // Stripe webhook will handle the actual deactivation when period ends
+    // Retrieve updated subscription from Stripe
+    const stripeSubscription = await stripe.subscriptions.retrieve(
+      subscription.stripeSubscriptionId
+    );
 
-    // Get the current period end from Stripe to inform user
-    const stripeSubscription = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
-    const periodEndDate = new Date((stripeSubscription as any).current_period_end * 1000);
+    console.log("Stripe subscription data:", stripeSubscription);
 
-    // Send subscription cancellation scheduled email to user
+    // Safely get the period end date
+    let periodEndDate: Date;
+    if ((stripeSubscription as any).current_period_end) {
+      periodEndDate = new Date(
+        (stripeSubscription as any).current_period_end * 1000
+      );
+    } else if (subscription.endDate) {
+      console.warn(
+        "Stripe current_period_end is missing — falling back to DB endDate"
+      );
+      periodEndDate = subscription.endDate;
+    } else {
+      console.warn(
+        "Stripe and DB both missing end date — falling back to now"
+      );
+      periodEndDate = new Date();
+    }
+
+    // Send cancellation scheduled email
     try {
       const user = await prisma.user.findUnique({
         where: { id: subscription.userId },
@@ -974,21 +993,25 @@ export const cancelSubscription = async (req: any, res: Response) => {
           {
             price: subscription.price,
             endDate: periodEndDate,
-            status: "ACTIVE", // Still active until period end
-            willEndOn: periodEndDate.toISOString()
+            status: "ACTIVE", // Still active until end date
+            willEndOn: periodEndDate.toISOString(),
           }
         );
       }
     } catch (emailError) {
-      console.error("Failed to send manual cancellation email:", emailError);
-      // Don't throw error - email failure shouldn't break the response
+      console.error(
+        "Failed to send manual cancellation email:",
+        emailError
+      );
     }
 
+    // Respond to client
     return res.json({
       success: true,
-      message: "Subscription will be canceled at the end of the billing period",
+      message:
+        "Subscription will be canceled at the end of the billing period",
       currentPeriodEnd: periodEndDate.toISOString(),
-      accessUntil: periodEndDate.toISOString()
+      accessUntil: periodEndDate.toISOString(),
     });
   } catch (error: any) {
     console.error("Cancel subscription error:", error);
