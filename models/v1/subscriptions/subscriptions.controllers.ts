@@ -31,13 +31,13 @@ export const createCheckoutSession = async (req: any, res: Response) => {
       },
     });
 
-    if (existingPaidSubscription) {
-      res.status(400).json({
-        success: false,
-        message: "User already has an active paid subscription",
-      });
-      return;
-    }
+    // if (existingPaidSubscription) {
+    //   res.status(400).json({
+    //     success: false,
+    //     message: "User already has an active paid subscription",
+    //   });
+    //   return;
+    // }
 
     // Check if user is in trial period
     const userCreationDate = new Date(user.createdAt);
