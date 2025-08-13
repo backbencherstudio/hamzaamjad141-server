@@ -22,18 +22,27 @@ export const createCheckoutSession = async (req: any, res: Response) => {
       return;
     }
 
-    // Check for existing active subscription
-    const existingSubscription = await prisma.subscription.findFirst({
-      where: { userId, status: "ACTIVE" },
+    // Check for existing paid active subscription (exclude trial period)
+    const existingPaidSubscription = await prisma.subscription.findFirst({
+      where: { 
+        userId, 
+        status: "ACTIVE",
+        stripeSubscriptionId: { not: null } // Only check for Stripe subscriptions (paid)
+      },
     });
 
-    if (existingSubscription) {
-      res.status(400).json({
-        success: false,
-        message: "User already has an active subscription",
-      });
-      return;
-    }
+    // if (existingPaidSubscription) {
+    //   res.status(400).json({
+    //     success: false,
+    //     message: "User already has an active paid subscription",
+    //   });
+    //   return;
+    // }
+
+    // Check if user is in trial period
+    const userCreationDate = new Date(user.createdAt);
+    const trialEndDate = calculateSubscriptionEndDate(userCreationDate);
+    const isInTrial = new Date() < trialEndDate;
 
     // Create or retrieve Stripe customer
     let customer;
@@ -139,6 +148,29 @@ export const verifyCheckoutSession = async (req: any, res: Response) => {
       const stripeSubscription = (await stripe.subscriptions.retrieve(
         session.subscription as string
       )) as Stripe.Subscription;
+
+      // If user is upgrading from trial, deactivate any trial subscriptions
+      const trialSubscriptions = await prisma.subscription.findMany({
+        where: {
+          userId,
+          status: "ACTIVE",
+          stripeSubscriptionId: null, // Trial subscriptions don't have Stripe ID
+        },
+      });
+
+      if (trialSubscriptions.length > 0) {
+        await prisma.subscription.updateMany({
+          where: {
+            userId,
+            status: "ACTIVE",
+            stripeSubscriptionId: null,
+          },
+          data: {
+            status: "DEACTIVE",
+            endDate: new Date(), // End trial immediately when paid subscription starts
+          },
+        });
+      }
 
       // Find or create the subscription in the database
       let dbSubscription = await prisma.subscription.findFirst({
@@ -295,6 +327,29 @@ const handleCheckoutCompleted = async (session: Stripe.Checkout.Session) => {
     const stripeSubscription = (await stripe.subscriptions.retrieve(
       session.subscription as string
     )) as Stripe.Subscription;
+
+    // If user is upgrading from trial, deactivate any trial subscriptions
+    const trialSubscriptions = await prisma.subscription.findMany({
+      where: {
+        userId,
+        status: "ACTIVE",
+        stripeSubscriptionId: null, // Trial subscriptions don't have Stripe ID
+      },
+    });
+
+    if (trialSubscriptions.length > 0) {
+      await prisma.subscription.updateMany({
+        where: {
+          userId,
+          status: "ACTIVE",
+          stripeSubscriptionId: null,
+        },
+        data: {
+          status: "DEACTIVE",
+          endDate: new Date(), // End trial immediately when paid subscription starts
+        },
+      });
+    }
 
     // Find the subscription in our database (it should have been created by customer.subscription.created webhook)
     let dbSubscription = await prisma.subscription.findFirst({
@@ -561,6 +616,29 @@ const handleSubscriptionCreated = async (subscription: Stripe.Subscription) => {
   });
   if (!user) return;
 
+  // If user is upgrading from trial, deactivate any trial subscriptions
+  const trialSubscriptions = await prisma.subscription.findMany({
+    where: {
+      userId: user.id,
+      status: "ACTIVE",
+      stripeSubscriptionId: null, // Trial subscriptions don't have Stripe ID
+    },
+  });
+
+  if (trialSubscriptions.length > 0) {
+    await prisma.subscription.updateMany({
+      where: {
+        userId: user.id,
+        status: "ACTIVE",
+        stripeSubscriptionId: null,
+      },
+      data: {
+        status: "DEACTIVE",
+        endDate: new Date(), // End trial immediately when paid subscription starts
+      },
+    });
+  }
+
   const endDate = (subscription as any).current_period_end
     ? new Date((subscription as any).current_period_end * 1000)
     : calculateSubscriptionEndDate(); // 30 days fallback
@@ -585,6 +663,83 @@ const handleSubscriptionCreated = async (subscription: Stripe.Subscription) => {
       premium: subscription.status === "active",
     },
   });
+};
+
+// Get subscription status for a user
+export const getSubscriptionStatus = async (req: any, res: Response) => {
+  try {
+    const { userId } = req.user;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        premium: true,
+        createdAt: true,
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Calculate trial info
+    const userCreationDate = new Date(user.createdAt);
+    const trialEndDate = calculateSubscriptionEndDate(userCreationDate);
+    const isInTrial = new Date() < trialEndDate;
+
+    // Get active subscription
+    const activeSubscription = await prisma.subscription.findFirst({
+      where: {
+        userId,
+        status: "ACTIVE",
+        endDate: { gt: new Date() },
+      },
+      orderBy: { endDate: "desc" },
+    });
+
+    // Get Stripe subscription status if exists
+    let stripeStatus = null;
+    if (activeSubscription?.stripeSubscriptionId) {
+      try {
+        const stripeSubscription = await stripe.subscriptions.retrieve(
+          activeSubscription.stripeSubscriptionId
+        );
+        stripeStatus = {
+          status: stripeSubscription.status,
+          cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
+          currentPeriodEnd: new Date((stripeSubscription as any).current_period_end * 1000),
+        };
+      } catch (error) {
+        console.error("Error fetching Stripe subscription:", error);
+      }
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        premium: user.premium,
+        isInTrial,
+        trialEndDate: trialEndDate.toISOString(),
+        activeSubscription: activeSubscription ? {
+          id: activeSubscription.id,
+          price: activeSubscription.price,
+          startDate: activeSubscription.startDate,
+          endDate: activeSubscription.endDate,
+          status: activeSubscription.status,
+        } : null,
+        stripe: stripeStatus,
+      }
+    });
+  } catch (error: any) {
+    console.error("Get subscription status error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 };
 
 export const generateOTP = (): string => {
@@ -704,6 +859,7 @@ export const deletePromoCode = async (req: any, res: Response) => {
   }
 };
 
+
 export const subscribeWithPromoCode = async (req: any, res: Response) => {
   try {
     const { promoCode } = req.body;
@@ -716,14 +872,19 @@ export const subscribeWithPromoCode = async (req: any, res: Response) => {
       return;
     }
 
-    const existingSubscription = await prisma.subscription.findFirst({
-      where: { userId, status: "ACTIVE" },
+    // Check for existing paid active subscription (exclude trial period)
+    const existingPaidSubscription = await prisma.subscription.findFirst({
+      where: { 
+        userId, 
+        status: "ACTIVE",
+        stripeSubscriptionId: { not: null } // Only check for Stripe subscriptions (paid)
+      },
     });
 
-    if (existingSubscription) {
+    if (existingPaidSubscription) {
       res.status(400).json({
         success: false,
-        message: "User already has an active subscription",
+        message: "User already has an active paid subscription",
       });
       return;
     }
@@ -777,6 +938,7 @@ export const cancelSubscription = async (req: any, res: Response) => {
   try {
     const { userId } = req.user;
 
+    // Find active subscription
     const subscription = await prisma.subscription.findFirst({
       where: { userId, status: "ACTIVE" },
     });
@@ -788,23 +950,37 @@ export const cancelSubscription = async (req: any, res: Response) => {
       });
     }
 
+    // Request Stripe to cancel at period end
     await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
       cancel_at_period_end: true,
     });
 
-    await prisma.subscription.update({
-      where: { id: subscription.id },
-      data: {
-        status: "DEACTIVE",
-      },
-    });
+    // Retrieve updated subscription from Stripe
+    const stripeSubscription = await stripe.subscriptions.retrieve(
+      subscription.stripeSubscriptionId
+    );
 
-    await prisma.user.update({
-      where: { id: subscription.userId },
-      data: { premium: false },
-    });
+    console.log("Stripe subscription data:", stripeSubscription);
 
-    // Send subscription cancelled email to user
+    // Safely get the period end date
+    let periodEndDate: Date;
+    if ((stripeSubscription as any).current_period_end) {
+      periodEndDate = new Date(
+        (stripeSubscription as any).current_period_end * 1000
+      );
+    } else if (subscription.endDate) {
+      console.warn(
+        "Stripe current_period_end is missing — falling back to DB endDate"
+      );
+      periodEndDate = subscription.endDate;
+    } else {
+      console.warn(
+        "Stripe and DB both missing end date — falling back to now"
+      );
+      periodEndDate = new Date();
+    }
+
+    // Send cancellation scheduled email
     try {
       const user = await prisma.user.findUnique({
         where: { id: subscription.userId },
@@ -816,19 +992,26 @@ export const cancelSubscription = async (req: any, res: Response) => {
           user.name || "Valued Customer",
           {
             price: subscription.price,
-            endDate: subscription.endDate,
-            status: "DEACTIVE"
+            endDate: periodEndDate,
+            status: "ACTIVE", // Still active until end date
+            willEndOn: periodEndDate.toISOString(),
           }
         );
       }
     } catch (emailError) {
-      console.error("Failed to send manual cancellation email:", emailError);
-      // Don't throw error - email failure shouldn't break the response
+      console.error(
+        "Failed to send manual cancellation email:",
+        emailError
+      );
     }
 
+    // Respond to client
     return res.json({
       success: true,
-      message: "Subscription will be canceled at the end of the billing period",
+      message:
+        "Subscription will be canceled at the end of the billing period",
+      currentPeriodEnd: periodEndDate.toISOString(),
+      accessUntil: periodEndDate.toISOString(),
     });
   } catch (error: any) {
     console.error("Cancel subscription error:", error);

@@ -3,13 +3,18 @@ import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import MulterGoogleCloudStorage from "multer-cloud-storage";
 import { Storage } from "@google-cloud/storage";
+import { getGCSAuth, validateGCSConfig } from "../utils/gcsAuth.utils";
+
+// Validate GCS configuration on startup
+if (!validateGCSConfig()) {
+  console.error("❌ Invalid GCS configuration. Please check your environment variables.");
+}
 
 // Configure Google Cloud Storage
 const uploadHandler = multer({
   storage: new MulterGoogleCloudStorage({
     bucket: process.env.GCS_BUCKET,
-    projectId: process.env.GCLOUD_PROJECT,
-    keyFilename: path.join(__dirname, "../../config/gcs-key.json"),
+    ...getGCSAuth(),
     filename: (req, file, cb) => {
       const uniqueSuffix = uuidv4();
       const ext = path.extname(file.originalname);
@@ -25,12 +30,9 @@ export const deleteImageIfNeeded = async (
 ) => {
   if (newImage && newImage.filename) {
     try {
-      const storage = new Storage({
-        keyFilename: path.join(__dirname, "../../config/gcs-key.json"),
-        projectId: process.env.GCLOUD_PROJECT,
-      });
+      const storage = new Storage(getGCSAuth());
 
-      const bucket = storage.bucket(process.env.GCS_BUCKET);
+      const bucket = storage.bucket(process.env.GCS_BUCKET!);
       const file = bucket.file(newImage.filename);
 
       const exists = await file.exists();
@@ -56,13 +58,10 @@ export const downloadAndSaveImage = async (imageUrl: string): Promise<string> =>
     const buffer = await response.arrayBuffer();
     const filename = `${uuidv4()}.jpg`;
     
-    // Initialize Google Cloud Storage with absolute path to credentials
-    const storage = new Storage({
-      keyFilename: path.resolve(__dirname, "../../config/gcs-key.json"),
-      projectId: process.env.GCLOUD_PROJECT
-    });
+    // Initialize Google Cloud Storage with dynamic auth configuration
+    const storage = new Storage(getGCSAuth());
     
-    const bucket = storage.bucket(process.env.GCS_BUCKET);
+    const bucket = storage.bucket(process.env.GCS_BUCKET!);
     const file = bucket.file(filename);
     
     // Upload buffer to Google Cloud Storage
@@ -109,5 +108,4 @@ export const downloadAndSaveImage = async (imageUrl: string): Promise<string> =>
 
 // const upload = multer({ storage: storage });
 // export default upload
-
 

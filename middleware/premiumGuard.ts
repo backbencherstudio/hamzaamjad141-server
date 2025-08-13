@@ -18,36 +18,42 @@ export const premiumGuard = async (
 
     const userCreationDate = new Date(req.user.createdAt);
     const trialEndDate = calculateTrialEndDate(userCreationDate);
+    const now = new Date();
 
-    if (new Date() < trialEndDate) {
+    // Check if user is still in trial period
+    if (now < trialEndDate) {
       return next();
     }
 
+    // Find active subscription that hasn't expired
     const validSubscription = await prisma.subscription.findFirst({
       where: {
         userId: req.user.userId,
         status: "ACTIVE",
-        endDate: { gt: new Date() },
+        endDate: { gt: now },
       },
       orderBy: { endDate: "desc" },
       take: 1,
     });
 
     if (!validSubscription) {
-      console.log(232423)
-      await prisma.subscription.updateMany({
+      // Clean up any expired subscriptions
+      const expiredSubscriptions = await prisma.subscription.updateMany({
         where: {
           userId: req.user.userId,
           status: "ACTIVE",
-          endDate: { lte: new Date() },
+          endDate: { lte: now },
         },
         data: { status: "DEACTIVE" },
       });
 
-      await prisma.user.update({
-        where: { id: req.user.userId },
-        data: { premium: false },
-      });
+      // Only update user premium status if we actually found expired subscriptions
+      if (expiredSubscriptions.count > 0) {
+        await prisma.user.update({
+          where: { id: req.user.userId },
+          data: { premium: false },
+        });
+      }
 
       res.status(403).json({
         message: "Premium subscription required",
@@ -56,6 +62,20 @@ export const premiumGuard = async (
         upgradeUrl: "/subscribe",
       });
       return;
+    }
+
+    // ✅ User has valid subscription - ensure premium status is correct
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: { premium: true }
+    });
+
+    if (!user?.premium) {
+      // Fix inconsistency - user has valid subscription but premium is false
+      await prisma.user.update({
+        where: { id: req.user.userId },
+        data: { premium: true },
+      });
     }
 
     return next();
