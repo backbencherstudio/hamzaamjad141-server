@@ -1034,6 +1034,7 @@ export const checkRealSubscriptionStatus = async (req: any, res: Response) => {
         premium: true,
         createdAt: true,
         currentSubscriptionId: true,
+        role: true,
       }
     });
 
@@ -1041,6 +1042,31 @@ export const checkRealSubscriptionStatus = async (req: any, res: Response) => {
       return res.status(404).json({
         success: false,
         message: "User not found",
+      });
+    }
+
+
+    if (user.role === 'ADMIN') {
+      return res.json({
+        success: true,
+        data: {
+          userId: user.id,
+          hasRealSubscription: true,  
+          isInTrial: true,          
+          trialEndDate: null,    
+          currentPremiumStatus: user.premium,
+          subscriptions: {
+            stripe: null,
+            promoCodes: [],
+            total: 0,
+          },
+          summary: {
+            hasStripeSubscription: false,
+            hasPromoCodeSubscription: false,
+            accessType: "admin",        // Mark as admin access type
+            message: "User is an admin and has real access",
+          }
+        }
       });
     }
 
