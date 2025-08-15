@@ -49,7 +49,7 @@ export const premiumGuard = async (
       return next();
     }
 
-    if (now > trialEndDate) {
+    if (!validSubscription && now > trialEndDate) {
       await prisma.subscription.updateMany({
         where: {
           userId: req.user.userId,

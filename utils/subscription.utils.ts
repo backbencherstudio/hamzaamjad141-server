@@ -1,6 +1,6 @@
 // Subscription utility constants
 export const SUBSCRIPTION_DURATION_MS = 1 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
-export const TRIAL_PERIOD_DAYS = 0.005; // 3 days trial period
+export const TRIAL_PERIOD_DAYS = 0.01; // 3 days trial period
 
 // Helper function to calculate subscription end date
 export const calculateSubscriptionEndDate = (startDate?: Date): Date => {
