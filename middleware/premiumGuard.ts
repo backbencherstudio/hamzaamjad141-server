@@ -21,6 +21,10 @@ export const premiumGuard = async (
     const trialEndDate = calculateTrialEndDate(userCreationDate);
     const now = new Date();
 
+    if (req.user.role === "ADMIN") {
+      return next();
+    }
+
     // Check if user is still in trial period
     if (now < trialEndDate) {
       // Ensure user has premium access during trial
@@ -58,7 +62,7 @@ export const premiumGuard = async (
       if (!user?.premium) {
         await prisma.user.update({
           where: { id: userId },
-          data: { 
+          data: {
             premium: true,
             currentSubscriptionId: validSubscription.id,
           },
@@ -82,13 +86,15 @@ export const premiumGuard = async (
     // IMPORTANT: Set premium to FALSE since user has no valid subscription after trial expires
     await prisma.user.update({
       where: { id: userId },
-      data: { 
+      data: {
         premium: false,
         currentSubscriptionId: null,
       },
     });
 
-    console.log(`User ${userId}: Trial expired, no valid subscription found. Premium set to false.`);
+    console.log(
+      `User ${userId}: Trial expired, no valid subscription found. Premium set to false.`
+    );
 
     // Return premium required response
     res.status(403).json({
@@ -99,7 +105,6 @@ export const premiumGuard = async (
       hasExpiredSubscriptions: expiredSubscriptions.count > 0,
       requiresSubscription: true,
     });
-    
   } catch (error) {
     console.error("Premium guard error:", error);
     res.status(500).json({ message: "Internal server error" });
