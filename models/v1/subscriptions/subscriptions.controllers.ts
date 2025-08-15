@@ -6,7 +6,7 @@ import {
   sendPaymentFailedEmail, 
   sendSubscriptionCancelledEmail 
 } from "../../../utils/emailService.utils";
-import { SUBSCRIPTION_DURATION_MS, calculateSubscriptionEndDate } from "../../../utils/subscription.utils";
+import { SUBSCRIPTION_DURATION_MS, calculateSubscriptionEndDate, calculateTrialEndDate } from "../../../utils/subscription.utils";
 
 const prisma = new PrismaClient();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -41,7 +41,7 @@ export const createCheckoutSession = async (req: any, res: Response) => {
 
     // Check if user is in trial period
     const userCreationDate = new Date(user.createdAt);
-    const trialEndDate = calculateSubscriptionEndDate(userCreationDate);
+    const trialEndDate = calculateTrialEndDate(userCreationDate);
     const isInTrial = new Date() < trialEndDate;
 
     // Create or retrieve Stripe customer
@@ -687,7 +687,7 @@ export const getSubscriptionStatus = async (req: any, res: Response) => {
 
     // Calculate trial info
     const userCreationDate = new Date(user.createdAt);
-    const trialEndDate = calculateSubscriptionEndDate(userCreationDate);
+    const trialEndDate = calculateTrialEndDate(userCreationDate);
     const isInTrial = new Date() < trialEndDate;
 
     // Get active subscription
