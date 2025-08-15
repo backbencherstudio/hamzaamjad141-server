@@ -37,7 +37,7 @@ export const premiumGuard = async (
     if (validSubscription) {
       const user = await prisma.user.findUnique({
         where: { id: req.user.userId },
-        select: { premium: true }
+        select: { premium: true },
       });
 
       if (!user?.premium) {
@@ -49,28 +49,29 @@ export const premiumGuard = async (
       return next();
     }
 
-    await prisma.subscription.updateMany({
-      where: {
-        userId: req.user.userId,
-        status: "ACTIVE",
-        endDate: { lte: now },
-      },
-      data: { status: "DEACTIVE" },
-    });
+    if (now > trialEndDate) {
+      await prisma.subscription.updateMany({
+        where: {
+          userId: req.user.userId,
+          status: "ACTIVE",
+          endDate: { lte: now },
+        },
+        data: { status: "DEACTIVE" },
+      });
 
-    // Update user premium status to false
-    await prisma.user.update({
-      where: { id: req.user.userId },
-      data: { premium: false },
-    });
+      // Update user premium status to false
+      await prisma.user.update({
+        where: { id: req.user.userId },
+        data: { premium: false },
+      });
 
-    res.status(403).json({
-      message: "Premium subscription required",
-      trialEnded: true,
-      trialEndDate: trialEndDate.toISOString(),
-      upgradeUrl: "/subscribe",
-    });
-    
+      res.status(403).json({
+        message: "Premium subscription required",
+        trialEnded: true,
+        trialEndDate: trialEndDate.toISOString(),
+        upgradeUrl: "/subscribe",
+      });
+    }
   } catch (error) {
     console.error("Premium guard error:", error);
     res.status(500).json({ message: "Internal server error" });
