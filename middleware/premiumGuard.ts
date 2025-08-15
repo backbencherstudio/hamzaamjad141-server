@@ -20,13 +20,10 @@ export const premiumGuard = async (
     const trialEndDate = calculateTrialEndDate(userCreationDate);
     const now = new Date();
 
-    // Check if user is still in trial period
     if (now < trialEndDate) {
-      // If in trial period, grant access regardless of subscription status
       return next();
     }
 
-    // If trial period has ended, check for active subscription
     const validSubscription = await prisma.subscription.findFirst({
       where: {
         userId: req.user.userId,
@@ -38,14 +35,12 @@ export const premiumGuard = async (
     });
 
     if (validSubscription) {
-      // User has valid subscription - ensure premium status is correct
       const user = await prisma.user.findUnique({
         where: { id: req.user.userId },
         select: { premium: true }
       });
 
       if (!user?.premium) {
-        // Fix inconsistency - user has valid subscription but premium is false
         await prisma.user.update({
           where: { id: req.user.userId },
           data: { premium: true },
@@ -54,14 +49,13 @@ export const premiumGuard = async (
       return next();
     }
 
-    // No valid subscription found - clean up expired subscriptions
     await prisma.subscription.updateMany({
       where: {
         userId: req.user.userId,
         status: "ACTIVE",
         endDate: { lte: now },
       },
-      data: { status: "DEACTIVE" }, // Use the correct enum value as defined in your Prisma schema
+      data: { status: "DEACTIVE" },
     });
 
     // Update user premium status to false

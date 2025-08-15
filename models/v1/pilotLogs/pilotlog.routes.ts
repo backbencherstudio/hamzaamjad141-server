@@ -25,7 +25,7 @@ router.get("/review-log/:id", reviewLogPage);
 router.post("/addlog-approve/:id", instructorApprov);
 router.post("/addlog-reject/:id", instructorReject);
 
-router.get("/get-logsummary", verifyUser('USER'), premiumGuard, getLogSummary);
+router.get("/get-logsummary", verifyUser('ANY'), premiumGuard, getLogSummary);
 
 router.delete("/delete-log/:id", verifyUser('ANY'), premiumGuard, deleteLog);
 
