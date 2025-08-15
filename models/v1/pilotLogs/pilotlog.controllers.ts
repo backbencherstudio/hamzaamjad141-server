@@ -197,7 +197,7 @@ export const getLogbook = async (req: any, res: Response) => {
       success: true,
       message: "Logbook summary fetched successfully",
       data: {
-        logs,
+        logs: logs || null,
         totalLogs,
         totalPages,
         currentPage: page,

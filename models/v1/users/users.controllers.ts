@@ -776,6 +776,7 @@ export const facebookLogin = async (req: Request, res: Response) => {
 // };
 
 export const updateUser = async (req: any, res: Response) => {
+  console.log("heating updateUser controller");
   console.log(req.body);
   const userId = req.user?.userId;
   const { name, license, oldPassword, newPassword } = req.body;
