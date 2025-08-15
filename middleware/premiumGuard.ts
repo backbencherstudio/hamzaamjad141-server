@@ -49,7 +49,7 @@ export const premiumGuard = async (
       return next();
     }
 
-    if (!validSubscription && now > trialEndDate) {
+
       await prisma.subscription.updateMany({
         where: {
           userId: req.user.userId,
@@ -71,7 +71,7 @@ export const premiumGuard = async (
         trialEndDate: trialEndDate.toISOString(),
         upgradeUrl: "/subscribe",
       });
-    }
+    
   } catch (error) {
     console.error("Premium guard error:", error);
     res.status(500).json({ message: "Internal server error" });

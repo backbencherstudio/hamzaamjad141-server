@@ -1,6 +1,6 @@
 // Subscription utility constants
-export const SUBSCRIPTION_DURATION_MS = 1 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
-export const TRIAL_PERIOD_DAYS = 0.01; // 3 days trial period
+export const SUBSCRIPTION_DURATION_MS = 1 * 24 * 60 * 60 * 1000; // 1 day in milliseconds
+export const TRIAL_PERIOD_DAYS = 5 * 60 * 1000; // 5 minutes trial period in milliseconds
 
 // Helper function to calculate subscription end date
 export const calculateSubscriptionEndDate = (startDate?: Date): Date => {
@@ -11,7 +11,7 @@ export const calculateSubscriptionEndDate = (startDate?: Date): Date => {
 // Helper function to calculate trial end date
 export const calculateTrialEndDate = (userCreationDate: Date): Date => {
   const trialEndDate = new Date(userCreationDate);
-  trialEndDate.setDate(userCreationDate.getDate() + TRIAL_PERIOD_DAYS);
+  trialEndDate.setMilliseconds(userCreationDate.getMilliseconds() + TRIAL_PERIOD_DAYS); // Use milliseconds for 5 minutes
   return trialEndDate;
 };
 
