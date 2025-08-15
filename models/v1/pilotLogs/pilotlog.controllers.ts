@@ -185,19 +185,11 @@ export const getLogbook = async (req: any, res: Response) => {
 
     const totalPages = Math.ceil(totalLogs / limit);
 
-    if (!logs || logs.length === 0) {
-      res.status(404).json({
-        success: false,
-        message: `No flight logs found for this user with status: ${statusFilter}`,
-      });
-      return;
-    }
-
     res.status(200).json({
       success: true,
       message: "Logbook summary fetched successfully",
       data: {
-        logs: logs || null,
+        logs: logs.length > 0 ? logs : [], // Ensure empty array if no logs
         totalLogs,
         totalPages,
         currentPage: page,
@@ -213,6 +205,7 @@ export const getLogbook = async (req: any, res: Response) => {
     });
   }
 };
+
 
 export const deleteLog = async (req: any, res: Response) => {
   try {
