@@ -17,7 +17,7 @@ import { premiumGuard } from "../../../middleware/premiumGuard";
 const router = express.Router();
 
 router.post("/add-addlog", verifyUser('ANY'), premiumGuard, createLog);
-router.get("/get-logbook", verifyUser('ANY'), getLogbook);
+router.get("/get-logbook", verifyUser('ANY'),  getLogbook);
 
 // New route for reviewing logs
 router.get("/review-log/:id", reviewLogPage);

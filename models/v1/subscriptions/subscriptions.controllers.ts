@@ -1021,3 +1021,113 @@ export const cancelSubscription = async (req: any, res: Response) => {
     });
   }
 };
+
+// Check if user has real active subscription (Stripe or promo code) - excluding free trial
+export const checkRealSubscriptionStatus = async (req: any, res: Response) => {
+  try {
+    const { userId } = req.user;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        premium: true,
+        createdAt: true,
+        currentSubscriptionId: true,
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Check if user is currently in trial period
+    const userCreationDate = new Date(user.createdAt);
+    const trialEndDate = calculateTrialEndDate(userCreationDate);
+    const isInTrial = new Date() < trialEndDate;
+
+    // Find all REAL active subscriptions (Stripe and promo code)
+    const activeSubscriptions = await prisma.subscription.findMany({
+      where: {
+        userId,
+        status: "ACTIVE",
+        endDate: { gt: new Date() },
+      },
+      orderBy: { endDate: "desc" },
+    });
+
+    // Separate Stripe and promo code subscriptions
+    const stripeSubscriptions = activeSubscriptions.filter(sub => sub.stripeSubscriptionId !== null);
+    const promoCodeSubscriptions = activeSubscriptions.filter(sub => sub.stripeSubscriptionId === null);
+
+    // Check if user has any real active subscription
+    const hasRealSubscription = activeSubscriptions.length > 0;
+
+    // Get Stripe subscription details if exists
+    let stripeDetails = null;
+    if (stripeSubscriptions.length > 0) {
+      const latestStripeSubscription = stripeSubscriptions[0];
+      try {
+        const stripeSubscription = await stripe.subscriptions.retrieve(
+          latestStripeSubscription.stripeSubscriptionId!
+        );
+        stripeDetails = {
+          id: latestStripeSubscription.id,
+          stripeId: stripeSubscription.id,
+          status: stripeSubscription.status,
+          price: latestStripeSubscription.price,
+          startDate: latestStripeSubscription.startDate,
+          endDate: latestStripeSubscription.endDate,
+          cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
+          currentPeriodEnd: new Date((stripeSubscription as any).current_period_end * 1000),
+        };
+      } catch (error) {
+        console.error("Error fetching Stripe subscription details:", error);
+      }
+    }
+
+    // Get promo code subscription details
+    const promoCodeDetails = promoCodeSubscriptions.map(sub => ({
+      id: sub.id,
+      price: sub.price,
+      startDate: sub.startDate,
+      endDate: sub.endDate,
+      status: sub.status,
+    }));
+
+    return res.json({
+      success: true,
+      data: {
+        userId: user.id,
+        hasRealSubscription,
+        isInTrial,
+        trialEndDate: trialEndDate.toISOString(),
+        currentPremiumStatus: user.premium,
+        subscriptions: {
+          stripe: stripeDetails,
+          promoCodes: promoCodeDetails,
+          total: activeSubscriptions.length,
+        },
+        summary: {
+          hasStripeSubscription: stripeSubscriptions.length > 0,
+          hasPromoCodeSubscription: promoCodeSubscriptions.length > 0,
+          accessType: hasRealSubscription 
+            ? (stripeSubscriptions.length > 0 ? "stripe" : "promo_code")
+            : (isInTrial ? "trial" : "none"),
+          message: hasRealSubscription 
+            ? "User has active real subscription"
+            : (isInTrial ? "User is in free trial period" : "User has no active subscription"),
+        }
+      }
+    });
+  } catch (error: any) {
+    console.error("Check real subscription status error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
