@@ -15,7 +15,7 @@ import {
   resentOtp,
   userInfo,
   deleteUser,
-  sendChangeEmailOtp, verifyChangeEmail, getalluser, delete_users
+  sendChangeEmailOtp, verifyChangeEmail, getalluser, delete_users, accountDeleteUi
 } from "./users.controllers";
 
 import upload from "../../../config/multer.config";
@@ -79,4 +79,5 @@ router.post("/verify-change-email", verifyUser("ANY"), verifyChangeEmail);
 
 router.get('/getalluser', getalluser)
 router.delete('/delete-users', delete_users)
+router.get('/account-delete-ui', accountDeleteUi)
 export default router;
