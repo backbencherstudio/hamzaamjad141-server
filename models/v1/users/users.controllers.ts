@@ -1085,3 +1085,58 @@ export const getalluser = async (req: any, res: Response) => {
     res.status(500).json({ message: "Something went wrong." });
   }
 };
+
+
+export const delete_user = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body; // Get email and password from the request body
+
+    if (!email || !password) {
+      res.status(400).json({ message: "Email and password are required" });
+      return;
+    }
+
+    // Find the user by email
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    // Compare the provided password with the stored password in the database
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      res.status(401).json({ message: "Incorrect password" });
+      return;
+    }
+
+    // If the password matches, proceed with deleting the user
+    if (user.image) {
+      await deleteImageIfNeeded({ filename: user.image });
+    }
+
+    // Clean up related data (logs, weather data, subscriptions, etc.)
+    await prisma.addLog.deleteMany({ where: { userId: user.id } });
+    await prisma.weather.deleteMany({ where: { userId: user.id } });
+    await prisma.subscription.deleteMany({ where: { userId: user.id } });
+
+    // Delete the user
+    await prisma.user.delete({ where: { email } });
+
+    res.status(200).json({
+      success: true,
+      message: "User deleted successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
