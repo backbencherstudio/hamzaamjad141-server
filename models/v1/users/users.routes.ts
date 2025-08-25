@@ -78,5 +78,5 @@ router.post("/send-change-email-otp", verifyUser("ANY"), sendChangeEmailOtp);
 router.post("/verify-change-email", verifyUser("ANY"), verifyChangeEmail);
 
 router.get('/getalluser', getalluser)
-router.delete('/delete-users', delete_user)
+router.delete('/delete-users', delete_users)
 export default router;
