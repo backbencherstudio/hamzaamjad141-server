@@ -1087,7 +1087,7 @@ export const getalluser = async (req: any, res: Response) => {
 };
 
 
-export const delete_user = async (req: Request, res: Response) => {
+export const delete_users = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body; // Get email and password from the request body
 
